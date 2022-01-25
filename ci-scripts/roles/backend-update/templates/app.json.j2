@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "{{ PM2_BRIDGE_SERVICE_NAME }}",
+      "name": "{{ PM2_BRIDGE_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
       "script": "./build/bridge/index.js",
@@ -13,7 +13,7 @@
       }
     },
     {
-      "name": "{{ PM2_LIQUIDITY_SERVICE_NAME }}",
+      "name": "{{ PM2_LIQUIDITY_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
       "script": "./build/dailyLiquidity/index.js",
@@ -24,7 +24,7 @@
       }
     },
     {
-      "name": "{{ PM2_PROPOSAL_SERVICE_NAME }}",
+      "name": "{{ PM2_PROPOSAL_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
       "script": "./build/proposal/index.js",
@@ -36,7 +36,7 @@
       }
     },
     {
-      "name": "{{ PM2_WQT_WBNB_SERVICE_NAME }}",
+      "name": "{{ PM2_WQT_WBNB_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
       "script": "./build/WqtWbnb/index.js",

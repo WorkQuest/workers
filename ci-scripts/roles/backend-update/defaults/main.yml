@@ -2,4 +2,9 @@
 # defaults file for backend-update
 #BACKEND_BIN: '/home/centos/name-your-app'
 backend_bin_mode: '0640'
+bridge_env: .env.bridge
+liquidity_env: .env.liquidity
+pension_env: .env.pensionFund
+proposal_env: .env.proposal
+wqt_wbnb_env: .env.WqtWbnb
 BACKEND_ENV: .env

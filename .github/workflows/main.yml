@@ -100,7 +100,7 @@ jobs:
           PM2_LIQUIDITY_WORKER_NAME=${{ secrets.PROD_PM2_LIQUIDITY_WORKER_NAME }} \
           PM2_PROPOSAL_WORKER_NAME=${{ secrets.PROD_PM2_PROPOSAL_WORKER_NAME }} \
           PM2_WQT_WBNB_WORKER_NAME=${{ secrets.PROD_PM2_WQT_WBNB_WORKER_NAME }} \
-          PM2_PENSION_FUND_WORKER_NAME=${{ secrets.PROD_PM2_PENSION_FUND_WORKER_NAME }}
+          PM2_PENSION_FUND_WORKER_NAME=${{ secrets.PROD_PM2_PENSION_FUND_WORKER_NAME }} \
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;
 
   deploy-develop:
@@ -171,6 +171,6 @@ jobs:
           PM2_LIQUIDITY_WORKER_NAME=${{ secrets.DEV_PM2_LIQUIDITY_WORKER_NAME }} \
           PM2_PROPOSAL_WORKER_NAME=${{ secrets.DEV_PM2_PROPOSAL_WORKER_NAME }} \
           PM2_WQT_WBNB_WORKER_NAME=${{ secrets.DEV_PM2_WQT_WBNB_WORKER_NAME }} \
-          PM2_PENSION_FUND_WORKER_NAME=${{ secrets.DEV_PM2_PENSION_FUND_WORKER_NAME }}
+          PM2_PENSION_FUND_WORKER_NAME=${{ secrets.DEV_PM2_PENSION_FUND_WORKER_NAME }} \
 
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;

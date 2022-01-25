@@ -31,44 +31,44 @@
 - name: Build code
   shell: npm run build
   args:
-    chdir: '{{ BACKEND_BIN }}'
+   chdir: '{{ BACKEND_BIN }}'
 
-- name: Copy or generate env file
-  template:
-    src: ./{{ BACKEND_ENV }}.j2
-    dest: '{{ BACKEND_BIN }}/{{ BACKEND_ENV }}'
-
-- name: Copy or generate env file
+- name: Copy or generate app.json file
   template:
     src: ./app.json.j2
     dest: '{{ BACKEND_BIN }}/app.json'
 
-- name: Start backend process
-  shell: pm2 reload app.json
-  args:
-    chdir: '{{ BACKEND_BIN }}'
-
-- name: Saving current process list
-  shell: pm2 save
-  args:
-    chdir: '{{ BACKEND_BIN }}'
-
 - name: Copy or generate bridge env file
   template:
     src: ./{{ bridge_env }}.j2
-    dest: '{{ backend_bin }}/{{ bridge_env }}'
+    dest: '{{ BACKEND_BIN }}/{{ bridge_env }}'
 
 - name: Copy or generate liquidity env file
   template:
     src: ./{{ liquidity_env }}.j2
-    dest: '{{ backend_bin }}/{{ liquidity_env }}'
+    dest: '{{ BACKEND_BIN }}/{{ liquidity_env }}'
+
+- name: Copy or generate pension-fund env file
+  template:
+    src: ./{{ pension_env }}.j2
+    dest: '{{ BACKEND_BIN }}/{{ pension_env }}'
 
 - name: Copy or generate proposal env file
   template:
     src: ./{{ proposal_env }}.j2
-    dest: '{{ backend_bin }}/{{ proposal_env }}'
+    dest: '{{ BACKEND_BIN }}/{{ proposal_env }}'
 
 - name: Copy or generate wqt-wbnb env file
   template:
     src: ./{{ wqt_wbnb_env }}.j2
-    dest: '{{ backend_bin }}/{{ wqt_wbnb_env }}'
+    dest: '{{ BACKEND_BIN }}/{{ wqt_wbnb_env }}'
+
+- name: Start backend process
+  shell: pm2 reload app.json
+  args:
+   chdir: '{{ BACKEND_BIN }}'
+
+- name: Saving current process list
+  shell: pm2 save
+  args:
+   chdir: '{{ BACKEND_BIN }}'
