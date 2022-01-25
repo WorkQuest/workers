@@ -16,17 +16,18 @@
     "PensionFund:compile": "tsc && node ./build/pensionFund/index.js"
   },
   "dependencies": {
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#6fb22d13e868d33515464ab86f2237346c5386ea",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
     "dotenv": "^14.3.0",
     "ethereum-block-by-date": "^1.4.2",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#6fb22d13e868d33515464ab86f2237346c5386ea",
     "node-cron": "^3.0.0",
     "nodemon": "^2.0.15",
     "npm": "^7.14.0",
     "pg": "^8.7.1",
     "pg-hstore": "^2.3.4",
+    "reflect-metadata": "^0.1.13",
     "sequelize": "^6.6.2",
     "web3": "^1.7.0"
   }
