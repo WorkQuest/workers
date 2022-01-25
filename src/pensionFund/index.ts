@@ -27,12 +27,12 @@ export async function init() {
 
   // @ts-ignore
   const pensionFundProvider = new PensionFundProvider(web3, pensionFundContract);
-  const pensionFundController = new PensionFundController(pensionFundProvider, BlockchainNetworks.workQuestNetwork);
+  const pensionFundController = new PensionFundController(pensionFundProvider, BlockchainNetworks.workQuestDevNetwork);
 
   const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
-    where: { network: BlockchainNetworks.workQuestNetwork },
+    where: { network: BlockchainNetworks.workQuestDevNetwork },
     defaults: {
-      network: BlockchainNetworks.workQuestNetwork,
+      network: BlockchainNetworks.workQuestDevNetwork,
       lastParsedBlock: configPensionFund.parseEventsFromHeight,
     },
   });

@@ -12,11 +12,13 @@
     "dailyLiquidity:compile": "tsc && node ./build/dailyLiquidity/index.js",
     "WqtWbnb:start": "nodemon -e ts --exec \"npm run WqtWbnb:compile\"",
     "WqtWbnb:compile": "tsc && node ./build/WqtWbnb/index.js",
+    "questFactory:start": "nodemon -e ts --exec \"npm run questFactory:compile\"",
+    "questFactory:compile": "tsc && node ./build/questFactory/index.js",
     "PensionFund:start": "nodemon -e ts --exec \"npm run PensionFund:compile\"",
     "PensionFund:compile": "tsc && node ./build/pensionFund/index.js"
   },
   "dependencies": {
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#6fb22d13e868d33515464ab86f2237346c5386ea",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#c79aba3b84f90ed56195d1aa86d024b3bec90755",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
@@ -29,6 +31,7 @@
     "pg-hstore": "^2.3.4",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^6.6.2",
+    "uuid-int": "^3.1.0",
     "web3": "^1.7.0"
   }
 }
