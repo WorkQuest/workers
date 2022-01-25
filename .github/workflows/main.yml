@@ -1,4 +1,4 @@
-name: deploy-worker
+name: Node-CI
 
 on:
   push:
@@ -6,41 +6,37 @@ on:
 
 jobs:
   build:
+
     runs-on: ubuntu-latest
     if: "contains(github.event.head_commit.message, '[update]')"
 
     steps:
       - name: Copy code files to container
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v2
 
       - name: Install Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v1
         with:
           node-version: '14.x'
 
-      - name: Environment preparation
-        run: |
-          mkdir -p ~/.ssh/
-          touch ~/.ssh/id_rsa
-          chmod -R go= ~/.ssh
-          chmod 600 ~/.ssh/id_rsa
-          echo "${{ secrets.SERVER_SSH_KEY }}" >> ~/.ssh/id_rsa
-
       - name: Install npm dependencies
-        run: npm i
+        run: npm install
+
+      - name: Run build task
+        run: npm run build
 
 #      - name: Run build task
 #        run: npm run build
 
   deploy-master:
-
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    needs: [build]
+    environment: master
+    if: "github.ref == 'refs/heads/master'"
+    runs-on: ubuntu-18.04
+    needs: [ build ]
 
     steps:
       - name: Copy code files to container
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v2
 
       - name: Environment preparation
         run: |
@@ -104,14 +100,15 @@ jobs:
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;
 
   deploy-develop:
+    environment: develop
 
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    needs: [build]
+    if: "github.ref == 'refs/heads/develop'"
+    runs-on: ubuntu-18.04
+    needs: [ build ]
 
     steps:
       - name: Copy code files to container
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v2
 
       - name: Environment preparation
         run: |
