@@ -10,15 +10,16 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "removeComments": true,
+    "removeComments": true
   },
   "exclude": ["node_modules"],
   "include": [
-    "./bridge/abi/*.json",
-    "./server/abi/*.json",
-    "./proposal/abi/*.json",
-    "./dailyLiquidity/abi/*.json",
-    "./WqtWbnb/abi/*.json",
-    "./pensionFund/abi/*.json",
+    "./src/**/*.ts",
+    "./src/bridge/abi/*.json",
+    "./src/proposal/abi/*.json",
+    "./src/dailyLiquidity/abi/*.json",
+    "./src/WqtWbnb/abi/*.json",
+    "./src/pensionFund/abi/*.json"
   ],
+  "rootDir":  ["src"]
 }
