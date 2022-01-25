@@ -57,7 +57,7 @@ jobs:
         run: |
           chmod 700 ci-scripts
           cd ci-scripts
-          ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
+          ansible-playbook -vvv -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
 
           DB_LINK=${{ secrets.PROD_DB_LINK }} \
 
