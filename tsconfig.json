@@ -12,14 +12,17 @@
     "resolveJsonModule": true,
     "removeComments": true
   },
-  "exclude": ["node_modules"],
+  "exclude": [
+    "node_modules",
+    "./src/pensionFund"
+  ],
   "include": [
     "./src/**/*.ts",
     "./src/bridge/abi/*.json",
     "./src/proposal/abi/*.json",
     "./src/dailyLiquidity/abi/*.json",
-    "./src/WqtWbnb/abi/*.json",
-    "./src/pensionFund/abi/*.json"
+    "./src/WqtWbnb/abi/*.json"
+//    "./src/pensionFund/abi/*.json"
   ],
   "rootDir":  ["src"]
 }
