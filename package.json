@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "build": "tsc",
     "bridge:start": "nodemon -e ts --exec \"npm run bridge:compile\"",
     "bridge:compile": "tsc && node ./build/bridge/index.js",
     "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",
