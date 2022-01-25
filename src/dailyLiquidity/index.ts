@@ -9,7 +9,7 @@ import { initDatabase } from '@workquest/database-models/lib/models';
 import configDatabase from './config/config.database';
 import configLiquidity from './config/config.liquidity';
 
-const abiFilePath = path.join(__dirname, '/abi/WqtWbnb.json');
+const abiFilePath = path.join(__dirname, './abi/DailyLiquidityAbi.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {

@@ -1,5 +1,32 @@
 {
+  "name": "work-quest-workers",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "bridge:start": "nodemon -e ts --exec \"npm run bridge:compile\"",
+    "bridge:compile": "tsc && node ./build/bridge/index.js",
+    "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",
+    "proposal:compile": "tsc && node ./build/proposal/index.js",
+    "dailyLiquidity:start": "nodemon -e ts --exec \"npm run dailyLiquidity:compile\"",
+    "dailyLiquidity:compile": "tsc && node ./build/dailyLiquidity/index.js",
+    "WqtWbnb:start": "nodemon -e ts --exec \"npm run WqtWbnb:compile\"",
+    "WqtWbnb:compile": "tsc && node ./build/WqtWbnb/index.js",
+    "PensionFund:start": "nodemon -e ts --exec \"npm run PensionFund:compile\"",
+    "PensionFund:compile": "tsc && node ./build/pensionFund/index.js"
+  },
   "dependencies": {
-    "node-cron": "^3.0.0"
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#158d885d98c5d92fc601dd5cdac022e6dc42345a",
+    "amqplib": "^0.8.0",
+    "axios": "^0.25.0",
+    "bignumber.js": "^9.0.2",
+    "dotenv": "^14.3.0",
+    "ethereum-block-by-date": "^1.4.2",
+    "node-cron": "^3.0.0",
+    "nodemon": "^2.0.15",
+    "npm": "^7.14.0",
+    "pg": "^8.7.1",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.6.2",
+    "web3": "^1.7.0"
   }
 }
