@@ -1,0 +1,43 @@
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+allFiredEvents
+scTopics
+
+# node-waf configuration
+.lock-wscript
+
+# Dependency directory
+node_modules
+
+# Debug log from npm
+npm-debug.log
+
+# local env variables
+.env
+.env.bridge
+.env.liquidity
+.env.proposal
+.env.quest
+.env.WqtWbnb
+.env.pensionFund
+
+# build directory
+build/
+
+# lol macs
+.DS_Store/
+
+package-lock.json
+# now pm2 app file is generating on deploy
+app.json
+.idea
+/db-config.json
+
+# http request for debug
+http-requests
