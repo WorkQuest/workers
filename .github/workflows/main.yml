@@ -59,7 +59,9 @@ jobs:
           cd ci-scripts
           ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
 
-          DB_LINK=${{ secrets.MASTER_DB_LINK }} \
+          DB_LINK=${{ secrets.PROD_DB_LINK }} \
+
+          NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.PROD_NOTIFICATION_MESSAGE_BROKER_LINK }} \
 
           BRIDGE_DEBUG=${{ secrets.secrets.PROD_BRIDGE_DEBUG }} \
           BRIDGE_ETH_MAINNETWORK_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.PROD_BRIDGE_ETH_MAINNETWORK_PARSE_EVENTS_FROM_HEIGHT }} \
@@ -128,7 +130,9 @@ jobs:
           cd ci-scripts
           ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
 
-          DB_LINK=${{ secrets.MASTER_DB_LINK }} \
+          DB_LINK=${{ secrets.DEV_DB_LINK }} \
+
+          NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.DEV_NOTIFICATION_MESSAGE_BROKER_LINK }} \
 
           BRIDGE_DEBUG=${{ secrets.secrets.DEV_BRIDGE_DEBUG }} \
           BRIDGE_ETH_MAINNETWORK_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.DEV_BRIDGE_ETH_MAINNETWORK_PARSE_EVENTS_FROM_HEIGHT }} \
