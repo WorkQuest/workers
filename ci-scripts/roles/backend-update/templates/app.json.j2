@@ -1,12 +1,63 @@
 {
   "apps": [
     {
-      "name": "{{ SERVICE_NAME }}",
+      "name": "{{ PM2_BRIDGE_SERVICE_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
-      "script": "./build/main.js",
+      "script": "./build/bridge/index.js",
+      "cron_restart": "0 */5 * * *",
       "autorestart": true,
-      "listen_timeout": 15000
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
     },
+    {
+      "name": "{{ PM2_LIQUIDITY_SERVICE_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/dailyLiquidity/index.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_PROPOSAL_SERVICE_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/proposal/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_WQT_WBNB_SERVICE_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/WqtWbnb/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_PENSION_FUND_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/pensionFund/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    }
   ]
 }

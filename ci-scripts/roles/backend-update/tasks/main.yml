@@ -52,3 +52,23 @@
   shell: pm2 save
   args:
     chdir: '{{ BACKEND_BIN }}'
+
+- name: Copy or generate bridge env file
+  template:
+    src: ./{{ bridge_env }}.j2
+    dest: '{{ backend_bin }}/{{ bridge_env }}'
+
+- name: Copy or generate liquidity env file
+  template:
+    src: ./{{ liquidity_env }}.j2
+    dest: '{{ backend_bin }}/{{ liquidity_env }}'
+
+- name: Copy or generate proposal env file
+  template:
+    src: ./{{ proposal_env }}.j2
+    dest: '{{ backend_bin }}/{{ proposal_env }}'
+
+- name: Copy or generate wqt-wbnb env file
+  template:
+    src: ./{{ wqt_wbnb_env }}.j2
+    dest: '{{ backend_bin }}/{{ wqt_wbnb_env }}'
