@@ -1,7 +1,13 @@
-import {BlockchainNetworks, PensionFundBlockInfo, ClaimedEvent, ReceivedEvent, WithdrewEvent} from '@workquest/database-models/lib/models';
 import { PensionFundEvent } from './types';
 import { EventData } from 'web3-eth-contract';
 import {Web3Provider } from "../providers/types";
+import {
+  BlockchainNetworks,
+  PensionFundBlockInfo,
+  PensionFundClaimedEvent,
+  PensionFundReceivedEvent,
+  PensionFundWithdrewEvent,
+} from '@workquest/database-models/lib/models';
 
 export class PensionFundController {
   constructor(
@@ -26,7 +32,7 @@ export class PensionFundController {
   protected async receivedEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    await ReceivedEvent.findOrCreate({
+    await PensionFundReceivedEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
         timestamp: block.timestamp,
@@ -49,7 +55,7 @@ export class PensionFundController {
   protected async withdrewEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    await WithdrewEvent.findOrCreate({
+    await PensionFundWithdrewEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
         timestamp: block.timestamp,
@@ -72,7 +78,7 @@ export class PensionFundController {
   protected async claimedEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    await ClaimedEvent.findOrCreate({
+    await PensionFundClaimedEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
         timestamp: block.timestamp,
