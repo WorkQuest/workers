@@ -1,0 +1,54 @@
+---
+# tasks file for backend-update
+- name: Delete backend dir
+  file:
+    path: '{{ BACKEND_BIN }}'
+    state: absent
+
+- name: Create backend dir
+  file:
+    path: '{{ BACKEND_BIN }}'
+    state: directory
+    recurse: yes
+
+- name: Upload backend files
+  synchronize:
+    src: '{{ SRC_DIR }}'
+    dest: '{{ BACKEND_BIN }}'
+  register: copyfiles
+
+- name: Install "typescript" node.js package globally.
+  npm:
+    name: typescript
+    global: yes
+  become: yes
+
+- name: Install packages based on package.json
+  npm:
+    path: '{{ BACKEND_BIN }}'
+    state: present
+
+- name: Build code
+  shell: npm run build
+  args:
+    chdir: '{{ BACKEND_BIN }}'
+
+- name: Copy or generate env file
+  template:
+    src: ./{{ BACKEND_ENV }}.j2
+    dest: '{{ BACKEND_BIN }}/{{ BACKEND_ENV }}'
+
+- name: Copy or generate env file
+  template:
+    src: ./app.json.j2
+    dest: '{{ BACKEND_BIN }}/app.json'
+
+- name: Start backend process
+  shell: pm2 reload app.json
+  args:
+    chdir: '{{ BACKEND_BIN }}'
+
+- name: Saving current process list
+  shell: pm2 save
+  args:
+    chdir: '{{ BACKEND_BIN }}'

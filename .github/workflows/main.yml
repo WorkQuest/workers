@@ -1,0 +1,99 @@
+name: deploy-worker
+
+on:
+  push:
+    branches: [ master, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, '[update]')"
+
+    steps:
+      - name: Copy code files to container
+        uses: actions/checkout@v2.4.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
+
+      - name: Environment preparation
+        run: |
+          mkdir -p ~/.ssh/
+          touch ~/.ssh/id_rsa
+          chmod -R go= ~/.ssh
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SERVER_SSH_KEY }}" >> ~/.ssh/id_rsa
+
+      - name: Install npm dependencies
+        run: npm i
+
+      - name: Run build task
+        run: npm run build
+
+  deploy-master:
+
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    needs: [build]
+
+    steps:
+      - name: Copy code files to container
+        uses: actions/checkout@v2.4.0
+
+      - name: Environment preparation
+        run: |
+          mkdir -p ~/.ssh/
+          touch ~/.ssh/id_rsa
+          chmod -R go= ~/.ssh
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SERVER_SSH_KEY }}" >> ~/.ssh/id_rsa
+          sudo apt-add-repository -y -u ppa:ansible/ansible
+          sudo apt-get install -y rsync
+          sudo apt-get install -y ansible
+
+      - name: Deploy to Server
+        run: |
+          chmod 700 ci-scripts
+          cd ci-scripts
+          ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
+            DB_LINK=${{ secrets.DB_LINK_MASTER }} \
+            SERVER_HOST=${{ secrets.SERVER_HOST }} \
+            SERVER_PORT=${{ secrets.SERVER_PORT_MASTER }} \
+            SERVICE_NAME=${{ secrets.SERVICE_NAME_MASTER }} \
+            BACKEND_BIN=${{ secrets.BACKEND_BIN_MASTER }} \
+            SRC_DIR=${{ github.workspace }}/" backend-update.yml;
+
+  deploy-develop:
+
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    needs: [build]
+
+    steps:
+      - name: Copy code files to container
+        uses: actions/checkout@v2.4.0
+
+      - name: Environment preparation
+        run: |
+          mkdir -p ~/.ssh/
+          touch ~/.ssh/id_rsa
+          chmod -R go= ~/.ssh
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SERVER_SSH_KEY }}" >> ~/.ssh/id_rsa
+          sudo apt-add-repository -y -u ppa:ansible/ansible
+          sudo apt-get install -y rsync
+          sudo apt-get install -y ansible
+
+      - name: Deploy to Server
+        run: |
+          chmod 700 ci-scripts
+          cd ci-scripts
+          ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
+            DB_LINK=${{ secrets.DB_LINK_DEV }} \
+            SERVER_HOST=${{ secrets.SERVER_HOST }} \
+            SERVER_PORT=${{ secrets.SERVER_PORT_DEV }} \
+            SERVICE_NAME=${{ secrets.SERVICE_NAME_DEV }} \
+            BACKEND_BIN=${{ secrets.BACKEND_BIN_DEV }} \
+            SRC_DIR=${{ github.workspace }}/" backend-update.yml;

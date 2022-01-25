@@ -1,0 +1,5 @@
+---
+# defaults file for backend-update
+#BACKEND_BIN: '/home/centos/name-your-app'
+backend_bin_mode: '0640'
+BACKEND_ENV: .env

@@ -1,0 +1,12 @@
+{
+  "apps": [
+    {
+      "name": "{{ SERVICE_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/main.js",
+      "autorestart": true,
+      "listen_timeout": 15000
+    },
+  ]
+}
