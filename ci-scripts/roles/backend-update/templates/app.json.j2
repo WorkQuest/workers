@@ -46,18 +46,6 @@
       "env": {
         "ENV": "prod"
       }
-    },
-    {
-      "name": "{{ PM2_PENSION_FUND_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/pensionFund/index.js",
-      "cron_restart": "0 */5 * * *",
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
     }
   ]
 }
