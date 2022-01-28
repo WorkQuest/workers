@@ -10,5 +10,5 @@ export interface Web3Provider {
 
   startListener(): Promise<void>;
   subscribeOnEvents(onEventCallBack: onEventCallBack): void;
-  getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[]; isGotAllEvents: boolean }>;
+  getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[]; isGotAllEvents: boolean, lastBlockNumber: number }>;
 }

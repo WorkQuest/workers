@@ -7,7 +7,7 @@ import {BlockchainNetworks, initDatabase, PensionFundBlockInfo} from '@workquest
 import {PensionFundController} from "./src/controllers/pensionFundController";
 import {PensionFundProvider} from "./src/providers/pensionFundProvider"
 
-const abiFilePath = path.join(__dirname, '/abi/pensionFundAbi.json');
+const abiFilePath = path.join(__dirname, '/abi/WQPensionFund.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {

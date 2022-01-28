@@ -43,12 +43,14 @@ export class PensionFundProvider implements Web3Provider {
       while (true) {
         if (toBlock >= lastBlockNumber) {
           console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
-          collectedEvents.push(...eventsData);
-          break;
+          collectedEvents.push(...eventsData); break;
         }
+
         console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
         collectedEvents.push(...eventsData);
@@ -60,9 +62,9 @@ export class PensionFundProvider implements Web3Provider {
       console.error(error);
       console.error('GetAllEvents: Last block: ', collectedEvents[collectedEvents.length - 1].blockNumber);
 
-      return { collectedEvents, isGotAllEvents: false };
+      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: collectedEvents[collectedEvents.length - 1].blockNumber };
     }
 
-    return { collectedEvents, isGotAllEvents: true };
+    return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
   }
 }
