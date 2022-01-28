@@ -1,4 +1,8 @@
-import { BlockchainNetworks, WqtWbnbBlockInfo, WqtWbnbSwapEvent } from '@workquest/database-models/lib/models';
+import {
+  WqtWbnbBlockInfo,
+  WqtWbnbSwapEvent,
+  BlockchainNetworks,
+} from '@workquest/database-models/lib/models';
 import BigNumber from 'bignumber.js';
 import { Coin, TokenPriceProvider, Web3Provider } from '../providers/types';
 import { WqtWbnbEvent } from './types';
@@ -50,7 +54,7 @@ export class WqtWbnbController {
     await WqtWbnbBlockInfo.update(
       { lastParsedBlock: eventsData.blockNumber },
       {
-        where: { network: BlockchainNetworks.bscMainNetwork },
+        where: { network: this.network, },
       },
     );
   }
@@ -59,8 +63,8 @@ export class WqtWbnbController {
     return (await this.tokenPriceProvider.coinPriceInUSD(timestamp, coin)) * coinAmount;
   }
 
-  public async collectAllUncollectedEvents(lastBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents } = await this.web3Provider.getAllEvents(lastBlockNumber);
+  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
@@ -70,6 +74,13 @@ export class WqtWbnbController {
         throw e;
       }
     }
+
+    await WqtWbnbBlockInfo.update(
+      { lastParsedBlock: lastBlockNumber },
+      {
+        where: { network: this.network },
+      },
+    );
 
     if (!isGotAllEvents) {
       throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);
