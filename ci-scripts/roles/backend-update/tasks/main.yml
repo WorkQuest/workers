@@ -63,6 +63,11 @@
     src: ./{{ wqt_wbnb_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ wqt_wbnb_env }}'
 
+- name: Copy or generate quest-factory env file
+  template:
+    src: ./{{ quest_factory_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ quest_factory_env }}'
+
 - name: Start backend process
   shell: pm2 reload app.json
   args:

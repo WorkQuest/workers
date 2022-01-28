@@ -13,6 +13,6 @@ export default {
       contractAddress: process.env.QUEST_WQ_DEVNETWORK_CONTRACT,
       parseEventsFromHeight: parseInt(process.env.QUEST_WQ_DEVNETWORK_PARSE_EVENTS_FROM_HEIGHT),
     },
-    webSocketProvider: process.env.WQ_DEVNETWORK_WEBSOCKET_PROVIDER,
+    webSocketProvider: process.env.WORK_QUEST_DEV_NETWORK_WEBSOCKET_PROVIDER,
   },
 }
