@@ -4,9 +4,9 @@ import {Web3Provider } from "../providers/types";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
-  PensionFundClaimedEvent,
   PensionFundReceivedEvent,
   PensionFundWithdrewEvent,
+  PensionFundWalletUpdatedEvent,
 } from '@workquest/database-models/lib/models';
 
 export class PensionFundController {
@@ -24,8 +24,8 @@ export class PensionFundController {
       await this.receivedEventHandler(eventsData);
     } else if (eventsData.event === PensionFundEvent.Withdrew) {
       await this.withdrewEventHandler(eventsData);
-    } else if (eventsData.event === PensionFundEvent.Claimed) {
-      await this.claimedEventHandler(eventsData);
+    } else if (eventsData.event === PensionFundEvent.WalletUpdated) {
+      await this.walletUpdatedEventHandler(eventsData);
     }
   }
 
@@ -40,6 +40,7 @@ export class PensionFundController {
         transactionHash: eventsData.transactionHash,
         user: eventsData.returnValues.user,
         amount: eventsData.returnValues.amount,
+        event: PensionFundEvent.Received,
         network: this.network,
       },
     });
@@ -63,6 +64,7 @@ export class PensionFundController {
         transactionHash: eventsData.transactionHash,
         user: eventsData.returnValues.user,
         amount: eventsData.returnValues.amount,
+        event: PensionFundEvent.Withdrew,
         network: this.network,
       },
     });
@@ -75,17 +77,19 @@ export class PensionFundController {
     );
   }
 
-  protected async claimedEventHandler(eventsData: EventData) {
+  protected async walletUpdatedEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    await PensionFundClaimedEvent.findOrCreate({
+    await PensionFundWalletUpdatedEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
         transactionHash: eventsData.transactionHash,
         user: eventsData.returnValues.user,
-        amount: eventsData.returnValues.amount,
+        newFee: eventsData.returnValues.newFee,
+        unlockDate: eventsData.returnValues.unlockDate,
+        event: PensionFundEvent.WalletUpdated,
         network: this.network,
       },
     });

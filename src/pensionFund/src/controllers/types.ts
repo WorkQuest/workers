@@ -1,5 +1,5 @@
 export enum PensionFundEvent {
-  Received = 'Received',
   Withdrew = 'Withdrew',
-  Claimed = 'Claimed',
+  Received = 'Received',
+  WalletUpdated = 'WalletUpdated',
 }
