@@ -1,6 +1,8 @@
 import {
   WqtWbnbBlockInfo,
   WqtWbnbSwapEvent,
+  WqtWbnbMintEvent,
+  WqtWbnbBurnEvent,
   BlockchainNetworks,
 } from '@workquest/database-models/lib/models';
 import BigNumber from 'bignumber.js';
@@ -21,7 +23,11 @@ export class WqtWbnbController {
 
   private async onEvent(eventsData: EventData) {
     if (eventsData.event === WqtWbnbEvent.Swap) {
-      await this.swapEventHandler(eventsData);
+      return this.swapEventHandler(eventsData);
+    } else if (eventsData.event === WqtWbnbEvent.Mint) {
+      return this.mintEventHandler(eventsData);
+    } else if (eventsData.event === WqtWbnbEvent.Burn) {
+      return this.burnEventHandler(eventsData);
     }
   }
 
@@ -49,6 +55,53 @@ export class WqtWbnbController {
         amount1Out: eventsData.returnValues.amount1Out,
         network: this.network,
       },
+    });
+
+    await WqtWbnbBlockInfo.update(
+      { lastParsedBlock: eventsData.blockNumber },
+      {
+        where: { network: this.network, },
+      },
+    );
+  }
+
+  protected async mintEventHandler(eventsData: EventData) {
+    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    await WqtWbnbMintEvent.findOrCreate({
+      where: { transactionHash: eventsData.transactionHash },
+      defaults: {
+        network: this.network,
+        timestamp: block.timestamp,
+        blockNumber: eventsData.blockNumber,
+        amount0: eventsData.returnValues.amount0,
+        amount1: eventsData.returnValues.amount1,
+        sender: eventsData.returnValues.sender,
+      }
+    });
+
+    await WqtWbnbBlockInfo.update(
+      { lastParsedBlock: eventsData.blockNumber },
+      {
+        where: { network: this.network, },
+      },
+    );
+  }
+
+  protected async burnEventHandler(eventsData: EventData) {
+    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    await WqtWbnbBurnEvent.findOrCreate({
+      where: { transactionHash: eventsData.transactionHash },
+      defaults: {
+        network: this.network,
+        timestamp: block.timestamp,
+        blockNumber: eventsData.blockNumber,
+        amount0: eventsData.returnValues.amount0,
+        amount1: eventsData.returnValues.amount1,
+        sender: eventsData.returnValues.sender,
+        to: eventsData.returnValues.to,
+      }
     });
 
     await WqtWbnbBlockInfo.update(

@@ -16,7 +16,7 @@
     "PensionFund:compile": "tsc && node ./build/pensionFund/index.js"
   },
   "dependencies": {
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#995db3c561ff812414a0632b5bab9ea3defbbe15",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#b4de91b03269f5e9775d9eef1c435159920fa412",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
