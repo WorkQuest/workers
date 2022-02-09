@@ -1,4 +1,10 @@
-import { BlockchainNetworks, WqtWbnbBlockInfo, WqtWbnbSwapEvent } from '@workquest/database-models/lib/models';
+import {
+  WqtWbnbBlockInfo,
+  WqtWbnbSwapEvent,
+  WqtWbnbMintEvent,
+  WqtWbnbBurnEvent,
+  BlockchainNetworks,
+} from '@workquest/database-models/lib/models';
 import BigNumber from 'bignumber.js';
 import { Coin, TokenPriceProvider, Web3Provider } from '../providers/types';
 import { WqtWbnbEvent } from './types';
@@ -17,7 +23,11 @@ export class WqtWbnbController {
 
   private async onEvent(eventsData: EventData) {
     if (eventsData.event === WqtWbnbEvent.Swap) {
-      await this.swapEventHandler(eventsData);
+      return this.swapEventHandler(eventsData);
+    } else if (eventsData.event === WqtWbnbEvent.Mint) {
+      return this.mintEventHandler(eventsData);
+    } else if (eventsData.event === WqtWbnbEvent.Burn) {
+      return this.burnEventHandler(eventsData);
     }
   }
 
@@ -50,7 +60,54 @@ export class WqtWbnbController {
     await WqtWbnbBlockInfo.update(
       { lastParsedBlock: eventsData.blockNumber },
       {
-        where: { network: BlockchainNetworks.bscMainNetwork },
+        where: { network: this.network, },
+      },
+    );
+  }
+
+  protected async mintEventHandler(eventsData: EventData) {
+    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    await WqtWbnbMintEvent.findOrCreate({
+      where: { transactionHash: eventsData.transactionHash },
+      defaults: {
+        network: this.network,
+        timestamp: block.timestamp,
+        blockNumber: eventsData.blockNumber,
+        amount0: eventsData.returnValues.amount0,
+        amount1: eventsData.returnValues.amount1,
+        sender: eventsData.returnValues.sender,
+      }
+    });
+
+    await WqtWbnbBlockInfo.update(
+      { lastParsedBlock: eventsData.blockNumber },
+      {
+        where: { network: this.network, },
+      },
+    );
+  }
+
+  protected async burnEventHandler(eventsData: EventData) {
+    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    await WqtWbnbBurnEvent.findOrCreate({
+      where: { transactionHash: eventsData.transactionHash },
+      defaults: {
+        network: this.network,
+        timestamp: block.timestamp,
+        blockNumber: eventsData.blockNumber,
+        amount0: eventsData.returnValues.amount0,
+        amount1: eventsData.returnValues.amount1,
+        sender: eventsData.returnValues.sender,
+        to: eventsData.returnValues.to,
+      }
+    });
+
+    await WqtWbnbBlockInfo.update(
+      { lastParsedBlock: eventsData.blockNumber },
+      {
+        where: { network: this.network, },
       },
     );
   }
@@ -59,8 +116,8 @@ export class WqtWbnbController {
     return (await this.tokenPriceProvider.coinPriceInUSD(timestamp, coin)) * coinAmount;
   }
 
-  public async collectAllUncollectedEvents(lastBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents } = await this.web3Provider.getAllEvents(lastBlockNumber);
+  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
@@ -70,6 +127,13 @@ export class WqtWbnbController {
         throw e;
       }
     }
+
+    await WqtWbnbBlockInfo.update(
+      { lastParsedBlock: lastBlockNumber },
+      {
+        where: { network: this.network },
+      },
+    );
 
     if (!isGotAllEvents) {
       throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);
