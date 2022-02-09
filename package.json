@@ -31,5 +31,9 @@
     "sequelize-typescript": "^2.0.0",
     "sequelize": "^6.6.2",
     "web3": "^1.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.16",
+    "@types/validator": "^13.7.1"
   }
 }
