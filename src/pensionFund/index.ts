@@ -3,30 +3,28 @@ import * as fs from 'fs';
 import * as path from 'path';
 import configDatabase from './config/config.database';
 import configPensionFund from './config/config.pensionFund';
-import {BlockchainNetworks, initDatabase, PensionFundBlockInfo} from '@workquest/database-models/lib/models';
-import {PensionFundController} from "./src/controllers/pensionFundController";
-import {PensionFundProvider} from "./src/providers/pensionFundProvider"
+import { BlockchainNetworks, initDatabase, PensionFundBlockInfo} from '@workquest/database-models/lib/models';
+import { PensionFundController } from "./src/controllers/pensionFundController";
+import { PensionFundProvider } from "./src/providers/pensionFundProvider"
+import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 
 const abiFilePath = path.join(__dirname, '/abi/WQPensionFund.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
   await initDatabase(configDatabase.dbLink, true, true);
-  console.log(configPensionFund.wsProvider);
 
-  const websocketProvider = new Web3.providers.WebsocketProvider(configPensionFund.wsProvider, {
-    reconnect: {
-      auto: true,
-      delay: 10000,
-      onTimeout: false,
-    },
+  const rpcProvider = new Web3.providers.HttpProvider(configPensionFund.rpcProvider);
+  const tendermintWsProvider = new TendermintWebsocketClient(configPensionFund.tendermintProvider, error => {
+    throw error;
   });
 
-  const web3 = new Web3(websocketProvider);
+  const web3 = new Web3(rpcProvider);
+
   const pensionFundContract = new web3.eth.Contract(abi, configPensionFund.contractAddress);
 
   // @ts-ignore
-  const pensionFundProvider = new PensionFundProvider(web3, pensionFundContract);
+  const pensionFundProvider = new PensionFundProvider(web3, tendermintWsProvider, pensionFundContract);
   const pensionFundController = new PensionFundController(pensionFundProvider, BlockchainNetworks.workQuestNetwork);
 
   const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
@@ -37,7 +35,7 @@ export async function init() {
     },
   });
 
-  await pensionFundController.collectAllUncollectedEvents(pensionFundBlockInfo.lastParsedBlock);
+  // await pensionFundController.collectAllUncollectedEvents(pensionFundBlockInfo.lastParsedBlock);
 
   console.log('Start pension fund listener');
 
