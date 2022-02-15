@@ -24,10 +24,10 @@
   become: yes
 
 - name: Install packages based on package.json
-  npm:
-    path: '{{ WORKERS_BIN }}'
-    state: present
-
+  shell: npm ci
+  args:
+    chdir: '{{ WORKERS_BIN }}'
+  
 - name: Build code
   shell: npm run build
   args:
