@@ -35,7 +35,7 @@ export async function init() {
     },
   });
 
-  // await pensionFundController.collectAllUncollectedEvents(pensionFundBlockInfo.lastParsedBlock);
+  await pensionFundController.collectAllUncollectedEvents(pensionFundBlockInfo.lastParsedBlock);
 
   console.log('Start pension fund listener');
 
