@@ -33,7 +33,7 @@ build/
 # lol macs
 .DS_Store/
 
-package-lock.json
+#package-lock.json
 # now pm2 app file is generating on deploy
 app.json
 .idea
