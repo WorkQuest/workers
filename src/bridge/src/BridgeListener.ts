@@ -42,6 +42,7 @@ abstract class BridgeListener {
   }
 
   start(): Promise<void> {
+    console.log('startListener')
     return this._contract.startListener();
   }
 }

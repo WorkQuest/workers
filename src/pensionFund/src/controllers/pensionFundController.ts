@@ -37,8 +37,8 @@ export class PensionFundController {
       defaults: {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        user: eventsData.returnValues.user,
+        transactionHash: eventsData.transactionHash.toLowerCase(),
+        user: eventsData.returnValues.user.toLowerCase(),
         amount: eventsData.returnValues.amount,
         event: PensionFundEvent.Received,
         network: this.network,
@@ -61,8 +61,8 @@ export class PensionFundController {
       defaults: {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        user: eventsData.returnValues.user,
+        transactionHash: eventsData.transactionHash.toLowerCase(),
+        user: eventsData.returnValues.user.toLowerCase(),
         amount: eventsData.returnValues.amount,
         event: PensionFundEvent.Withdrew,
         network: this.network,
@@ -85,8 +85,8 @@ export class PensionFundController {
       defaults: {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        user: eventsData.returnValues.user,
+        transactionHash: eventsData.transactionHash.toLowerCase(),
+        user: eventsData.returnValues.user.toLowerCase(),
         newFee: eventsData.returnValues.newFee,
         unlockDate: eventsData.returnValues.unlockDate,
         event: PensionFundEvent.WalletUpdated,
