@@ -16,15 +16,15 @@ export class PensionFundProvider implements Web3Provider {
   ) {}
 
   private contractTransactionsListenerInit() {
+    // TODO WHYYYYY???? ${configPensionFund.contractAddress} NOT WORKING!!!!!
+    const query = `tm.event='Tx' AND ethereum_tx.recipient='0xfaC60Ac942b8Ac6a2BC2470D81124C34e8719d88'`;
+
     const stream = this.tendermintWs.listen({
       id: 0,
       jsonrpc: '2.0',
       method: 'subscribe',
-      params: { ["query"]: `tm.event='Tx' AND ethereum_tx.recipient='${configPensionFund.contractAddress}'` },
+      params: { query },
     });
-
-    // @ts-ignore
-    console.log(this.tendermintWs.url);
 
     stream.addListener({
       next: data => this.onEventTendermintData(data),
