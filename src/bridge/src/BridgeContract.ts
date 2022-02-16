@@ -115,10 +115,14 @@ export class BridgeContract {
   public async *preParsingEvents() {
     const lastBlockNumber = await this._provider.getBlockNumber();
 
+    console.log('lastBlockNumber: ', lastBlockNumber);
+
     let fromBlock = this._provider.lastTrackedBlock;
     let toBlock = fromBlock + this._preParsingSteps;
 
     while (true) {
+      console.log('fromBlock: '+ fromBlock, 'toBlock: ', toBlock);
+
       const eventsData = await this.getPastEvents('allEvents', { fromBlock, toBlock });
       const events = await this._parseEventsData(eventsData);
 
