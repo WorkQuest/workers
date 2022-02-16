@@ -109,8 +109,7 @@ export class PensionFundController {
       try {
         await this.onEvent(event);
       } catch (e) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
-        throw e;
+        console.error('Failed to process all events. Last processed block: ' + event.blockNumber); throw e;
       }
     }
 
