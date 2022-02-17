@@ -21,7 +21,7 @@ export class CoinGeckoProvider implements TokenPriceProvider {
     this.api = axios.create({
       baseURL: 'https://api.coingecko.com/api/v3/',
     });
-    this.limitTimeInMilliseconds = 1000;
+    this.limitTimeInMilliseconds = 5000;
     this.limitRequests = 10;
     this.checkStartTimeInMilliseconds = Date.now();
     this.numberOfRequests = 0;

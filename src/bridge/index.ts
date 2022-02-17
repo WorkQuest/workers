@@ -94,7 +94,6 @@ export async function init() {
   const bridgeBscListener = new BridgeBscListener(bridgeBscContract, bcsBridgeInfo);
 
   await Promise.all([bridgeEthListener.preParseSwaps(), bridgeBscListener.preParseSwaps()]);
-
   await Promise.all([bridgeEthListener.start(), bridgeBscListener.start()]);
 }
 

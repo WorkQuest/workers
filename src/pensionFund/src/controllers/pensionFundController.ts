@@ -4,9 +4,9 @@ import {Web3Provider } from "../providers/types";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
-  PensionFundClaimedEvent,
   PensionFundReceivedEvent,
   PensionFundWithdrewEvent,
+  PensionFundWalletUpdatedEvent,
 } from '@workquest/database-models/lib/models';
 
 export class PensionFundController {
@@ -24,8 +24,8 @@ export class PensionFundController {
       await this.receivedEventHandler(eventsData);
     } else if (eventsData.event === PensionFundEvent.Withdrew) {
       await this.withdrewEventHandler(eventsData);
-    } else if (eventsData.event === PensionFundEvent.Claimed) {
-      await this.claimedEventHandler(eventsData);
+    } else if (eventsData.event === PensionFundEvent.WalletUpdated) {
+      await this.walletUpdatedEventHandler(eventsData);
     }
   }
 
@@ -37,9 +37,10 @@ export class PensionFundController {
       defaults: {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        user: eventsData.returnValues.user,
+        transactionHash: eventsData.transactionHash.toLowerCase(),
+        user: eventsData.returnValues.user.toLowerCase(),
         amount: eventsData.returnValues.amount,
+        event: PensionFundEvent.Received,
         network: this.network,
       },
     });
@@ -47,7 +48,7 @@ export class PensionFundController {
     await PensionFundBlockInfo.update(
       { lastParsedBlock: eventsData.blockNumber },
       {
-        where: { network: BlockchainNetworks.bscMainNetwork },
+        where: { network: this.network },
       },
     );
   }
@@ -60,9 +61,10 @@ export class PensionFundController {
       defaults: {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        user: eventsData.returnValues.user,
+        transactionHash: eventsData.transactionHash.toLowerCase(),
+        user: eventsData.returnValues.user.toLowerCase(),
         amount: eventsData.returnValues.amount,
+        event: PensionFundEvent.Withdrew,
         network: this.network,
       },
     });
@@ -70,22 +72,24 @@ export class PensionFundController {
     await PensionFundBlockInfo.update(
       { lastParsedBlock: eventsData.blockNumber },
       {
-        where: { network: BlockchainNetworks.bscMainNetwork },
+        where: { network: this.network },
       },
     );
   }
 
-  protected async claimedEventHandler(eventsData: EventData) {
+  protected async walletUpdatedEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    await PensionFundClaimedEvent.findOrCreate({
+    await PensionFundWalletUpdatedEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        user: eventsData.returnValues.user,
-        amount: eventsData.returnValues.amount,
+        transactionHash: eventsData.transactionHash.toLowerCase(),
+        user: eventsData.returnValues.user.toLowerCase(),
+        newFee: eventsData.returnValues.newFee,
+        unlockDate: eventsData.returnValues.unlockDate,
+        event: PensionFundEvent.WalletUpdated,
         network: this.network,
       },
     });
@@ -93,22 +97,28 @@ export class PensionFundController {
     await PensionFundBlockInfo.update(
       { lastParsedBlock: eventsData.blockNumber },
       {
-        where: { network: BlockchainNetworks.bscMainNetwork },
+        where: { network: this.network },
       },
     );
   }
 
-  public async collectAllUncollectedEvents(lastBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents } = await this.web3Provider.getAllEvents(lastBlockNumber);
+  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
         await this.onEvent(event);
       } catch (e) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
-        throw e;
+        console.error('Failed to process all events. Last processed block: ' + event.blockNumber); throw e;
       }
     }
+
+    await PensionFundBlockInfo.update(
+      { lastParsedBlock: lastBlockNumber },
+      {
+        where: { network: this.network },
+      },
+    );
 
     if (!isGotAllEvents) {
       throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);

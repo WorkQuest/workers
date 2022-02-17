@@ -18,6 +18,7 @@
     "PensionFund:compile": "tsc && node ./build/pensionFund/index.js"
   },
   "dependencies": {
+    "@cosmjs/tendermint-rpc": "^0.27.1",
     "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#c79aba3b84f90ed56195d1aa86d024b3bec90755",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",

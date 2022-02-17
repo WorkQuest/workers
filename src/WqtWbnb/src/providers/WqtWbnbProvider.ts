@@ -61,9 +61,9 @@ export class WqtWbnbProvider implements Web3Provider {
       console.error(error);
       console.error('GetAllEvents: Last block: ', collectedEvents[collectedEvents.length - 1].blockNumber);
 
-      return { collectedEvents, isGotAllEvents: false };
+      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: collectedEvents[collectedEvents.length - 1].blockNumber };
     }
 
-    return { collectedEvents, isGotAllEvents: true };
+    return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
   }
 }
