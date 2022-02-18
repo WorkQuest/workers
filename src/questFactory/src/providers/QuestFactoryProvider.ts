@@ -1,9 +1,9 @@
 import Web3 from 'web3';
 import { Contract, EventData } from 'web3-eth-contract';
+import { onEventCallBack, IContractProvider } from './types';
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
-import { onEventCallBack, Web3Provider } from './types';
 
-export class PensionFundProvider implements Web3Provider {
+export class QuestFactoryProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
@@ -16,7 +16,7 @@ export class PensionFundProvider implements Web3Provider {
 
   private contractTransactionsListenerInit() {
     // TODO WHYYYYY???? ${configPensionFund.contractAddress} NOT WORKING!!!!!
-    const query = `tm.event='Tx' AND ethereum_tx.recipient='0xfaC60Ac942b8Ac6a2BC2470D81124C34e8719d88'`;
+    const query = `tm.event='Tx' AND ethereum_tx.recipient='0xF38E33e7DD7e1a91c772aF51A366cd126e4552BB'`;
 
     const stream = this.tendermintWs.listen({
       id: 0,

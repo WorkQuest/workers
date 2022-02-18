@@ -1,11 +1,21 @@
-import { QuestBlockInfo, QuestCreatedEvent, BlockchainNetworks, Quest, QuestStatus } from '@workquest/database-models/lib/models';
-import { Web3Provider } from '../providers/types';
 import { EventData } from 'web3-eth-contract';
 import { QuestFactoryEvent } from './types';
+import {ICacheProvider, IContractProvider} from '../providers/types';
+import {
+  Quest,
+  QuestStatus,
+  QuestBlockInfo,
+  BlockchainNetworks,
+  QuestFactoryCreatedEvent,
+} from '@workquest/database-models/lib/models';
 
 export class QuestFactoryController {
-  constructor(private readonly web3Provider: Web3Provider, private readonly network: BlockchainNetworks) {
-    this.web3Provider.subscribeOnEvents(async (eventData) => {
+  constructor(
+    private readonly questFactoryProvider: IContractProvider,
+    private readonly questFactoryCacheProvider: ICacheProvider,
+    private readonly network: BlockchainNetworks,
+  ) {
+    this.questFactoryProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
     });
   }
@@ -17,38 +27,45 @@ export class QuestFactoryController {
   }
 
   protected async createdEventHandler(eventsData: EventData) {
-    await QuestCreatedEvent.findOrCreate({
+    const nonce = eventsData.returnValues.nonce;
+    const jobHash = eventsData.returnValues.jobHash.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+    const employerAddress = eventsData.returnValues.employer.toLowerCase();
+    const contractAddress = eventsData.returnValues.workquest.toLowerCase();
+
+    const [, isCreated] = await QuestFactoryCreatedEvent.findOrCreate({
       where: {
         network: this.network,
-        transactionHash: eventsData.transactionHash,
+        transactionHash: eventsData.transactionHash.toLowerCase(),
       },
       defaults: {
+        nonce,
+        jobHash,
+        transactionHash,
+        employerAddress,
+        contractAddress,
         network: this.network,
-        nonce: eventsData.returnValues.nonce,
-        jobHash: eventsData.returnValues.jobHash,
-        employerAddress: eventsData.returnValues.employer,
-        contractAddress: eventsData.returnValues.workquest,
-        transactionHash: eventsData.transactionHash,
       },
     });
 
-    await Quest.update(
-      { status: QuestStatus.Created },
-      {
-        where: { nonce: eventsData.returnValues.nonce },
+    await Quest.update({ status: QuestStatus.Recruitment }, {
+      where: {
+        status: QuestStatus.Pending,
+        // nonce: eventsData.returnValues.nonce,
       },
-    );
+    });
 
-    await QuestBlockInfo.update(
-      { lastParsedBlock: eventsData.blockNumber },
-      {
-        where: { network: this.network },
-      },
-    );
+    await QuestBlockInfo.update({ lastParsedBlock: eventsData.blockNumber }, {
+      where: { network: this.network },
+    });
+
+    if (isCreated) {
+      await this.questFactoryCacheProvider.set(contractAddress, { transactionHash, nonce });
+    }
   }
 
   public async collectAllUncollectedEvents(lastBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents } = await this.web3Provider.getAllEvents(lastBlockNumber);
+    const { collectedEvents, isGotAllEvents } = await this.questFactoryProvider.getAllEvents(lastBlockNumber);
 
     for (const event of collectedEvents) {
       try {

@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#c79aba3b84f90ed56195d1aa86d024b3bec90755",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#6f907285c292e1c052126f4c357bdfe5a2b015ea",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
@@ -27,12 +27,11 @@
     "ethereum-block-by-date": "^1.4.2",
     "node-cron": "^3.0.0",
     "nodemon": "^2.0.15",
-    "npm": "^7.14.0",
     "pg": "^8.7.1",
     "pg-hstore": "^2.3.4",
+    "redis": "^4.0.3",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^6.6.2",
-    "uuid-int": "^3.1.0",
     "web3": "^1.7.0"
   }
 }

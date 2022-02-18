@@ -14,24 +14,23 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 export async function init() {
   await initDatabase(configDatabase.dbLink, true, true);
 
-  const rpcProvider = new Web3.providers.HttpProvider(configPensionFund.rpcProvider);
-  const tendermintWsProvider = new TendermintWebsocketClient(configPensionFund.tendermintProvider, error => {
+  const rpcProvider = new Web3.providers.HttpProvider(configPensionFund.workQuestDevNetwork.rpcProvider);
+  const tendermintWsProvider = new TendermintWebsocketClient(configPensionFund.workQuestDevNetwork.tendermintProvider, error => {
     throw error;
   });
 
   const web3 = new Web3(rpcProvider);
-
-  const pensionFundContract = new web3.eth.Contract(abi, configPensionFund.contractAddress);
+  const pensionFundContract = new web3.eth.Contract(abi, configPensionFund.workQuestDevNetwork.contractAddress);
 
   // @ts-ignore
   const pensionFundProvider = new PensionFundProvider(web3, tendermintWsProvider, pensionFundContract);
-  const pensionFundController = new PensionFundController(pensionFundProvider, BlockchainNetworks.workQuestNetwork);
+  const pensionFundController = new PensionFundController(pensionFundProvider, BlockchainNetworks.workQuestDevNetwork);
 
   const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
-    where: { network: BlockchainNetworks.workQuestNetwork },
+    where: { network: BlockchainNetworks.workQuestDevNetwork },
     defaults: {
-      network: BlockchainNetworks.workQuestNetwork,
-      lastParsedBlock: configPensionFund.parseEventsFromHeight,
+      network: BlockchainNetworks.workQuestDevNetwork,
+      lastParsedBlock: configPensionFund.workQuestDevNetwork.parseEventsFromHeight,
     },
   });
 

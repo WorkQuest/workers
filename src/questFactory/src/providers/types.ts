@@ -5,7 +5,17 @@ export type onEventCallBack = {
   (eventData): void;
 }
 
-export interface Web3Provider {
+export type QuestPayload = {
+  nonce: string;
+  transactionHash: string;
+}
+
+export interface ICacheProvider {
+  get(questContactAddress: string): Promise<string>;
+  set(questContactAddress: string, payload: QuestPayload): Promise<string>;
+}
+
+export interface IContractProvider {
   web3: Web3;
 
   startListener(): Promise<void>;
