@@ -13,11 +13,13 @@
     "WqtWbnb:start": "nodemon -e ts --exec \"npm run WqtWbnb:compile\"",
     "WqtWbnb:compile": "tsc && node ./build/WqtWbnb/index.js",
     "PensionFund:start": "nodemon -e ts --exec \"npm run PensionFund:compile\"",
-    "PensionFund:compile": "tsc && node ./build/pensionFund/index.js"
+    "PensionFund:compile": "tsc && node ./build/pensionFund/index.js",
+    "Referral:start": "nodemon -e ts --exec \"npm run Referral:compile\"",
+    "Referral:compile": "tsc && node ./build/referral/index.js"
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#b4de91b03269f5e9775d9eef1c435159920fa412",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#44eed4ecd592b3d9421f221bfaf679b839e2e575",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
