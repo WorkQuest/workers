@@ -18,7 +18,7 @@ export class ReferralProvider implements Web3Provider {
   private contractTransactionsListenerInit() {
     // configReferral.contractAddress
     // TODO WHYYYYY????  NOT WORKING!!!!!
-    const query = `tm.event='Tx' AND ethereum_tx.recipient='0xfaC60Ac942b8Ac6a2BC2470D81124C34e8719d88'`;
+    const query = `tm.event='Tx' AND ethereum_tx.recipient='0x6d35D16e31da9F09Fd36f29e6B0D7225F3d23a6E'`;
 
     const stream = this.tendermintWs.listen({
       id: 0,

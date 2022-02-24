@@ -3,13 +3,12 @@ import { EventData } from 'web3-eth-contract';
 import {Web3Provider } from "../providers/types";
 import {
   BlockchainNetworks,
+  ReferralParseBlock,
+  ReferralEventPaidReferral,
+  ReferralEventRegistredAffiliate,
+  ReferralEventRewardClaimed
 } from '@workquest/database-models/lib/models';
-import {ReferralParseBlock} from "@workquest/database-models/lib/models/referral/ReferralParseBlock";
-import {ReferralEventPaidReferral} from "@workquest/database-models/lib/models/referral/ReferralEventPaidReferral";
-import {
-  ReferralEventRegistredAffiliate
-} from "@workquest/database-models/lib/models/referral/ReferralEventRegistredAffiliate";
-import {ReferralEventRewardClaimed} from "@workquest/database-models/lib/models/referral/ReferralEventRewardClaimed";
+
 
 export class ReferralController {
   constructor(

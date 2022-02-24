@@ -19,7 +19,8 @@
     "./src/proposal/abi/*.json",
     "./src/dailyLiquidity/abi/*.json",
     "./src/WqtWbnb/abi/*.json",
-    "./src/pensionFund/abi/*.json"
+    "./src/pensionFund/abi/*.json",
+    "./src/referral/abi/*.json"
   ],
   "rootDir":  ["src"]
 }
