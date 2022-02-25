@@ -28,6 +28,8 @@ export class QuestFactoryController implements IController {
   }
 
   protected async createdEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
     const nonce = eventsData.returnValues.nonce;
     const jobHash = eventsData.returnValues.jobHash.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -47,6 +49,7 @@ export class QuestFactoryController implements IController {
       defaults: {
         nonce,
         jobHash,
+        timestamp,
         transactionHash,
         employerAddress,
         contractAddress,
