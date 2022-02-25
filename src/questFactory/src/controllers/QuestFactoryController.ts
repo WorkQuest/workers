@@ -1,6 +1,6 @@
 import { EventData } from 'web3-eth-contract';
-import { QuestFactoryEvent } from './types';
-import {ICacheProvider, IContractProvider} from '../providers/types';
+import {IController, QuestFactoryEvent} from './types';
+import { IContractProvider, Clients } from '../providers/types';
 import {
   Quest,
   QuestStatus,
@@ -8,14 +8,15 @@ import {
   BlockchainNetworks,
   QuestFactoryCreatedEvent,
 } from '@workquest/database-models/lib/models';
+import {QuestFactoryStatus} from "@workquest/database-models/src/models/quest/QuestFactoryCreatedEvent";
 
-export class QuestFactoryController {
+export class QuestFactoryController implements IController {
   constructor(
-    private readonly questFactoryProvider: IContractProvider,
-    private readonly questFactoryCacheProvider: ICacheProvider,
-    private readonly network: BlockchainNetworks,
+    public readonly clients: Clients,
+    public readonly contractProvider: IContractProvider,
+    public readonly network: BlockchainNetworks,
   ) {
-    this.questFactoryProvider.subscribeOnEvents(async (eventData) => {
+    this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
     });
   }
@@ -33,10 +34,15 @@ export class QuestFactoryController {
     const employerAddress = eventsData.returnValues.employer.toLowerCase();
     const contractAddress = eventsData.returnValues.workquest.toLowerCase();
 
+    const quest = await Quest.findOne({ where: { nonce } });
+
+    const questFactoryStatus = quest ?
+      QuestFactoryStatus.Successfully : QuestFactoryStatus.QuestEntityNotFound;
+
     const [, isCreated] = await QuestFactoryCreatedEvent.findOrCreate({
       where: {
+        transactionHash,
         network: this.network,
-        transactionHash: eventsData.transactionHash.toLowerCase(),
       },
       defaults: {
         nonce,
@@ -45,27 +51,24 @@ export class QuestFactoryController {
         employerAddress,
         contractAddress,
         network: this.network,
+        status: questFactoryStatus,
       },
-    });
-
-    await Quest.update({ status: QuestStatus.Recruitment }, {
-      where: {
-        status: QuestStatus.Pending,
-        // nonce: eventsData.returnValues.nonce,
-      },
-    });
-
-    await QuestBlockInfo.update({ lastParsedBlock: eventsData.blockNumber }, {
-      where: { network: this.network },
     });
 
     if (isCreated) {
-      await this.questFactoryCacheProvider.set(contractAddress, { transactionHash, nonce });
+      await QuestBlockInfo.update({ lastParsedBlock: eventsData.blockNumber }, {
+        where: { network: this.network },
+      });
+
+      await this.clients.questCacheProvider.set(contractAddress, { transactionHash, nonce });
+    }
+    if (quest && quest.status == QuestStatus.Pending) {
+      await quest.update({ status: QuestStatus.Recruitment });
     }
   }
 
-  public async collectAllUncollectedEvents(lastBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents } = await this.questFactoryProvider.getAllEvents(lastBlockNumber);
+  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    const { collectedEvents, isGotAllEvents } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {

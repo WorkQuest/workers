@@ -1,5 +1,6 @@
 import Web3 from "web3";
-import {EventData} from "web3-eth-contract";
+import {Contract, EventData} from "web3-eth-contract";
+import {WebsocketClient as TendermintWebsocketClient} from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
 
 export type onEventCallBack = {
   (eventData): void;
@@ -10,13 +11,20 @@ export type QuestPayload = {
   transactionHash: string;
 }
 
-export interface ICacheProvider {
-  get(questContactAddress: string): Promise<string>;
+export interface IQuestCacheProvider {
+  get(questContactAddress: string): Promise<QuestPayload | null>;
   set(questContactAddress: string, payload: QuestPayload): Promise<string>;
 }
 
+export interface Clients {
+  readonly web3: Web3;
+  readonly questCacheProvider: IQuestCacheProvider;
+  readonly tendermintWsClient: TendermintWebsocketClient;
+}
+
 export interface IContractProvider {
-  web3: Web3;
+  readonly clients: Clients;
+  readonly contract: Contract;
 
   startListener(): Promise<void>;
   subscribeOnEvents(onEventCallBack: onEventCallBack): void;

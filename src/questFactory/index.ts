@@ -8,7 +8,8 @@ import { QuestFactoryProvider } from './src/providers/QuestFactoryProvider';
 import { QuestFactoryController } from './src/controllers/QuestFactoryController';
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { initDatabase, QuestFactoryBlockInfo, BlockchainNetworks } from '@workquest/database-models/lib/models';
-import {QuestFactoryCacheProvider} from "./src/providers/QuestFactoryCacheProvider";
+import {QuestCacheProvider} from "./src/providers/QuestCacheProvider";
+import {Clients} from "../quest/providers/types";
 
 const abiFilePath = path.join(__dirname, '../../src/questFactory/abi/QuestFactory.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -24,13 +25,15 @@ export async function init() {
   await redisClient.on('error', (err) => { throw err });
   await redisClient.connect();
 
-  const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
-  const tendermintWsProvider = new TendermintWebsocketClient(linkTendermintProvider, error => {
+  const tendermintWsClient = new TendermintWebsocketClient(linkTendermintProvider, error => {
     throw error;
   });
 
-  const web3 = new Web3(rpcProvider);
+  const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
   const questFactoryContract = new web3.eth.Contract(abi, contractAddress);
+  // @ts-ignore
+  const questCacheProvider = new QuestCacheProvider(redisClient);
+  const clients: Clients = { web3, tendermintWsClient, questCacheProvider }
 
   const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
     where: { network: BlockchainNetworks.workQuestDevNetwork },
@@ -46,10 +49,10 @@ export async function init() {
     await questFactoryInfo.save();
   }
 
-  // @ts-ignore
-  const questFactoryCacheProvider = new QuestFactoryCacheProvider(redisClient);
-  const questFactoryProvider = new QuestFactoryProvider(web3, tendermintWsProvider, questFactoryContract);
-  const questFactoryController = new QuestFactoryController(questFactoryProvider, questFactoryCacheProvider, configQuestFactory.network as BlockchainNetworks);
+  web3.eth.accounts.sign
+
+  const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract);
+  const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
 
   await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
   await questFactoryProvider.startListener();
