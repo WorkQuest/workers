@@ -1,7 +1,5 @@
-import Web3 from 'web3';
 import { Contract, EventData } from 'web3-eth-contract';
 import {onEventCallBack, IContractProvider, Clients} from './types';
-import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 
 export class QuestFactoryProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];

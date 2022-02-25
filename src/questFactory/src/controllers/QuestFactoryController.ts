@@ -5,10 +5,10 @@ import {
   Quest,
   QuestStatus,
   QuestBlockInfo,
+  QuestFactoryStatus,
   BlockchainNetworks,
   QuestFactoryCreatedEvent,
 } from '@workquest/database-models/lib/models';
-import {QuestFactoryStatus} from "@workquest/database-models/src/models/quest/QuestFactoryCreatedEvent";
 
 export class QuestFactoryController implements IController {
   constructor(
