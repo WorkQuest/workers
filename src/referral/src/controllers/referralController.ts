@@ -1,12 +1,13 @@
-import { ReferralEvent } from './types';
-import { EventData } from 'web3-eth-contract';
-import {Web3Provider } from "../providers/types";
+import {ReferralEvent} from './types';
+import {EventData} from 'web3-eth-contract';
+import {Web3Provider} from "../providers/types";
 import {
   BlockchainNetworks,
   ReferralParseBlock,
   ReferralEventPaidReferral,
-  ReferralEventRegistredAffiliate,
-  ReferralEventRewardClaimed
+  ReferralEventRegisteredAffiliate,
+  ReferralEventRewardClaimed,
+  ReferrerAffiliate, Wallet
 } from '@workquest/database-models/lib/models';
 
 
@@ -34,7 +35,7 @@ export class ReferralController {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
     await ReferralEventPaidReferral.findOrCreate({
-      where: { transactionHash: eventsData.transactionHash },
+      where: {transactionHash: eventsData.transactionHash},
       defaults: {
         blockNumber: eventsData.blockNumber,
         transactionHash: eventsData.transactionHash.toLowerCase(),
@@ -42,15 +43,14 @@ export class ReferralController {
         affiliat: eventsData.returnValues.affiliat.toLowerCase(),
         amount: eventsData.returnValues.amount,
         timestamp: block.timestamp,
-        event: ReferralEvent.PaidReferral,
         network: this.network,
       },
     });
 
     await ReferralParseBlock.update(
-      { lastParsedBlock: eventsData.blockNumber },
+      {lastParsedBlock: eventsData.blockNumber},
       {
-        where: { network: this.network },
+        where: {network: this.network},
       },
     );
   }
@@ -58,23 +58,22 @@ export class ReferralController {
   protected async registeredAffiliatEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    await ReferralEventRegistredAffiliate.findOrCreate({
-      where: { transactionHash: eventsData.transactionHash },
+    await ReferralEventRegisteredAffiliate.findOrCreate({
+      where: {transactionHash: eventsData.transactionHash},
       defaults: {
         blockNumber: eventsData.blockNumber,
         transactionHash: eventsData.transactionHash.toLowerCase(),
         referral: eventsData.returnValues.referral.toLowerCase(),
         affiliat: eventsData.returnValues.affiliat.toLowerCase(),
         timestamp: block.timestamp,
-        event: ReferralEvent.RegisteredAffiliat,
         network: this.network,
       },
     });
 
     await ReferralParseBlock.update(
-      { lastParsedBlock: eventsData.blockNumber },
+      {lastParsedBlock: eventsData.blockNumber},
       {
-        where: { network: this.network },
+        where: {network: this.network},
       },
     );
   }
@@ -83,41 +82,41 @@ export class ReferralController {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
     await ReferralEventRewardClaimed.findOrCreate({
-      where: { transactionHash: eventsData.transactionHash },
+      where: {transactionHash: eventsData.transactionHash},
       defaults: {
         blockNumber: eventsData.blockNumber,
         transactionHash: eventsData.transactionHash.toLowerCase(),
         affiliat: eventsData.returnValues.affiliat.toLowerCase(),
         amount: eventsData.returnValues.amount.toLowerCase(),
         timestamp: block.timestamp,
-        event: ReferralEvent.RewardClaimed,
         network: this.network,
       },
     });
 
     await ReferralParseBlock.update(
-      { lastParsedBlock: eventsData.blockNumber },
+      {lastParsedBlock: eventsData.blockNumber},
       {
-        where: { network: this.network },
+        where: {network: this.network},
       },
     );
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
+    const {collectedEvents, isGotAllEvents, lastBlockNumber} = await this.web3Provider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
         await this.onEvent(event);
       } catch (e) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber); throw e;
+        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
+        throw e;
       }
     }
 
     await ReferralParseBlock.update(
-      { lastParsedBlock: lastBlockNumber },
+      {lastParsedBlock: lastBlockNumber},
       {
-        where: { network: this.network },
+        where: {network: this.network},
       },
     );
 
