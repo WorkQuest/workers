@@ -2,12 +2,12 @@ import {ReferralEvent} from './types';
 import {EventData} from 'web3-eth-contract';
 import {Web3Provider} from "../providers/types";
 import {
+  Wallet,
   BlockchainNetworks,
   ReferralParseBlock,
   ReferralEventPaidReferral,
   ReferralEventRegisteredAffiliate,
-  ReferralEventRewardClaimed,
-  ReferrerAffiliate, Wallet
+  ReferralEventRewardClaimed
 } from '@workquest/database-models/lib/models';
 
 

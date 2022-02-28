@@ -2,7 +2,6 @@ import Web3 from 'web3';
 import { Contract, EventData } from 'web3-eth-contract';
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { onEventCallBack, Web3Provider } from './types';
-import configReferral from "../../config/config.referral";
 
 export class ReferralProvider implements Web3Provider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
