@@ -10,6 +10,8 @@ import {
   QuestFactoryCreatedEvent,
 } from '@workquest/database-models/lib/models';
 
+const delay = require('delay');
+
 export class QuestFactoryController implements IController {
   constructor(
     public readonly clients: Clients,
@@ -17,13 +19,13 @@ export class QuestFactoryController implements IController {
     public readonly network: BlockchainNetworks,
   ) {
     this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
+      return this.onEvent(eventData);
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  private onEvent(eventsData: EventData): Promise<void> {
     if (eventsData.event === QuestFactoryEvent.Created) {
-      await this.createdEventHandler(eventsData);
+      return this.createdEventHandler(eventsData);
     }
   }
 
@@ -62,11 +64,12 @@ export class QuestFactoryController implements IController {
       await QuestBlockInfo.update({ lastParsedBlock: eventsData.blockNumber }, {
         where: { network: this.network },
       });
-
+    }
+    if (quest && isCreated) {
       await this.clients.questCacheProvider.set(contractAddress, { transactionHash, nonce });
     }
     if (quest && quest.status == QuestStatus.Pending) {
-      await quest.update({ status: QuestStatus.Recruitment });
+      await quest.update({ contractAddress, status: QuestStatus.Recruitment });
     }
   }
 

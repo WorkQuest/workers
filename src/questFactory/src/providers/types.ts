@@ -3,7 +3,7 @@ import {Contract, EventData} from "web3-eth-contract";
 import {WebsocketClient as TendermintWebsocketClient} from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
 
 export type onEventCallBack = {
-  (eventData): void;
+  (eventData): Promise<void>;
 }
 
 export type QuestPayload = {

@@ -49,12 +49,10 @@ export async function init() {
     await questFactoryInfo.save();
   }
 
-  web3.eth.accounts.sign
-
   const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract);
   const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
 
-  await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
+  // await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
   await questFactoryProvider.startListener();
 }
 

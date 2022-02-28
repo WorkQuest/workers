@@ -33,11 +33,14 @@ export class QuestFactoryProvider implements IContractProvider {
     const blockTxHeight = txData["data"]["value"]['TxResult']["height"] as string;
     const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock: blockTxHeight, toBlock: blockTxHeight });
 
-    for (const eventData of eventsData) { await this.onEventData(eventData) }
+    /** See range (fromBlock: blockTxHeight, toBlock: blockTxHeight) */
+    await this.onEventData(eventsData[0]);
   }
 
-  private onEventData(eventData) {
-    this.onEventCallBacks.forEach((callBack) => callBack(eventData));
+  private async onEventData(eventData) {
+    return Promise.all(
+      this.onEventCallBacks.map(async callBack => callBack(eventData))
+    );
   }
 
   public async startListener(): Promise<void> {
