@@ -87,6 +87,7 @@ export class ReferralController {
     const totalPaidAmounts = paidReferralEvents
       .map(v => new BigNumber(v.amount))
       .reduce((pValue, cValue) => pValue.plus(cValue))
+      .toString()
 
     await Promise.all([
       referralProgram.update({ paidReward: totalPaidAmounts }),
