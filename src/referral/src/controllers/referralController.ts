@@ -7,9 +7,11 @@ import {
   ReferralParseBlock,
   ReferralEventPaidReferral,
   ReferralEventRegisteredAffiliate,
-  ReferralEventRewardClaimed, ReferralProgram, ReferrerAffiliateUser, ReferralStatus, RewardStatus
+  ReferralEventRewardClaimed, ReferralProgram, ReferralProgramAffiliate, ReferralStatus, RewardStatus
 } from '@workquest/database-models/lib/models';
+import BigNumber from "bignumber.js";
 
+const sum = (x1, x2) => x1 + x2;
 
 export class ReferralController {
   constructor(
@@ -56,17 +58,37 @@ export class ReferralController {
 
     if (paidReferralIsCreated) {
       const paidReferralEventsUser = await ReferralEventPaidReferral.findAndCountAll({
-        //TODO добавить сумму всех начисленных средств в модельку referralAffiliates
+        where: {referral: eventsData.returnValues.referral.toLowerCase()}
       })
-      const walletReferralUser = await Wallet.findOne({
-        where: {address: eventsData.returnValues.affiliat.toLowerCase()}
-      })
-      const userIdAffiliate = await ReferrerAffiliateUser.findOne({
+      const rowsPaidReferralsAmounts = []
+      for (const amountOnePaid of paidReferralEventsUser.rows) {
+        rowsPaidReferralsAmounts.push(amountOnePaid.amount)
+      }
+      const sumPaidReferralUser = Number(new BigNumber(rowsPaidReferralsAmounts.reduce(sum)));
+
+      const usersReferralWallets = [eventsData.returnValues.referral.toLowerCase(), eventsData.returnValues.affiliat.toLowerCase()]
+      const usersIdReferralProgram = []
+      for (const user of usersReferralWallets) {
+        const walletsReferralUsers = await Wallet.findOne({
+          where: {address: user}
+        })
+        usersIdReferralProgram.push(walletsReferralUsers.userId)
+      }
+      const referralId = await ReferralProgram.findOne({
         where: {
-          affiliateUserId: walletReferralUser.userId,
+          referrerUserId: usersIdReferralProgram[0]
         }
       })
-      await userIdAffiliate.update({
+      await referralId.update({
+        paidReward: sumPaidReferralUser
+      })
+      const affiliateInfos = await ReferralProgramAffiliate.findOne({
+        where: {
+          affiliateUserId: usersIdReferralProgram[1],
+          referralId: referralId.referralId
+        }
+      })
+      await affiliateInfos.update({
         status: RewardStatus.Paid
       })
     }
@@ -98,7 +120,7 @@ export class ReferralController {
       const usersIdReferralProgram = []
       for (const user of usersReferralWallets) {
         const walletsReferralUsers = await Wallet.findOne({
-          where: {address: usersReferralWallets[user]}
+          where: {address: user}
         })
         usersIdReferralProgram.push(walletsReferralUsers.userId)
       }
@@ -107,7 +129,7 @@ export class ReferralController {
           referrerUserId: usersIdReferralProgram[0]
         }
       })
-      const affiliateInfos = await ReferrerAffiliateUser.findOne({
+      const affiliateInfos = await ReferralProgramAffiliate.findOne({
         where: {
           affiliateUserId: usersIdReferralProgram[1],
           referralId: referralId.referralId
@@ -144,7 +166,7 @@ export class ReferralController {
       const walletReferralUser = await Wallet.findOne({
         where: {address: eventsData.returnValues.affiliat.toLowerCase()}
       })
-      const userIdAffiliate = await ReferrerAffiliateUser.findOne({
+      const userIdAffiliate = await ReferralProgramAffiliate.findOne({
         where: {
           affiliateUserId: walletReferralUser.userId,
         }
