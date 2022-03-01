@@ -1,5 +1,5 @@
 export enum ReferralEvent {
-  RegisteredAffiliat = 'RegisteredAffiliat',
+  RegisteredAffiliate = 'RegisteredAffiliat', /** On contract RegisteredAffiliat (without e) */
   RewardClaimed = 'RewardClaimed',
   PaidReferral = 'PaidReferral',
 }

@@ -1,17 +1,19 @@
+import BigNumber from "bignumber.js";
 import {ReferralEvent} from './types';
 import {EventData} from 'web3-eth-contract';
 import {Web3Provider} from "../providers/types";
 import {
   Wallet,
+  RewardStatus,
+  ReferralStatus,
+  ReferralProgram,
   BlockchainNetworks,
   ReferralParseBlock,
+  ReferralProgramAffiliate,
   ReferralEventPaidReferral,
+  ReferralEventRewardClaimed,
   ReferralEventRegisteredAffiliate,
-  ReferralEventRewardClaimed, ReferralProgram, ReferralProgramAffiliate, ReferralStatus, RewardStatus
 } from '@workquest/database-models/lib/models';
-import BigNumber from "bignumber.js";
-
-const sum = (x1, x2) => x1 + x2;
 
 export class ReferralController {
   constructor(
@@ -26,7 +28,7 @@ export class ReferralController {
   private async onEvent(eventsData: EventData) {
     if (eventsData.event === ReferralEvent.PaidReferral) {
       await this.paidReferralEventHandler(eventsData);
-    } else if (eventsData.event === ReferralEvent.RegisteredAffiliat) {
+    } else if (eventsData.event === ReferralEvent.RegisteredAffiliate) {
       await this.registeredAffiliateEventHandler(eventsData);
     } else if (eventsData.event === ReferralEvent.RewardClaimed) {
       await this.rewardClaimedEventHandler(eventsData);
@@ -34,64 +36,65 @@ export class ReferralController {
   }
 
   protected async paidReferralEventHandler(eventsData: EventData) {
+    const referralAddress = eventsData.returnValues.referral.toLowerCase();
+    const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
+
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    const [_, paidReferralIsCreated] = await ReferralEventPaidReferral.findOrCreate({
+    const [_, isCreated] = await ReferralEventPaidReferral.findOrCreate({
       where: {transactionHash: eventsData.transactionHash},
       defaults: {
-        blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash.toLowerCase(),
-        referral: eventsData.returnValues.referral.toLowerCase(),
-        affiliate: eventsData.returnValues.affiliat.toLowerCase(),
-        amount: eventsData.returnValues.amount,
+        referral: referralAddress,
+        affiliate: affiliateAddress,
         timestamp: block.timestamp,
+        blockNumber: eventsData.blockNumber,
+        amount: eventsData.returnValues.amount,
+        transactionHash: eventsData.transactionHash.toLowerCase(),
         network: this.network,
       },
     });
 
-    await ReferralParseBlock.update(
-      {lastParsedBlock: eventsData.blockNumber},
-      {
-        where: {network: this.network},
-      },
-    );
-
-    if (paidReferralIsCreated) {
-      const paidReferralEventsUser = await ReferralEventPaidReferral.findAndCountAll({
-        where: {referral: eventsData.returnValues.referral.toLowerCase()}
-      })
-      const rowsPaidReferralsAmounts = []
-      for (const amountOnePaid of paidReferralEventsUser.rows) {
-        rowsPaidReferralsAmounts.push(amountOnePaid.amount)
-      }
-      const sumPaidReferralUser = Number(new BigNumber(rowsPaidReferralsAmounts.reduce(sum)));
-
-      const usersReferralWallets = [eventsData.returnValues.referral.toLowerCase(), eventsData.returnValues.affiliat.toLowerCase()]
-      const usersIdReferralProgram = []
-      for (const user of usersReferralWallets) {
-        const walletsReferralUsers = await Wallet.findOne({
-          where: {address: user}
-        })
-        usersIdReferralProgram.push(walletsReferralUsers.userId)
-      }
-      const referralId = await ReferralProgram.findOne({
-        where: {
-          referrerUserId: usersIdReferralProgram[0]
-        }
-      })
-      await referralId.update({
-        paidReward: sumPaidReferralUser
-      })
-      const affiliateInfos = await ReferralProgramAffiliate.findOne({
-        where: {
-          affiliateUserId: usersIdReferralProgram[1],
-          referralId: referralId.referralId
-        }
-      })
-      await affiliateInfos.update({
-        status: RewardStatus.Paid
-      })
+    if (!isCreated) {
+      return;
     }
+
+    const [referralWallet, affiliateWallet, ] = await Promise.all([
+      Wallet.findOne({
+        where: { address: referralAddress }
+      }),
+      Wallet.findOne({
+        where: { address: affiliateAddress }
+      }),
+      ReferralParseBlock.update(
+        { lastParsedBlock: eventsData.blockNumber },
+        { where: { network: this.network },
+      }),
+    ]);
+
+    const [referralProgram, paidReferralEvents, ] = await Promise.all([
+      ReferralProgram.findOne({
+        where: { referrerUserId: referralWallet.userId }
+      }),
+      ReferralEventPaidReferral.findAll({
+        where: { referral: referralAddress }
+      }),
+      ReferralParseBlock.update(
+        { lastParsedBlock: eventsData.blockNumber },
+        { where: { network: this.network },
+        }),
+    ]);
+
+    const totalPaidAmounts = paidReferralEvents
+      .map(v => new BigNumber(v.amount))
+      .reduce((pValue, cValue) => pValue.plus(cValue))
+
+    await Promise.all([
+      referralProgram.update({ paidReward: totalPaidAmounts }),
+      ReferralProgramAffiliate.update(
+        { status: RewardStatus.Paid },
+        { where: { affiliateUserId: affiliateWallet.userId, referralId: referralProgram.id } }
+      ),
+    ]);
   }
 
   protected async registeredAffiliateEventHandler(eventsData: EventData) {

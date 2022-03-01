@@ -27,7 +27,7 @@
   shell: npm ci
   args:
     chdir: '{{ WORKERS_BIN }}'
-  
+
 - name: Build code
   shell: npm run build
   args:
