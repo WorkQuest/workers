@@ -89,7 +89,7 @@ export class ReferralController {
       referralProgram.update({ paidReward: totalPaidAmounts }),
       ReferralProgramAffiliate.update(
         { status: RewardStatus.Paid },
-        { where: { affiliateUserId: affiliateWallet.userId, referralId: referralProgram.id } }
+        { where: { affiliateUserId: affiliateWallet.userId, referralProgramId: referralProgram.id } }
       ),
     ]);
   }
