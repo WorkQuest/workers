@@ -126,16 +126,12 @@ export class ReferralController {
       ReferralParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
         { where: { network: this.network },
-        }),
+      }),
     ]);
-
-    const referralProgram = await ReferralProgram.findOne({
-      where: { referrerUserId: referralWallet.userId },
-    });
 
     await ReferralProgramAffiliate.update(
       { status: ReferralStatus.Registered },
-      { where: { affiliateUserId: affiliateWallet.userId, referralId: referralProgram.id } },
+      { where: { affiliateUserId: affiliateWallet.userId } },
     );
   }
 
@@ -171,21 +167,9 @@ export class ReferralController {
     ]);
 
     await ReferralProgramAffiliate.update(
-      {  },
-      {}
+      { status: RewardStatus.Claimed },
+      { where: { affiliateUserId: affiliateWallet.userId } }
     );
-
-    const walletReferralUser = await Wallet.findOne({
-      where: {address: eventsData.returnValues.affiliat.toLowerCase()}
-    })
-    const userIdAffiliate = await ReferralProgramAffiliate.findOne({
-      where: {
-        affiliateUserId: walletReferralUser.userId,
-      }
-    })
-    await userIdAffiliate.update({
-      status: RewardStatus.Claimed
-    });
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

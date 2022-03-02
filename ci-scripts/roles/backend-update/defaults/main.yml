@@ -7,3 +7,4 @@ liquidity_env: .env.liquidity
 pension_env: .env.pensionFund
 proposal_env: .env.proposal
 wqt_wbnb_env: .env.WqtWbnb
+referral_env: .env.referral
