@@ -118,7 +118,7 @@ export class ReferralController {
 
     const [affiliateWallet, ] = await Promise.all([
       Wallet.findOne({
-        where: { address: affiliateAddress }
+        where: { address: affiliateAddress },
       }),
       ReferralParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
