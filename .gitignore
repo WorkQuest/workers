@@ -42,3 +42,5 @@ app.json
 
 # http request for debug
 http-requests
+
+package-lock.json
