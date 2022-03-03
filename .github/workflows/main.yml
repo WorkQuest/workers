@@ -28,7 +28,7 @@ jobs:
           echo "${{ secrets.SERVER_SSH_KEY }}" >> ~/.ssh/id_rsa
 
       - name: Install npm dependencies
-        run: npm ci
+        run: npm i
 
       - name: Run build task
         run: npm run build
