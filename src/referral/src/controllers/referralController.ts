@@ -89,7 +89,7 @@ export class ReferralController {
       referralProgram.update({ paidReward: totalPaidAmounts }),
       ReferralProgramAffiliate.update(
         { status: RewardStatus.Paid },
-        { where: { affiliateUserId: affiliateWallet.userId, referralId: referralProgram.id } }
+        { where: { affiliateUserId: affiliateWallet.userId } }
       ),
     ]);
   }
@@ -116,17 +116,14 @@ export class ReferralController {
       return;
     }
 
-    const [referralWallet, affiliateWallet, ] = await Promise.all([
-      Wallet.findOne({
-        where: { address: referralAddress }
-      }),
+    const [affiliateWallet, ] = await Promise.all([
       Wallet.findOne({
         where: { address: affiliateAddress }
       }),
       ReferralParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
         { where: { network: this.network },
-      }),
+        }),
     ]);
 
     await ReferralProgramAffiliate.update(
