@@ -31,7 +31,6 @@
     "pg-hstore": "^2.3.4",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^6.6.2",
-    "sequelize-typescript": "2.0.0",
     "web3": "^1.7.0"
   }
 }
