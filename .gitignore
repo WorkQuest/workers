@@ -27,6 +27,7 @@ npm-debug.log
 .env.WqtWbnb
 .env.pensionFund
 .env.referral
+.env.questFactory
 
 # build directory
 build/
