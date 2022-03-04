@@ -28,7 +28,7 @@ jobs:
           echo "${{ secrets.SERVER_SSH_KEY }}" >> ~/.ssh/id_rsa
 
       - name: Install npm dependencies
-        run: npm ci
+        run: npm i
 
       - name: Run build task
         run: npm run build
@@ -102,6 +102,9 @@ jobs:
           PENSION_FUND_CONTRACT_ADDRESS=${{ secrets.PROD_PENSION_FUND_CONTRACT_ADDRESS }} \
           PENSION_FUND_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.PROD_PENSION_FUND_PARSE_EVENTS_FROM_HEIGHT }} \
 
+          WORK_QUEST_DEV_NETWORK_REFERRAL_CONTRACT_ADDRESS=${{ secrets.PROD_WORK_QUEST_DEV_NETWORK_REFERRAL_CONTRACT_ADDRESS }} \
+          WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.PROD_WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT }} \
+
           WORKERS_BIN=${{ secrets.PROD_WORKERS_BIN }} \
 
           PM2_BRIDGE_WORKER_NAME=${{ secrets.PROD_PM2_BRIDGE_WORKER_NAME }} \
@@ -109,6 +112,7 @@ jobs:
           PM2_PROPOSAL_WORKER_NAME=${{ secrets.PROD_PM2_PROPOSAL_WORKER_NAME }} \
           PM2_WQT_WBNB_WORKER_NAME=${{ secrets.PROD_PM2_WQT_WBNB_WORKER_NAME }} \
           PM2_PENSION_FUND_WORKER_NAME=${{ secrets.PROD_PM2_PENSION_FUND_WORKER_NAME }} \
+          PM2_REFERRAL_WORKER_NAME=${{ secrets.PROD_PM2_REFERRAL_WORKER_NAME }} \
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;
 
   deploy-develop:
@@ -181,6 +185,9 @@ jobs:
           PENSION_FUND_CONTRACT_ADDRESS=${{ secrets.DEV_PENSION_FUND_CONTRACT_ADDRESS }} \
           PENSION_FUND_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.DEV_PENSION_FUND_PARSE_EVENTS_FROM_HEIGHT }} \
 
+          WORK_QUEST_DEV_NETWORK_REFERRAL_CONTRACT_ADDRESS=${{ secrets.DEV_WORK_QUEST_DEV_NETWORK_REFERRAL_CONTRACT_ADDRESS }} \
+          WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.DEV_WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT }} \
+
           WORKERS_BIN=${{ secrets.DEV_WORKERS_BIN }} \
 
           PM2_BRIDGE_WORKER_NAME=${{ secrets.DEV_PM2_BRIDGE_WORKER_NAME }} \
@@ -188,5 +195,6 @@ jobs:
           PM2_PROPOSAL_WORKER_NAME=${{ secrets.DEV_PM2_PROPOSAL_WORKER_NAME }} \
           PM2_WQT_WBNB_WORKER_NAME=${{ secrets.DEV_PM2_WQT_WBNB_WORKER_NAME }} \
           PM2_PENSION_FUND_WORKER_NAME=${{ secrets.DEV_PM2_PENSION_FUND_WORKER_NAME }} \
+          PM2_REFERRAL_WORKER_NAME=${{ secrets.DEV_PM2_REFERRAL_WORKER_NAME }} \
 
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;
