@@ -25,12 +25,12 @@ export async function init() {
 
   // @ts-ignore
   const referralProvider = new ReferralProvider(web3, tendermintWsProvider, referralContract);
-  const referralController = new ReferralController(referralProvider, BlockchainNetworks.workQuestNetwork);
+  const referralController = new ReferralController(referralProvider, BlockchainNetworks.workQuestDevNetwork);
 
   const [referralBlockInfo] = await ReferralParseBlock.findOrCreate({
-    where: { network: BlockchainNetworks.workQuestNetwork },
+    where: { network: BlockchainNetworks.workQuestDevNetwork },
     defaults: {
-      network: BlockchainNetworks.workQuestNetwork,
+      network: BlockchainNetworks.workQuestDevNetwork,
       lastParsedBlock: configReferral.workQuestDevNetwork.parseEventsFromHeight,
     },
   });

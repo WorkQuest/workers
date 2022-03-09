@@ -9,9 +9,9 @@ import { QuestFactoryController } from './src/controllers/QuestFactoryController
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { initDatabase, QuestFactoryBlockInfo, BlockchainNetworks } from '@workquest/database-models/lib/models';
 import {QuestCacheProvider} from "./src/providers/QuestCacheProvider";
-import {Clients} from "../quest/providers/types";
+import {Clients} from "./src/providers/types";
 
-const abiFilePath = path.join(__dirname, '../../src/questFactory/abi/QuestFactory.json');
+const abiFilePath = path.join(__dirname, '../../src/quest-factory/abi/QuestFactory.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
@@ -52,7 +52,7 @@ export async function init() {
   const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract);
   const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
 
-  // await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
+  await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
   await questFactoryProvider.startListener();
 }
 

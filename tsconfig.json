@@ -16,12 +16,12 @@
   "include": [
     "./src/**/*.ts",
     "./src/quest/abi/*.json",
-    "./src/questFactory/abi/*.json",
+    "./src/quest-factory/abi/*.json",
     "./src/bridge/abi/*.json",
     "./src/proposal/abi/*.json",
-    "./src/dailyLiquidity/abi/*.json",
+    "./src/daily-liquidity/abi/*.json",
     "./src/WqtWbnb/abi/*.json",
-    "./src/pensionFund/abi/*.json",
+    "./src/pension-fund/abi/*.json",
     "./src/referral/abi/*.json"
   ],
   "rootDir":  ["src"]

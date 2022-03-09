@@ -1,6 +1,6 @@
 import {config} from "dotenv";
 
-config({ path: __dirname +  '/../../../.env.questFactory'});
+config({ path: __dirname +  '/../../../.env.quest-factory'});
 
 export default {
   network: process.env.QUEST_FACTORY_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork

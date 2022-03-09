@@ -10,8 +10,6 @@ import {
   QuestFactoryCreatedEvent,
 } from '@workquest/database-models/lib/models';
 
-const delay = require('delay');
-
 export class QuestFactoryController implements IController {
   constructor(
     public readonly clients: Clients,

@@ -1,6 +1,6 @@
 import {config} from "dotenv";
 
-config({ path: __dirname +  '/../../../.env.questFactory'});
+config({ path: __dirname +  '/../../../.env.quest-factory'});
 
 export default {
   dbLink: process.env.DB_LINK,

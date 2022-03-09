@@ -4,8 +4,8 @@
 backend_bin_mode: '0640'
 bridge_env: .env.bridge
 liquidity_env: .env.liquidity
-pension_env: .env.pensionFund
+pension_env: .env.pension-fund
 proposal_env: .env.proposal
 wqt_wbnb_env: .env.WqtWbnb
 referral_env: .env.referral
-quest_factory_env: .env.questFactory
+quest_factory_env: .env.quest-factory

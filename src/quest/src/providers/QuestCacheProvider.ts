@@ -11,6 +11,6 @@ export class QuestCacheProvider implements IQuestCacheProvider {
   }
 
   public set(questContactAddress: string, payload: QuestPayload) {
-    return this.client.set(questContactAddress.toLowerCase(), JSON.stringify(payload));
+    return void this.client.set(questContactAddress.toLowerCase(), JSON.stringify(payload));
   }
 }
