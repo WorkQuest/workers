@@ -6,9 +6,9 @@ import {
   Wallet,
   RewardStatus,
   ReferralStatus,
-  ReferralProgram,
   BlockchainNetworks,
   ReferralParseBlock,
+  ReferralProgramReferral,
   ReferralProgramAffiliate,
   ReferralEventPaidReferral,
   ReferralEventRewardClaimed,
@@ -72,8 +72,8 @@ export class ReferralController {
     ]);
 
     const [referralProgram, paidReferralEvents] = await Promise.all([
-      ReferralProgram.findOne({
-        where: { referrerUserId: referralWallet.userId }
+      ReferralProgramReferral.findOne({
+        where: { referralUserId: referralWallet.userId }
       }),
       ReferralEventPaidReferral.findAll({
         where: { referral: referralAddress }
@@ -116,9 +116,9 @@ export class ReferralController {
       return;
     }
 
-    const [affiliateWallet, ] = await Promise.all([
+    const [referralWallet, ] = await Promise.all([
       Wallet.findOne({
-        where: { address: affiliateAddress }
+        where: { address: referralAddress }
       }),
       ReferralParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
@@ -126,9 +126,9 @@ export class ReferralController {
         }),
     ]);
 
-    await ReferralProgramAffiliate.update(
-      { status: ReferralStatus.Registered },
-      { where: { affiliateUserId: affiliateWallet.userId } },
+    await ReferralProgramReferral.update(
+      { referralStatus: ReferralStatus.Registered },
+      { where: { referralUserId: referralWallet.userId } },
     );
   }
 
