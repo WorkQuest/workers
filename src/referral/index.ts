@@ -5,6 +5,7 @@ import configDatabase from './config/config.database';
 import configReferral from './config/config.referral';
 import { ReferralProvider } from "./src/providers/referralProvider"
 import { ReferralController } from "./src/controllers/ReferralController";
+import { ReferralMessageBroker } from "./src/controllers/BrokerController";
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { BlockchainNetworks, ReferralParseBlock, initDatabase } from '@workquest/database-models/lib/models';
 
@@ -13,6 +14,7 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
   await initDatabase(configDatabase.dbLink, true, true);
+  ReferralMessageBroker.initMessageBroker();
 
   const rpcProvider = new Web3.providers.HttpProvider(configReferral.workQuestDevNetwork.rpcProvider);
   const tendermintWsProvider = new TendermintWebsocketClient(configReferral.workQuestDevNetwork.tendermintProvider, error => {

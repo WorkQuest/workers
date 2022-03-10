@@ -2,6 +2,7 @@ import BigNumber from "bignumber.js";
 import {ReferralEvent} from './types';
 import {EventData} from 'web3-eth-contract';
 import {Web3Provider} from "../providers/types";
+import {ReferralMessageBroker} from "./BrokerController";
 import {
   Wallet,
   RewardStatus,
@@ -28,10 +29,25 @@ export class ReferralController {
   private async onEvent(eventsData: EventData) {
     if (eventsData.event === ReferralEvent.PaidReferral) {
       await this.paidReferralEventHandler(eventsData);
+      ReferralMessageBroker.sendReferralNotification({
+        recipients: [eventsData.returnValues.affiliat.toLowerCase()],
+        action: eventsData.event,
+        data: eventsData
+      });
     } else if (eventsData.event === ReferralEvent.RegisteredAffiliate) {
       await this.registeredAffiliateEventHandler(eventsData);
+      ReferralMessageBroker.sendReferralNotification({
+        recipients: [eventsData.returnValues.referral.toLowerCase()],
+        action: eventsData.event,
+        data: eventsData
+      });
     } else if (eventsData.event === ReferralEvent.RewardClaimed) {
       await this.rewardClaimedEventHandler(eventsData);
+      ReferralMessageBroker.sendReferralNotification({
+        recipients: [eventsData.returnValues.affiliat.toLowerCase()],
+        action: eventsData.event,
+        data: eventsData
+      });
     }
   }
 
