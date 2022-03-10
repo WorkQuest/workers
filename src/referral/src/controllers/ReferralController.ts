@@ -41,6 +41,7 @@ export class ReferralController {
 
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
+    // TODO ReferralEventPaidReferral -> ReferralProgramEventPaidReferral
     const [_, isCreated] = await ReferralEventPaidReferral.findOrCreate({
       where: {transactionHash: eventsData.transactionHash},
       defaults: {
@@ -71,12 +72,13 @@ export class ReferralController {
       }),
     ]);
 
-    const [referralProgram, paidReferralEvents] = await Promise.all([
+    const [referralProgramReferral, paidReferralEvents] = await Promise.all([
       ReferralProgramReferral.findOne({
         where: { referralUserId: referralWallet.userId }
       }),
       ReferralEventPaidReferral.findAll({
-        where: { referral: referralAddress }
+        /** One Referral - one affiliate (and vice versa) */
+        where: { referral: referralAddress, affiliate: affiliateAddress },
       }),
     ]);
 
@@ -85,8 +87,9 @@ export class ReferralController {
       .reduce((pValue, cValue) => pValue.plus(cValue))
       .toString()
 
+    // TODO Affiliate!!!
     await Promise.all([
-      referralProgram.update({ paidReward: totalPaidAmounts }),
+      referralProgramReferral.update({ paidReward: totalPaidAmounts }),
       ReferralProgramAffiliate.update(
         { status: RewardStatus.Paid },
         { where: { affiliateUserId: affiliateWallet.userId } }
@@ -100,6 +103,7 @@ export class ReferralController {
 
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
+    // TODO ReferralEventRegisteredAffiliate -> ReferralProgramEventRegisteredAffiliate
     const [_, isCreated] = await ReferralEventRegisteredAffiliate.findOrCreate({
       where: {transactionHash: eventsData.transactionHash},
       defaults: {
@@ -122,8 +126,8 @@ export class ReferralController {
       }),
       ReferralParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network },
-        }),
+        { where: { network: this.network } },
+      ),
     ]);
 
     await ReferralProgramReferral.update(
@@ -163,6 +167,7 @@ export class ReferralController {
       ),
     ]);
 
+    // TODO ???
     await ReferralProgramAffiliate.update(
       { status: RewardStatus.Claimed },
       { where: { affiliateUserId: affiliateWallet.userId } }

@@ -4,7 +4,7 @@ import * as path from 'path';
 import configDatabase from './config/config.database';
 import configReferral from './config/config.referral';
 import { ReferralProvider } from "./src/providers/referralProvider"
-import { ReferralController } from "./src/controllers/referralController";
+import { ReferralController } from "./src/controllers/ReferralController";
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { BlockchainNetworks, ReferralParseBlock, initDatabase } from '@workquest/database-models/lib/models';
 
