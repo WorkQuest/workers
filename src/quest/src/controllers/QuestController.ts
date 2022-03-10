@@ -1,12 +1,16 @@
 import {IController, QuestEvent} from "./types";
 import {EventData} from "web3-eth-contract";
 import {Clients, IContractProvider} from "../providers/types";
-import {BlockchainNetworks, QuestAssignedEvent, QuestStatus} from "@workquest/database-models/lib/models";
-import {QuestAssignedEventStatus} from "@workquest/database-models/src/models/quest/contract-quest/QuestAssignedEvent";
 import {QuestModelController} from "./models/QuestModelController";
 import {UserModelController} from "./models/UserModelController";
 import {QuestResponsesModelController} from "./models/QuestResponsesModelController";
-import {QuestJobStartedEvent} from "@workquest/database-models/src/models/quest/contract-quest/QuestJobStartedEvent";
+import {
+  BlockchainNetworks,
+  QuestAssignedEvent,
+  QuestStatus,
+  QuestJobStartedEvent,
+  QuestAssignedEventStatus
+} from "@workquest/database-models/lib/models";
 
 export class QuestController implements IController {
   constructor(

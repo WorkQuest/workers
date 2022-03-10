@@ -67,8 +67,8 @@ export class ReferralController {
       }),
       ReferralParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network },
-      }),
+        { where: { network: this.network } },
+      ),
     ]);
 
     const [referralProgram, paidReferralEvents] = await Promise.all([

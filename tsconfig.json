@@ -12,7 +12,11 @@
     "resolveJsonModule": true,
     "removeComments": true
   },
-  "exclude": ["node_modules"],
+  "exclude": [
+    "node_modules",
+    "./**/*.spec.ts",
+    "./**/__mocks__/*.ts"
+  ],
   "include": [
     "./src/**/*.ts",
     "./src/quest/abi/*.json",

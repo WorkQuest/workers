@@ -1,6 +1,5 @@
 import {QuestModelController} from "./QuestModelController";
-import {QuestsResponse} from "@workquest/database-models/lib/models";
-import {QuestsResponseStatus} from "@workquest/database-models/src/models/quest/QuestsResponse";
+import {QuestsResponse, QuestsResponseStatus } from "@workquest/database-models/lib/models";
 
 export class QuestResponsesModelController {
   constructor(
