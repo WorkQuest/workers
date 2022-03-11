@@ -17,7 +17,7 @@ export class QuestModelController {
     return void this.quest.update({ status: QuestStatus.ExecutionOfWork });
   }
 
-  public questIsInStatus(...statuses: QuestStatus[]) {
+  public statusDoesMatch(...statuses: QuestStatus[]): boolean {
     return statuses.includes(this.quest.status);
   }
 

@@ -1,15 +1,17 @@
+import {Model, ModelCtor} from "sequelize";
 import {IController, QuestEvent} from "./types";
 import {EventData} from "web3-eth-contract";
 import {Clients, IContractProvider} from "../providers/types";
 import {QuestModelController} from "./models/QuestModelController";
 import {UserModelController} from "./models/UserModelController";
 import {QuestResponsesModelController} from "./models/QuestResponsesModelController";
+import {QuestChatModelController} from "./models/QuestChatModelController";
 import {
+  QuestStatus,
   BlockchainNetworks,
   QuestAssignedEvent,
-  QuestStatus,
   QuestJobStartedEvent,
-  QuestAssignedEventStatus
+  QuestAssignedEventStatus,
 } from "@workquest/database-models/lib/models";
 
 export class QuestController implements IController {
@@ -43,8 +45,20 @@ export class QuestController implements IController {
     const workerModelController = await UserModelController.byWalletAddress(contractAddress);
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 
-    if (!questModelController || !workerModelController) {
-      return;
+    const questAssignedEvent = {
+      timestamp, workerAddress, contractAddress, transactionHash,
+      network: this.network, status: QuestAssignedEventStatus.Successfully,
+    }
+
+    const assignedEventStatus = (workerModelController && questModelController)
+      ? QuestAssignedEventStatus.Successfully
+      : QuestAssignedEventStatus.WorkerOrQuestEntityNotFound
+
+    if (questModelController.statusDoesMatch(
+      QuestStatus.Recruitment,
+      QuestStatus.WaitingForConfirmFromWorkerOnAssign,
+    )) {
+
     }
 
     const [, isCreated] = await QuestAssignedEvent.findOrCreate({
@@ -65,15 +79,6 @@ export class QuestController implements IController {
       return;
     }
 
-    // TODO in throw
-    if (!questModelController.questIsInStatus(
-      QuestStatus.Recruitment,
-      QuestStatus.WaitingForConfirmFromWorkerOnAssign)
-    ) {
-      return;
-    }
-
-    // TODO чаты
     // TODO нотификации
     await questModelController.assignWorkerOnQuest(workerModelController.user);
   }
@@ -86,6 +91,7 @@ export class QuestController implements IController {
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questResponsesModelController = new QuestResponsesModelController(questModelController);
+    const questChatModelController = new QuestChatModelController(questModelController);
 
     if (!questModelController) {
       return;
@@ -108,14 +114,14 @@ export class QuestController implements IController {
     }
 
     // TODO in throw
-    if (!questModelController.questIsInStatus(QuestStatus.WaitingForConfirmFromWorkerOnAssign)) {
-      return;
-    }
+    questModelController.checkQuestStatus(
+      QuestStatus.WaitingForConfirmFromWorkerOnAssign
+    );
 
-    // TODO чаты
     // TODO нотификации
     await questModelController.startQuest();
     await questResponsesModelController.closeAllWorkingResponses();
+    await questChatModelController.closeAllWorkChatsExceptAssignedWorker();
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
@@ -134,4 +140,8 @@ export class QuestController implements IController {
       throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);
     }
   }
+
+  // static findOrCreateQuestEvent<T extends Model>(modelInstance: ModelCtor<T>, event: any): Promise<[T, boolean]> {
+  //   return modelInstance.findOrCreate<T>({ where: { }, defaults: event });
+  // }
 }
