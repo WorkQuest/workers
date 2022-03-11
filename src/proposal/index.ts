@@ -5,8 +5,8 @@ import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
 import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
-import { ProposalController } from "./src/controllers/proposalController";
-import { ProposalProvider } from './src/providers/proposalProvider';
+import { ProposalController } from "./src/controllers/ProposalController";
+import { ProposalProvider } from './src/providers/ProposalProvider';
 
 
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
