@@ -10,7 +10,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "removeComments": true
+    "removeComments": true,
   },
   "exclude": ["node_modules"],
   "include": [

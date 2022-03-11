@@ -3,58 +3,54 @@ import * as fs from 'fs';
 import Web3 from 'web3';
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
-import { ProposalContract } from './src/ProposalContract';
-import { ProposalEthListener } from './src/ProviderListener';
-import { ProposalProvider } from './src/ProposalProvider';
-import { initDatabase, BlockchainNetworks, ProposalParseBlock } from '@workquest/database-models/lib/models';
+import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
+import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
+import { ProposalController } from "./src/controllers/proposalController";
+import { ProposalProvider } from './src/providers/proposalProvider';
+
 
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
-
-// TODO Only test network
-const parseEthEventsFromHeight = configProposal.rinkebyTestNetwork.parseEventsFrom;
-const contractEthAddress = configProposal.rinkebyTestNetwork.contract;
-const urlEthProvider = configProposal.rinkebyTestNetwork.webSocketProvider;
 
 export async function init() {
   console.log('Start listener proposal'); // TODO add pino
 
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const web3Eth = new Web3(
-    new Web3.providers.WebsocketProvider(urlEthProvider, {
-      clientConfig: {
-        keepalive: true,
-        keepaliveInterval: 60000, // ms
-      },
-      reconnect: {
-        auto: true,
-        delay: 1000, // ms
-        onTimeout: false,
-      },
-    }),
-  );
+  const { linkRpcProvider, contractAddress, parseEventsFromHeight, linkTendermintProvider } = configProposal.defaultConfigNetwork();
 
-  const [proposalInfo] = await ProposalParseBlock.findOrCreate({
-    where: { network: BlockchainNetworks.ethMainNetwork },
+  const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
+  const tendermintWsProvider = new TendermintWebsocketClient(linkTendermintProvider, err => {
+    throw err;
+  });
+
+  const web3 = new Web3(rpcProvider);
+
+  const proposalContract = new web3.eth.Contract(abi, contractAddress);
+
+  // @ts-ignore
+  const proposalProvider = new ProposalProvider(web3, tendermintWsProvider, proposalContract);
+  const proposalController = new ProposalController(proposalProvider, configProposal.network as BlockchainNetworks);
+
+  const [proposalBlockInfo] = await ProposalParseBlock.findOrCreate({
+    where: { network: configProposal.network as BlockchainNetworks },
     defaults: {
-      network: BlockchainNetworks.ethMainNetwork,
-      lastParsedBlock: parseEthEventsFromHeight,
+      network: configProposal.network as BlockchainNetworks,
+      lastParsedBlock: parseEventsFromHeight,
     },
   });
 
-  if (proposalInfo.lastParsedBlock < parseEthEventsFromHeight) {
-    proposalInfo.lastParsedBlock = parseEthEventsFromHeight;
-
-    await proposalInfo.save();
+  if (proposalBlockInfo.lastParsedBlock < parseEventsFromHeight) {
+    await proposalBlockInfo.update({
+      lastParsedBlock: parseEventsFromHeight
+    });
   }
 
-  const proposalEthProvider = new ProposalProvider(web3Eth, proposalInfo.lastParsedBlock);
-  const proposalEthContract = new ProposalContract(proposalEthProvider, contractEthAddress, abi);
-  const proposalEthListener = new ProposalEthListener(proposalEthContract, proposalInfo);
+  await proposalController.collectAllUncollectedEvents(proposalBlockInfo.lastParsedBlock);
 
-  await proposalEthListener.parseProposalCreated();
-  await proposalEthListener.start();
+  console.log('Start proposal listener');
+
+  await proposalProvider.startListener();
 }
 
 init().catch(console.error);
