@@ -9,7 +9,7 @@ import {
   BlockchainNetworks,
   ProposalCreatedEvent,
   ProposalExecutedEvent,
-  ProposalVoteCastEvent
+  ProposalVoteCastEvent, User, Wallet
 } from "@workquest/database-models/lib/models";
 
 export class ProposalController {
@@ -36,9 +36,19 @@ export class ProposalController {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
     const proposal = await Proposal.findOne({
-      where: {
-        proposer: eventsData.returnValues.proposer.toLowerCase(),
-        nonce: eventsData.returnValues.nonce
+      where: { nonce: eventsData.returnValues.nonce },
+      include: {
+        model: User,
+        as: 'proposerUser',
+        required: true,
+        include: [{
+          model: Wallet,
+          as: 'wallet',
+          attributes: [],
+          where: {
+            address: eventsData.returnValues.proposer.toLowerCase()
+          }
+        }]
       }
     });
 
@@ -63,7 +73,7 @@ export class ProposalController {
 
     if (isCreated) {
       const discussion = await Discussion.create({
-        authorId: proposal.userId,
+        authorId: proposal.proposerUserId,
         title: proposal.title,
         description: proposal.description
       });
