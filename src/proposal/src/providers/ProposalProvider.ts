@@ -21,7 +21,7 @@ export class ProposalProvider implements Web3Provider {
       id: 0,
       jsonrpc: '2.0',
       method: 'subscribe',
-      params: { query }
+      params: { query },
     });
 
     stream.addListener({
@@ -33,17 +33,21 @@ export class ProposalProvider implements Web3Provider {
 
   private async onEventTendermintData(txData) {
     console.log(txData);
+
     const blockTxHeight = txData["data"]["value"]['TxResult']["height"] as string;
     const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock: blockTxHeight, toBlock: blockTxHeight });
 
-    for (const eventData of eventsData) { await this.onEventData(eventData) }
+    /** See range (fromBlock: blockTxHeight, toBlock: blockTxHeight) */
+    await this.onEventData(eventsData[0]);
   }
 
   private onEventData(eventData) {
-    this.onEventCallBacks.forEach((callBack) => callBack(eventData));
+    return Promise.all(
+      this.onEventCallBacks.map(async callBack => callBack(eventData))
+    );
   }
 
-  public async startListener(): Promise<void> {
+  public startListener() {
     this.contractTransactionsListenerInit();
   }
 

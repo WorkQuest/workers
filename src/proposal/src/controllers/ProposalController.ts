@@ -1,15 +1,15 @@
 import { TrackedEvents } from "./types";
 import { EventData } from "web3-eth-contract";
 import { Web3Provider } from "../providers/types";
-import { ProposalStatus } from '@workquest/database-models/lib/models/proposal/types';
 import {
   Proposal,
   Discussion,
+  ProposalStatus,
   ProposalParseBlock,
   BlockchainNetworks,
   ProposalCreatedEvent,
   ProposalExecutedEvent,
-  ProposalVoteCastEvent, User, Wallet
+  ProposalVoteCastEvent,
 } from "@workquest/database-models/lib/models";
 
 export class ProposalController {
@@ -24,144 +24,153 @@ export class ProposalController {
 
   private async onEvent(eventsData: EventData) {
     if (eventsData.event === TrackedEvents.ProposalCreated) {
-      await this.proposalCreatedEventHandler(eventsData);
+      return this.proposalCreatedEventHandler(eventsData);
     } else if (eventsData.event === TrackedEvents.VoteCast) {
-      await this.voteCastEventHandler(eventsData);
+      return this.voteCastEventHandler(eventsData);
     } else if (eventsData.event === TrackedEvents.ProposalExecuted) {
-      await this.proposalExecutedEventHandler(eventsData);
+      return this.proposalExecutedEventHandler(eventsData);
     }
   }
 
   protected async proposalCreatedEventHandler(eventsData: EventData) {
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    const proposer = eventsData.returnValues.proposer.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
 
     const proposal = await Proposal.findOne({
       where: { nonce: eventsData.returnValues.nonce },
-      include: {
-        model: User,
-        as: 'proposerUser',
-        required: true,
-        include: [{
-          model: Wallet,
-          as: 'wallet',
-          attributes: [],
-          where: {
-            address: eventsData.returnValues.proposer.toLowerCase()
-          }
-        }]
-      }
     });
 
     const [_, isCreated] = await ProposalCreatedEvent.findOrCreate({
       where: {
-        transactionHash: eventsData.transactionHash,
+        transactionHash,
         network: this.network,
       },
       defaults: {
-        proposalId: proposal.id,
+        proposer,
+        timestamp,
+        transactionHash,
         network: this.network,
-        transactionHash: eventsData.transactionHash,
-        contractProposalId: eventsData.returnValues.id,
-        proposer: eventsData.returnValues.proposer.toLowerCase(),
+        proposalId: proposal.id,
         nonce: eventsData.returnValues.nonce,
+        contractProposalId: eventsData.returnValues.id,
         description: eventsData.returnValues.description,
         votingPeriod: eventsData.returnValues.votingPeriod,
         minimumQuorum: eventsData.returnValues.minimumQuorum,
-        timestamp: block.timestamp,
       }
     });
 
-    if (isCreated) {
-      const discussion = await Discussion.create({
-        authorId: proposal.proposerUserId,
-        title: proposal.title,
-        description: proposal.description
-      });
-
-      await discussion.$set('medias', proposal.medias);
-
-      await proposal.update({
-        discussionId: discussion.id,
-        status: ProposalStatus.Active,
-      });
+    if (!isCreated) {
+      return;
     }
 
-    await ProposalParseBlock.update(
+    const discussion = await Discussion.create({
+      authorId: proposal.proposerUserId,
+      title: proposal.title,
+      description: proposal.description
+    });
+
+    /** Duplicate medias  */
+    const discussionUpdateMediaPromise = discussion.$set('medias', proposal.medias);
+
+    const proposalUpdatePromise = proposal.update({
+      discussionId: discussion.id,
+      status: ProposalStatus.Active,
+    });
+
+    const proposalUpdateBlockPromise = ProposalParseBlock.update(
       { lastParsedBlock: eventsData.blockNumber },
-      { where: { network: this.network } }
+      { where: { network: this.network } },
     );
+
+    return Promise.all([
+      proposalUpdatePromise,
+      proposalUpdateBlockPromise,
+      discussionUpdateMediaPromise,
+    ]);
   }
 
   protected async voteCastEventHandler(eventsData: EventData) {
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    const voter = eventsData.returnValues.voter.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
 
     const { proposalId } = await ProposalCreatedEvent.findOne({
-      where: { contractProposalId: eventsData.returnValues.proposalId }
+      where: { contractProposalId: eventsData.returnValues.proposalId },
     });
 
-    await ProposalVoteCastEvent.findOrCreate({
+    const [_, isCreated] = await ProposalVoteCastEvent.findOrCreate({
       where: {
-        transactionHash: eventsData.transactionHash,
+        transactionHash,
         network: this.network,
       },
       defaults: {
+        voter,
+        timestamp,
         proposalId,
+        transactionHash,
         network: this.network,
-        transactionHash: eventsData.transactionHash,
-        voter: eventsData.returnValues.voter.toLowerCase(),
         contractProposalId: eventsData.returnValues.id,
         support: eventsData.returnValues.support,
         votes: eventsData.returnValues.votes,
-        timestamp: block.timestamp,
       }
     });
 
-    await ProposalParseBlock.update(
+    if (!isCreated) {
+      return;
+    }
+
+    return ProposalParseBlock.update(
       { lastParsedBlock: eventsData.blockNumber },
-      { where: { network: this.network } }
+      { where: { network: this.network } },
     );
   }
 
   protected async proposalExecutedEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
     const { proposalId } = await ProposalExecutedEvent.findOne({
       where: { contractProposalId: eventsData.returnValues.id },
     });
 
     const [executedEvent, isCreated] = await ProposalExecutedEvent.findOrCreate({
       where: {
-        transactionHash: eventsData.transactionHash,
+        transactionHash,
         network: this.network,
       },
       defaults: {
+        timestamp,
         proposalId,
+        transactionHash,
         network: this.network,
-        transactionHash: eventsData.transactionHash,
         contractProposalId: eventsData.returnValues.id,
         succeded: eventsData.returnValues.succeded,
         defeated: eventsData.returnValues.defeated,
       }
     });
 
-    if (isCreated) {
-      if (executedEvent.succeeded) {
-        await Proposal.update({
-          status: ProposalStatus.Accepted
-        }, {
-          where: { proposalId: executedEvent.proposalId }
-        });
-      } else if (executedEvent.defeated) {
-        await Proposal.update({
-          status: ProposalStatus.Rejected,
-        }, {
-          where: { proposalId: executedEvent.proposalId }
-        })
-      }
+    if (!isCreated) {
+      return;
     }
 
-    await ProposalParseBlock.update(
-      { lastParsedBlock: eventsData.blockNumber },
-      { where: { network: this.network } }
-    );
+    const proposalStatus = executedEvent.succeeded
+      ? ProposalStatus.Accepted
+      : ProposalStatus.Rejected
+
+    return Promise.all([
+      ProposalParseBlock.update(
+        { lastParsedBlock: eventsData.blockNumber },
+        { where: { network: this.network } },
+      ),
+      Proposal.update(
+        { status: proposalStatus },
+        { where: { proposalId: executedEvent.proposalId } },
+      ),
+    ]);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

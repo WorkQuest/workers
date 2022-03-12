@@ -8,7 +8,7 @@ export type onEventCallBack = {
 export interface Web3Provider {
   web3: Web3;
 
-  startListener(): Promise<void>;
+  startListener();
   subscribeOnEvents(onEventCallBack: onEventCallBack): void;
   getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[]; isGotAllEvents: boolean, lastBlockNumber: number }>;
 }

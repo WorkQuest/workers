@@ -8,16 +8,18 @@ import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint
 import { ProposalController } from "./src/controllers/ProposalController";
 import { ProposalProvider } from './src/providers/ProposalProvider';
 
-
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  console.log('Start listener proposal'); // TODO add pino
-
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const { linkRpcProvider, contractAddress, parseEventsFromHeight, linkTendermintProvider } = configProposal.defaultConfigNetwork();
+  const {
+    linkRpcProvider,
+    contractAddress,
+    parseEventsFromHeight,
+    linkTendermintProvider,
+  } = configProposal.defaultConfigNetwork();
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
   const tendermintWsProvider = new TendermintWebsocketClient(linkTendermintProvider, err => {
@@ -50,7 +52,7 @@ export async function init() {
 
   console.log('Start proposal listener');
 
-  await proposalProvider.startListener();
+  proposalProvider.startListener();
 }
 
 init().catch(console.error);
