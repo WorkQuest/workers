@@ -32,6 +32,13 @@ export class ProposalController {
     }
   }
 
+  protected updateLastParseBlock(lastParsedBlock: number): Promise<void> {
+    return void ProposalParseBlock.update(
+      { lastParsedBlock },
+      { where: { network: this.network } },
+    );
+  }
+
   protected async proposalCreatedEventHandler(eventsData: EventData) {
     const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
@@ -52,7 +59,7 @@ export class ProposalController {
         timestamp,
         transactionHash,
         network: this.network,
-        proposalId: proposal.id,
+        proposalId: proposal ? proposal.id : null,
         nonce: eventsData.returnValues.nonce,
         contractProposalId: eventsData.returnValues.id,
         description: eventsData.returnValues.description,
@@ -64,30 +71,20 @@ export class ProposalController {
     if (!isCreated) {
       return;
     }
+    if (!proposal) {
+      return this.updateLastParseBlock(eventsData.blockNumber);
+    }
 
     const discussion = await Discussion.create({
       authorId: proposal.proposerUserId,
       title: proposal.title,
-      description: proposal.description
+      description: proposal.description,
     });
-
-    /** Duplicate medias  */
-    const discussionUpdateMediaPromise = discussion.$set('medias', proposal.medias);
-
-    const proposalUpdatePromise = proposal.update({
-      discussionId: discussion.id,
-      status: ProposalStatus.Active,
-    });
-
-    const proposalUpdateBlockPromise = ProposalParseBlock.update(
-      { lastParsedBlock: eventsData.blockNumber },
-      { where: { network: this.network } },
-    );
 
     return Promise.all([
-      proposalUpdatePromise,
-      proposalUpdateBlockPromise,
-      discussionUpdateMediaPromise,
+      discussion.$set('medias', proposal.medias), /** Duplicate medias  */
+      this.updateLastParseBlock(eventsData.blockNumber),
+      proposal.update({ discussionId: discussion.id, status: ProposalStatus.Active }),
     ]);
   }
 
@@ -97,7 +94,7 @@ export class ProposalController {
     const voter = eventsData.returnValues.voter.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    const { proposalId } = await ProposalCreatedEvent.findOne({
+    const proposalCreatedEvent = await ProposalCreatedEvent.findOne({
       where: { contractProposalId: eventsData.returnValues.proposalId },
     });
 
@@ -109,9 +106,9 @@ export class ProposalController {
       defaults: {
         voter,
         timestamp,
-        proposalId,
         transactionHash,
         network: this.network,
+        proposalId: proposalCreatedEvent ? proposalCreatedEvent.proposalId : null,
         contractProposalId: eventsData.returnValues.id,
         support: eventsData.returnValues.support,
         votes: eventsData.returnValues.votes,
@@ -121,11 +118,11 @@ export class ProposalController {
     if (!isCreated) {
       return;
     }
+    if (!proposalCreatedEvent) {
 
-    return ProposalParseBlock.update(
-      { lastParsedBlock: eventsData.blockNumber },
-      { where: { network: this.network } },
-    );
+    }
+
+    return this.updateLastParseBlock(eventsData.blockNumber);
   }
 
   protected async proposalExecutedEventHandler(eventsData: EventData) {
@@ -133,8 +130,8 @@ export class ProposalController {
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    const { proposalId } = await ProposalExecutedEvent.findOne({
-      where: { contractProposalId: eventsData.returnValues.id },
+    const proposalCreatedEvent = await ProposalCreatedEvent.findOne({
+      where: { contractProposalId: eventsData.returnValues.proposalId },
     });
 
     const [executedEvent, isCreated] = await ProposalExecutedEvent.findOrCreate({
@@ -144,9 +141,9 @@ export class ProposalController {
       },
       defaults: {
         timestamp,
-        proposalId,
         transactionHash,
         network: this.network,
+        proposalId: proposalCreatedEvent ? proposalCreatedEvent.proposalId : null,
         contractProposalId: eventsData.returnValues.id,
         succeded: eventsData.returnValues.succeded,
         defeated: eventsData.returnValues.defeated,
@@ -156,19 +153,19 @@ export class ProposalController {
     if (!isCreated) {
       return;
     }
+    if (!proposalCreatedEvent) {
+      return this.updateLastParseBlock(eventsData.blockNumber);
+    }
 
     const proposalStatus = executedEvent.succeeded
       ? ProposalStatus.Accepted
       : ProposalStatus.Rejected
 
     return Promise.all([
-      ProposalParseBlock.update(
-        { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network } },
-      ),
+      this.updateLastParseBlock(eventsData.blockNumber),
       Proposal.update(
         { status: proposalStatus },
-        { where: { proposalId: executedEvent.proposalId } },
+        { where: { id: executedEvent.proposalId } },
       ),
     ]);
   }
