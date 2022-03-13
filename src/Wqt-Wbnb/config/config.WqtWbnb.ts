@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.WqtWbnb' });
+config({ path: __dirname + '/../../../.env.Wqt-Wbnb' });
 
 export default {
   wsProvider: process.env.WQT_WBNB_WEBSOCKET_PROVIDER,

@@ -1,16 +1,15 @@
 import Web3 from 'web3';
 import { Contract, EventData } from 'web3-eth-contract';
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
-import { onEventCallBack, Web3Provider } from './types';
+import {onEventCallBack, IContractProvider, Clients} from './types';
 
-export class ReferralProvider implements Web3Provider {
+export class ReferralProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
 
   constructor(
-    public readonly web3: Web3,
-    private readonly tendermintWs: TendermintWebsocketClient,
+    public readonly clients: Clients,
     public readonly contract: Contract,
   ) {}
 
@@ -19,7 +18,7 @@ export class ReferralProvider implements Web3Provider {
     // TODO WHYYYYY????  NOT WORKING!!!!!
     const query = `tm.event='Tx' AND ethereum_tx.recipient='0x6d35D16e31da9F09Fd36f29e6B0D7225F3d23a6E'`;
 
-    const stream = this.tendermintWs.listen({
+    const stream = this.clients.tendermintWsClient.listen({
       id: 0,
       jsonrpc: '2.0',
       method: 'subscribe',
@@ -45,7 +44,7 @@ export class ReferralProvider implements Web3Provider {
     this.onEventCallBacks.forEach((callBack) => callBack(eventData));
   }
 
-  public async startListener(): Promise<void> {
+  public startListener() {
     this.contractTransactionsListenerInit();
   }
 
@@ -55,7 +54,7 @@ export class ReferralProvider implements Web3Provider {
 
   public async getAllEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
