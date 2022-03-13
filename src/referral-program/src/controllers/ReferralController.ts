@@ -1,6 +1,6 @@
-import {ReferralEvent} from './types';
+import {IController, ReferralEvent} from './types';
 import {EventData} from 'web3-eth-contract';
-import {Web3Provider} from "../providers/types";
+import {Clients, IContractProvider} from "../providers/types";
 import {ReferralMessageBroker} from "./BrokerController";
 import {
   Wallet,
@@ -15,12 +15,13 @@ import {
   ReferralProgramEventRegisteredAffiliate,
 } from '@workquest/database-models/lib/models';
 
-export class ReferralController {
+export class ReferralController implements IController {
   constructor(
-    private readonly web3Provider: Web3Provider,
-    private readonly network: BlockchainNetworks,
+    public readonly clients: Clients,
+    public readonly contractProvider: IContractProvider,
+    public readonly network: BlockchainNetworks,
   ) {
-    this.web3Provider.subscribeOnEvents(async (eventData) => {
+    this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
     });
   }
@@ -40,7 +41,7 @@ export class ReferralController {
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
 
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const [_, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
       where: { transactionHash, network: this.network },
@@ -89,7 +90,7 @@ export class ReferralController {
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
 
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const [_, isCreated] = await ReferralProgramEventPaidReferral.findOrCreate({
       where: { transactionHash, network: this.network },
@@ -138,7 +139,7 @@ export class ReferralController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
 
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const [_, isCreated] = await ReferralProgramEventRewardClaimed.findOrCreate({
       where: { transactionHash, network: this.network },
@@ -183,7 +184,7 @@ export class ReferralController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const {collectedEvents, isGotAllEvents, lastBlockNumber} = await this.web3Provider.getAllEvents(fromBlockNumber);
+    const {collectedEvents, isGotAllEvents, lastBlockNumber} = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
@@ -195,10 +196,8 @@ export class ReferralController {
     }
 
     await ReferralProgramParseBlock.update(
-      {lastParsedBlock: lastBlockNumber},
-      {
-        where: {network: this.network},
-      },
+      { lastParsedBlock: lastBlockNumber },
+      { where: {network: this.network} },
     );
 
     if (!isGotAllEvents) {

@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.referral' });
+config({ path: __dirname + '/../../../.env.referral-program' });
 
 export default {
   dbLink: process.env.DB_LINK,

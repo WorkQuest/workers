@@ -63,7 +63,7 @@
     src: ./{{ wqt_wbnb_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ wqt_wbnb_env }}'
 
-- name: Copy or generate referral-wbnb env file
+- name: Copy or generate referral-program-wbnb env file
   template:
     src: ./{{ referral_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ referral_env }}'

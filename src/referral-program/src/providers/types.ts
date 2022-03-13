@@ -11,7 +11,7 @@ export interface Clients {
   readonly tendermintWsClient: TendermintWebsocketClient;
 }
 
-export interface Web3Provider {
+export interface IContractProvider {
   readonly clients: Clients;
   readonly contract: Contract;
 
