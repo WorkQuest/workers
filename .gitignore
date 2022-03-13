@@ -27,6 +27,7 @@ npm-debug.log
 .env.WqtWbnb
 .env.pensionFund
 .env.referral
+.env.questFactory
 
 # build directory
 build/
@@ -42,3 +43,5 @@ app.json
 
 # http request for debug
 http-requests
+
+package-lock.json
