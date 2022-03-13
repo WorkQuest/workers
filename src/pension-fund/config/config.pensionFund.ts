@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.pension-fund' });
+config({ path: __dirname + '/../../../.env.pensionFund' });
 
 export default {
   contractAddress: process.env.PENSION_FUND_CONTRACT_ADDRESS,
