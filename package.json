@@ -15,7 +15,25 @@
     "PensionFund:start": "nodemon -e ts --exec \"npm run PensionFund:compile\"",
     "PensionFund:compile": "tsc && node ./build/pension-fund/index.js",
     "Referral:start": "nodemon -e ts --exec \"npm run Referral:compile\"",
-    "Referral:compile": "tsc && node ./build/referral-program/index.js"
+    "Referral:compile": "tsc && node ./build/referral-program/index.js",
+    "questFactory:start": "nodemon -e ts --exec \"npm run questFactory:compile\"",
+    "questFactory:compile": "tsc && node ./build/quest-factory/npindex.js"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js",
+      "^.+\\.(t|j)sx?$": "ts-jest"
+    },
+    "testMatch": [
+      "<rootDir>/src/**/src/**/*.(spec).{js,jsx,ts,tsx}"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json"
+    ]
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
@@ -25,12 +43,22 @@
     "bignumber.js": "^9.0.2",
     "dotenv": "^14.3.0",
     "ethereum-block-by-date": "^1.4.2",
+    "jest": "^27.5.1",
     "node-cron": "^3.0.0",
     "nodemon": "^2.0.15",
     "pg": "^8.7.1",
     "pg-hstore": "^2.3.4",
+    "pino": "^7.8.1",
+    "pino-pretty": "^7.5.3",
+    "proxyquire": "^2.1.3",
+    "redis": "^4.0.4",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^6.6.2",
+    "sinon": "^13.0.1",
     "web3": "^1.7.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.4.1",
+    "ts-jest": "^27.1.3"
   }
 }
