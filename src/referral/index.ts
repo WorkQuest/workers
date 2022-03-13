@@ -7,14 +7,15 @@ import { ReferralProvider } from "./src/providers/referralProvider"
 import { ReferralController } from "./src/controllers/ReferralController";
 import { ReferralMessageBroker } from "./src/controllers/BrokerController";
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
-import { BlockchainNetworks, ReferralParseBlock, initDatabase } from '@workquest/database-models/lib/models';
+import { BlockchainNetworks, ReferralProgramParseBlock, initDatabase } from '@workquest/database-models/lib/models';
 
 const abiFilePath = path.join(__dirname, '/abi/WQReferral.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  await initDatabase(configDatabase.dbLink, true, true);
   ReferralMessageBroker.initMessageBroker();
+
+  await initDatabase(configDatabase.dbLink, true, true);
 
   const rpcProvider = new Web3.providers.HttpProvider(configReferral.workQuestDevNetwork.rpcProvider);
   const tendermintWsProvider = new TendermintWebsocketClient(configReferral.workQuestDevNetwork.tendermintProvider, error => {
@@ -29,7 +30,7 @@ export async function init() {
   const referralProvider = new ReferralProvider(web3, tendermintWsProvider, referralContract);
   const referralController = new ReferralController(referralProvider, BlockchainNetworks.workQuestNetwork);
 
-  const [referralBlockInfo] = await ReferralParseBlock.findOrCreate({
+  const [referralBlockInfo] = await ReferralProgramParseBlock.findOrCreate({
     where: { network: BlockchainNetworks.workQuestNetwork },
     defaults: {
       network: BlockchainNetworks.workQuestNetwork,
@@ -41,7 +42,7 @@ export async function init() {
 
   console.log('Start referral program listener');
 
-  await referralProvider.startListener();
+  referralProvider.startListener();
 }
 
 init().catch(console.error);

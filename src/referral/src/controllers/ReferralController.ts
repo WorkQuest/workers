@@ -1,4 +1,3 @@
-import BigNumber from "bignumber.js";
 import {ReferralEvent} from './types';
 import {EventData} from 'web3-eth-contract';
 import {Web3Provider} from "../providers/types";
@@ -8,9 +7,9 @@ import {
   RewardStatus,
   ReferralStatus,
   BlockchainNetworks,
-  ReferralProgramParseBlock,
   ReferralProgramReferral,
   ReferralProgramAffiliate,
+  ReferralProgramParseBlock,
   ReferralProgramEventPaidReferral,
   ReferralProgramEventRewardClaimed,
   ReferralProgramEventRegisteredAffiliate,
@@ -28,43 +27,29 @@ export class ReferralController {
 
   private async onEvent(eventsData: EventData) {
     if (eventsData.event === ReferralEvent.PaidReferral) {
-      await this.paidReferralEventHandler(eventsData);
-      ReferralMessageBroker.sendReferralNotification({
-        recipients: [eventsData.returnValues.affiliat.toLowerCase()],
-        action: eventsData.event,
-        data: eventsData
-      });
+      return this.paidReferralEventHandler(eventsData);
     } else if (eventsData.event === ReferralEvent.RegisteredAffiliate) {
-      await this.registeredAffiliateEventHandler(eventsData);
-      ReferralMessageBroker.sendReferralNotification({
-        recipients: [eventsData.returnValues.referral.toLowerCase()],
-        action: eventsData.event,
-        data: eventsData
-      });
+      return this.registeredAffiliateEventHandler(eventsData);
     } else if (eventsData.event === ReferralEvent.RewardClaimed) {
-      await this.rewardClaimedEventHandler(eventsData);
-      ReferralMessageBroker.sendReferralNotification({
-        recipients: [eventsData.returnValues.affiliat.toLowerCase()],
-        action: eventsData.event,
-        data: eventsData
-      });
+      return this.rewardClaimedEventHandler(eventsData);
     }
   }
 
   protected async registeredAffiliateEventHandler(eventsData: EventData) {
+    const transactionHash = eventsData.transactionHash.toLowerCase();
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
 
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
     const [_, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
-      where: {transactionHash: eventsData.transactionHash},
+      where: { transactionHash, network: this.network },
       defaults: {
+        timestamp,
+        transactionHash,
         referral: referralAddress,
         affiliate: affiliateAddress,
-        timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash.toLowerCase(),
         network: this.network,
       },
     });
@@ -73,9 +58,15 @@ export class ReferralController {
       return;
     }
 
+    ReferralMessageBroker.sendReferralNotification({
+      data: eventsData,
+      action: eventsData.event,
+      recipients: [referralAddress],
+    });
+
     const [referralWallet, ] = await Promise.all([
       Wallet.findOne({
-        where: { address: referralAddress }
+        where: { address: referralAddress },
       }),
       ReferralProgramParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
@@ -83,27 +74,32 @@ export class ReferralController {
       ),
     ]);
 
-    await ReferralProgramReferral.update(
+    if (!referralWallet) {
+      return; // TODO add pino
+    }
+
+    return ReferralProgramReferral.update(
       { referralStatus: ReferralStatus.Registered },
       { where: { referralUserId: referralWallet.userId } },
     );
   }
 
   protected async paidReferralEventHandler(eventsData: EventData) {
+    const transactionHash = eventsData.transactionHash.toLowerCase();
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
 
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
     const [_, isCreated] = await ReferralProgramEventPaidReferral.findOrCreate({
-      where: {transactionHash: eventsData.transactionHash},
+      where: { transactionHash, network: this.network },
       defaults: {
+        timestamp,
+        transactionHash,
         referral: referralAddress,
         affiliate: affiliateAddress,
-        timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
         amount: eventsData.returnValues.amount,
-        transactionHash: eventsData.transactionHash.toLowerCase(),
         network: this.network,
       },
     });
@@ -112,15 +108,25 @@ export class ReferralController {
       return;
     }
 
+    ReferralMessageBroker.sendReferralNotification({
+      data: eventsData,
+      action: eventsData.event,
+      recipients: [affiliateAddress],
+    });
+
     const [referralWallet, ] = await Promise.all([
       Wallet.findOne({
-        where: { address: referralAddress }
+        where: { address: referralAddress },
       }),
       ReferralProgramParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
         { where: { network: this.network } },
       ),
     ]);
+
+    if (!referralWallet) {
+      return; // TODO add pino
+    }
 
     await ReferralProgramReferral.update(
       { referralStatus: RewardStatus.Paid },
@@ -129,18 +135,19 @@ export class ReferralController {
   }
 
   protected async rewardClaimedEventHandler(eventsData: EventData) {
+    const transactionHash = eventsData.transactionHash.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
 
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
     const [_, isCreated] = await ReferralProgramEventRewardClaimed.findOrCreate({
-      where: {transactionHash: eventsData.transactionHash},
+      where: { transactionHash, network: this.network },
       defaults: {
-        timestamp: block.timestamp,
+        timestamp,
+        transactionHash,
         affiliate: affiliateAddress,
         blockNumber: eventsData.blockNumber,
         amount: eventsData.returnValues.amount,
-        transactionHash: eventsData.transactionHash.toLowerCase(),
         network: this.network,
       },
     });
@@ -149,9 +156,15 @@ export class ReferralController {
       return;
     }
 
+    ReferralMessageBroker.sendReferralNotification({
+      data: eventsData,
+      action: eventsData.event,
+      recipients: [affiliateAddress],
+    });
+
     const [affiliateWallet, ] = await Promise.all([
       Wallet.findOne({
-        where: { address: affiliateAddress }
+        where: { address: affiliateAddress },
       }),
       ReferralProgramParseBlock.update(
         { lastParsedBlock: eventsData.blockNumber },
@@ -159,9 +172,13 @@ export class ReferralController {
       ),
     ]);
 
+    if (!affiliateWallet) {
+      return; // TODO add pino
+    }
+
     await ReferralProgramAffiliate.update(
       { status: RewardStatus.Claimed },
-      { where: { affiliateUserId: affiliateWallet.userId } }
+      { where: { affiliateUserId: affiliateWallet.userId } },
     );
   }
 

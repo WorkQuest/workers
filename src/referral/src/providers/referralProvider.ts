@@ -45,7 +45,7 @@ export class ReferralProvider implements Web3Provider {
     this.onEventCallBacks.forEach((callBack) => callBack(eventData));
   }
 
-  public async startListener(): Promise<void> {
+  public startListener() {
     this.contractTransactionsListenerInit();
   }
 
