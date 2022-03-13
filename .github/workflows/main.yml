@@ -62,7 +62,7 @@ jobs:
 
           DB_LINK=${{ secrets.PROD_DB_LINK }} \
 
-          BLOCKCHAIN_NETWORK=${{ secrets.DEV_BLOCKCHAIN_NETWORK }} \
+          BLOCKCHAIN_NETWORK=${{ secrets.PROD_BLOCKCHAIN_NETWORK }} \
 
           NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.PROD_NOTIFICATION_MESSAGE_BROKER_LINK }} \
 
