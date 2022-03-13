@@ -9,13 +9,13 @@
     "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",
     "proposal:compile": "tsc && node ./build/proposal/index.js",
     "dailyLiquidity:start": "nodemon -e ts --exec \"npm run dailyLiquidity:compile\"",
-    "dailyLiquidity:compile": "tsc && node ./build/dailyLiquidity/index.js",
+    "dailyLiquidity:compile": "tsc && node ./build/daily-liquidity/index.js",
     "WqtWbnb:start": "nodemon -e ts --exec \"npm run WqtWbnb:compile\"",
-    "WqtWbnb:compile": "tsc && node ./build/WqtWbnb/index.js",
+    "WqtWbnb:compile": "tsc && node ./build/Wqt-Wbnb/index.js",
     "PensionFund:start": "nodemon -e ts --exec \"npm run PensionFund:compile\"",
-    "PensionFund:compile": "tsc && node ./build/pensionFund/index.js",
+    "PensionFund:compile": "tsc && node ./build/pension-fund/index.js",
     "Referral:start": "nodemon -e ts --exec \"npm run Referral:compile\"",
-    "Referral:compile": "tsc && node ./build/referral/index.js"
+    "Referral:compile": "tsc && node ./build/referral-program/index.js"
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",

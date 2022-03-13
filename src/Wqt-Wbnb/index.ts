@@ -8,7 +8,7 @@ import configWqtWbnb from './config/config.WqtWbnb';
 import { CoinGeckoProvider } from './src/providers/CoinGeckoProvider';
 import { BlockchainNetworks, initDatabase, WqtWbnbBlockInfo } from '@workquest/database-models/lib/models';
 
-const abiFilePath = path.join(__dirname, '/abi/Wqt-Wbnb.json');
+const abiFilePath = path.join(__dirname, '/abi/WqtWbnb.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
