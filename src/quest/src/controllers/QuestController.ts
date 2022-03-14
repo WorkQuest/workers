@@ -1,4 +1,4 @@
-import {Model, ModelCtor} from "sequelize";
+import {Op} from 'sequelize';
 import {IController, QuestEvent} from "./types";
 import {EventData} from "web3-eth-contract";
 import {Clients, IContractProvider} from "../providers/types";
@@ -8,12 +8,16 @@ import {QuestResponsesModelController} from "./models/QuestResponsesModelControl
 import {QuestChatModelController} from "./models/QuestChatModelController";
 import {
   QuestStatus,
+  QuestBlockInfo,
   BlockchainNetworks,
   QuestAssignedEvent,
   QuestJobStartedEvent,
+  QuestJobFinishedEvent,
   QuestAssignedEventStatus,
+  QuestJobStartedEventStatus,
 } from "@workquest/database-models/lib/models";
 
+// TODO add event block number
 export class QuestController implements IController {
   constructor(
     public readonly clients: Clients,
@@ -25,14 +29,25 @@ export class QuestController implements IController {
     });
   }
 
-  private onEvent(eventsData: EventData): Promise<void> {
+  private onEvent(eventsData: EventData): Promise<any> {
     if (eventsData.event === QuestEvent.Assigned) {
       return this.assignedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobStarted) {
       return this.jobStartedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobFinished) {
-
+      return this.jobFinishedEventHandler(eventsData);
+    } else if (eventsData.event === QuestEvent.JobDone) {
+      return this.jobDoneEventHandler(eventsData);
     }
+  }
+
+  protected updateBlockViewHeight(blockHeight: number) {
+    return QuestBlockInfo.update({ lastParsedBlock: blockHeight }, {
+      where: {
+        network: this.network,
+        lastParsedBlock: { [Op.lt]: blockHeight },
+      }
+    });
   }
 
   protected async assignedEventHandler(eventsData: EventData) {
@@ -45,23 +60,7 @@ export class QuestController implements IController {
     const workerModelController = await UserModelController.byWalletAddress(contractAddress);
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 
-    const questAssignedEvent = {
-      timestamp, workerAddress, contractAddress, transactionHash,
-      network: this.network, status: QuestAssignedEventStatus.Successfully,
-    }
-
-    const assignedEventStatus = (workerModelController && questModelController)
-      ? QuestAssignedEventStatus.Successfully
-      : QuestAssignedEventStatus.WorkerOrQuestEntityNotFound
-
-    if (questModelController.statusDoesMatch(
-      QuestStatus.Recruitment,
-      QuestStatus.WaitingForConfirmFromWorkerOnAssign,
-    )) {
-
-    }
-
-    const [, isCreated] = await QuestAssignedEvent.findOrCreate({
+    const [questAssignedEvent, isCreated] = await QuestAssignedEvent.findOrCreate({
       where: {
         transactionHash,
         network: this.network,
@@ -71,6 +70,7 @@ export class QuestController implements IController {
         contractAddress,
         transactionHash,
         network: this.network,
+        blockNumber: eventsData.blockNumber,
         status: QuestAssignedEventStatus.Successfully,
       }
     });
@@ -79,7 +79,27 @@ export class QuestController implements IController {
       return;
     }
 
-    // TODO нотификации
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!workerModelController && !questModelController) {
+      return questAssignedEvent.update({
+        status: QuestAssignedEventStatus.WorkerOrQuestEntityNotFound,
+      });
+    }
+    if (!questModelController.statusDoesMatch(
+        QuestStatus.Recruitment,
+        QuestStatus.WaitingForConfirmFromWorkerOnAssign
+    )) {
+      return questAssignedEvent.update({
+        status: QuestAssignedEventStatus.QuestStatusDoesNotMatch,
+      });
+    }
+
+    if (questModelController.quest.status === QuestStatus.WaitingForConfirmFromWorkerOnAssign) {
+      // TODO нотификации о переназначении.
+    }
+
+    // TODO нотификации о назначении
     await questModelController.assignWorkerOnQuest(workerModelController.user);
   }
 
@@ -93,11 +113,7 @@ export class QuestController implements IController {
     const questResponsesModelController = new QuestResponsesModelController(questModelController);
     const questChatModelController = new QuestChatModelController(questModelController);
 
-    if (!questModelController) {
-      return;
-    }
-
-    const [, isCreated] = await QuestJobStartedEvent.findOrCreate({
+    const [questJobStartedEvent, isCreated] = await QuestJobStartedEvent.findOrCreate({
       where: {
         transactionHash,
         network: this.network,
@@ -106,6 +122,8 @@ export class QuestController implements IController {
         contractAddress,
         transactionHash,
         network: this.network,
+        blockNumber: eventsData.blockNumber,
+        status: QuestJobStartedEventStatus.Successfully,
       },
     });
 
@@ -113,15 +131,73 @@ export class QuestController implements IController {
       return;
     }
 
-    // TODO in throw
-    questModelController.checkQuestStatus(
-      QuestStatus.WaitingForConfirmFromWorkerOnAssign
-    );
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questModelController) {
+      return questJobStartedEvent.update({
+        status: QuestJobStartedEventStatus.QuestEntityNotFound,
+      });
+    }
+    if (!questModelController.statusDoesMatch(
+      QuestStatus.WaitingForConfirmFromWorkerOnAssign,
+    )) {
+      return questJobStartedEvent.update({
+        status: QuestJobStartedEventStatus.QuestStatusDoesNotMatch,
+      });
+    }
 
     // TODO нотификации
     await questModelController.startQuest();
     await questResponsesModelController.closeAllWorkingResponses();
     await questChatModelController.closeAllWorkChatsExceptAssignedWorker();
+  }
+
+  protected async jobFinishedEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
+
+    const [questJobFinishedEvent, isCreated] = await QuestJobFinishedEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      }, defaults: {
+        timestamp,
+        contractAddress,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+      }
+    });
+
+    if (!isCreated) {
+      return;
+    }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questModelController) {
+
+    }
+    if (!questModelController.statusDoesMatch(
+      QuestStatus.ExecutionOfWork,
+    )) {
+
+    }
+
+    await questModelController.finishWorkOnQuest();
+  }
+
+  protected async jobDoneEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
@@ -140,8 +216,4 @@ export class QuestController implements IController {
       throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);
     }
   }
-
-  // static findOrCreateQuestEvent<T extends Model>(modelInstance: ModelCtor<T>, event: any): Promise<[T, boolean]> {
-  //   return modelInstance.findOrCreate<T>({ where: { }, defaults: event });
-  // }
 }

@@ -43,7 +43,7 @@ export class QuestFactoryProvider implements IContractProvider {
     );
   }
 
-  public async startListener(): Promise<void> {
+  public startListener() {
     this.contractTransactionsListenerInit();
   }
 

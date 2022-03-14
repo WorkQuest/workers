@@ -53,7 +53,8 @@ export async function init() {
   const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
 
   await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
-  await questFactoryProvider.startListener();
+
+  questFactoryProvider.startListener();
 }
 
 init().catch(console.error);

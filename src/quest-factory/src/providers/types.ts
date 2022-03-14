@@ -26,7 +26,7 @@ export interface IContractProvider {
   readonly clients: Clients;
   readonly contract: Contract;
 
-  startListener(): Promise<void>;
+  startListener();
   subscribeOnEvents(onEventCallBack: onEventCallBack): void;
   getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[], isGotAllEvents: boolean }>;
 }
