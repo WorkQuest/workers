@@ -1,5 +1,5 @@
 import amqp from 'amqplib/callback_api';
-import config from '../config/config.common';
+import config from '../../config/config.common';
 import { BridgeEventType } from './BridgeContract';
 
 export class BridgeBrokerController {

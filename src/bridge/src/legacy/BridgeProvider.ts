@@ -1,7 +1,7 @@
 import Web3 from 'web3';
 import { Sign } from 'web3-core';
 import { Contract } from 'web3-eth-contract';
-import configBridge from '../config/config.bridge';
+import configBridge from '../../config/config.bridge';
 
 export class BridgeProvider {
   private readonly _web3: Web3;
