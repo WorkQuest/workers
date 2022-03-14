@@ -68,6 +68,11 @@
     src: ./{{ referral_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ referral_env }}'
 
+- name: Copy or generate wqt env file
+  template:
+    src: ./{{ wqt_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ wqt_env }}'
+
 - name: Start backend process
   shell: pm2 reload app.json
   args:
