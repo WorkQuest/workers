@@ -1,4 +1,6 @@
 import { Web3Provider } from "../providers/types";
+import { EventData } from "web3-eth-contract";
+import { WqtTrackedEvents } from "./types";
 import {
   BlockchainNetworks, ProposalParseBlock,
   User,
@@ -6,8 +8,6 @@ import {
   WqtDelegateVotesChangedEvent,
   WqtParseBlock
 } from "@workquest/database-models/lib/models";
-import { EventData } from "web3-eth-contract";
-import { WqtTrackedEvents } from "./types";
 
 export class WqtController {
   constructor (
@@ -35,17 +35,28 @@ export class WqtController {
   protected async wqtDelegateVotesChangedEventHandler(eventsData: EventData) {
     const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    const delegate = eventsData.returnValues.delegate.toLowerCase();
+    const delegator = eventsData.returnValues.delegator.toLowerCase();
+    const delegatee = eventsData.returnValues.delegatee.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    const user = await User.findOne({
-      include: {
-        model: Wallet,
-        as: 'wallet',
-        required: true,
-        where: { address: delegate }
-      }
-    });
+    const [delegatorUser, delegateeUser] = await Promise.all([
+      User.findOne({
+        include: {
+          model: Wallet,
+          as: 'wallet',
+          required: true,
+          where: { address: delegator }
+        }
+      }),
+      User.findOne({
+        include: {
+          model: Wallet,
+          as: 'wallet',
+          required: true,
+          where: { address: delegatee }
+        }
+      })
+    ]);
 
     await WqtDelegateVotesChangedEvent.findOrCreate({
       where: {
@@ -56,11 +67,13 @@ export class WqtController {
         timestamp,
         transactionHash,
         network: this.network,
-        delegateAddress: delegate,
-        userId: user ? user.id : null,
+        delegatorAddress: delegator,
+        delegateeAddress: delegatee,
         blockNumber: eventsData.blockNumber,
         newBalance: eventsData.returnValues.newBalance,
         previousBalance: eventsData.returnValues.previousBalance,
+        delegatorUserId: delegatorUser ? delegatorUser.id : null,
+        delegateeUserId: delegateeUser ? delegateeUser.id : null,
       }
     });
 
