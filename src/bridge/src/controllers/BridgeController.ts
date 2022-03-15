@@ -41,8 +41,8 @@ export class BridgeController implements IController {
 
   public async swapRedeemedEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
-    const initiatorAddress = eventsData.returnValues.initiator.toLocaleString();
-    const recipientAddress = eventsData.returnValues.recipient.toLocaleString();
+    const initiatorAddress = eventsData.returnValues.sender.toLowerCase();
+    const recipientAddress = eventsData.returnValues.recipient.toLowerCase();
 
     /** Не трогать последовательность */
     const messageHash = this.clients.web3.eth.accounts.sign(Web3.utils.soliditySha3(
@@ -53,9 +53,9 @@ export class BridgeController implements IController {
       eventsData.returnValues.chainFrom,
       eventsData.returnValues.chainTo,
       eventsData.returnValues.symbol,
-    ), configBridge.privateKey);
+    ), configBridge.privateKey).message;
 
-    const [, isCreated] = await BridgeSwapTokenEvent.findOrCreate({
+    const [_, isCreated] = await BridgeSwapTokenEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         messageHash,
@@ -82,7 +82,45 @@ export class BridgeController implements IController {
   }
 
   public async swapInitializedEventHandler(eventsData: EventData) {
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+    const initiatorAddress = eventsData.returnValues.sender.toLowerCase();
+    const recipientAddress = eventsData.returnValues.recipient.toLowerCase();
 
+    /** Не трогать последовательность */
+    const messageHash = this.clients.web3.eth.accounts.sign(Web3.utils.soliditySha3(
+      eventsData.returnValues.nonce,
+      eventsData.returnValues.amount,
+      eventsData.returnValues.recipient,
+      eventsData.returnValues.sender,
+      eventsData.returnValues.chainFrom,
+      eventsData.returnValues.chainTo,
+      eventsData.returnValues.symbol,
+    ), configBridge.privateKey).message;
+
+    const [_, isCreated] = await BridgeSwapTokenEvent.findOrCreate({
+      where: { transactionHash, network: this.network },
+      defaults: {
+        messageHash,
+        transactionHash,
+        network: this.network,
+        initiator: initiatorAddress,
+        recipient: recipientAddress,
+        event: BridgeEvents.swapInitialized,
+        blockNumber: eventsData.blockNumber,
+        nonce: eventsData.returnValues.nonce,
+        symbol: eventsData.returnValues.symbol,
+        amount: eventsData.returnValues.amount,
+        chainTo: eventsData.returnValues.chainTo,
+        timestamp: eventsData.returnValues.timestamp,
+        chainFrom: eventsData.returnValues.chainFrom,
+      }
+    });
+
+    if (!isCreated) {
+      return;
+    }
+
+    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
