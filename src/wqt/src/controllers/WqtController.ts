@@ -8,6 +8,7 @@ import {
   BlockchainNetworks,
   WqtDelegateVotesChangedEvent,
 } from "@workquest/database-models/lib/models";
+import { Op } from "sequelize";
 
 export class WqtController {
   constructor (
@@ -28,7 +29,7 @@ export class WqtController {
   protected updateLastParseBlock(lastParsedBlock: number): Promise<void> {
     return void WqtParseBlock.update(
       { lastParsedBlock },
-      { where: { network: this.network } },
+      { where: { network: this.network, lastParsedBlock: { [Op.lt]: lastParsedBlock } } },
     );
   }
 
@@ -71,9 +72,9 @@ export class WqtController {
         network: this.network,
         blockNumber: eventsData.blockNumber,
         newBalance: eventsData.returnValues.newBalance,
-        previousBalance: eventsData.returnValues.previousBalance,
+        delegateUserId: delegateUser ? delegateUser.id : null,
         delegatorUserId: delegatorUser ? delegatorUser.id : null,
-        delegateeUserId: delegateUser ? delegateUser.id : null,
+        previousBalance: eventsData.returnValues.previousBalance,
       }
     });
 
