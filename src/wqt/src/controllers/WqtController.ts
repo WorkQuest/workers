@@ -1,12 +1,12 @@
-import { Web3Provider } from "../providers/types";
-import { EventData } from "web3-eth-contract";
 import { WqtTrackedEvents } from "./types";
+import { EventData } from "web3-eth-contract";
+import { Web3Provider } from "../providers/types";
 import {
-  BlockchainNetworks, ProposalParseBlock,
   User,
   Wallet,
+  WqtParseBlock,
+  BlockchainNetworks,
   WqtDelegateVotesChangedEvent,
-  WqtParseBlock
 } from "@workquest/database-models/lib/models";
 
 export class WqtController {
@@ -28,7 +28,7 @@ export class WqtController {
   protected updateLastParseBlock(lastParsedBlock: number): Promise<void> {
     return void WqtParseBlock.update(
       { lastParsedBlock },
-      { where: { network: this.network } }
+      { where: { network: this.network } },
     );
   }
 
@@ -36,29 +36,29 @@ export class WqtController {
     const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
     const delegator = eventsData.returnValues.delegator.toLowerCase();
-    const delegatee = eventsData.returnValues.delegatee.toLowerCase();
+    const delegate = eventsData.returnValues.delegatee.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    const [delegatorUser, delegateeUser] = await Promise.all([
-      User.findOne({
+    const [delegatorUser, delegateUser] = await Promise.all([
+      User.unscoped().findOne({
         include: {
           model: Wallet,
           as: 'wallet',
           required: true,
-          where: { address: delegator }
+          where: { address: delegator },
         }
       }),
-      User.findOne({
+      User.unscoped().findOne({
         include: {
           model: Wallet,
           as: 'wallet',
           required: true,
-          where: { address: delegatee }
+          where: { address: delegate },
         }
       })
     ]);
 
-    await WqtDelegateVotesChangedEvent.findOrCreate({
+    const [_, isCreated] = await WqtDelegateVotesChangedEvent.findOrCreate({
       where: {
         transactionHash,
         network: this.network,
@@ -68,16 +68,20 @@ export class WqtController {
         transactionHash,
         network: this.network,
         delegatorAddress: delegator,
-        delegateeAddress: delegatee,
+        delegateeAddress: delegate,
         blockNumber: eventsData.blockNumber,
         newBalance: eventsData.returnValues.newBalance,
         previousBalance: eventsData.returnValues.previousBalance,
         delegatorUserId: delegatorUser ? delegatorUser.id : null,
-        delegateeUserId: delegateeUser ? delegateeUser.id : null,
+        delegateeUserId: delegateUser ? delegateUser.id : null,
       }
     });
 
-    return await this.updateLastParseBlock(eventsData.blockNumber);
+    if (!isCreated) {
+      return;
+    }
+
+    return this.updateLastParseBlock(eventsData.blockNumber);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
@@ -92,10 +96,7 @@ export class WqtController {
       }
     }
 
-    await ProposalParseBlock.update(
-      { lastParsedBlock: lastBlockNumber },
-      { where: { network: this.network } }
-    );
+    await this.updateLastParseBlock(lastBlockNumber);
 
     if (!isGotAllEvents) {
       throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);
