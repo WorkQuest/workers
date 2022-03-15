@@ -64,8 +64,8 @@ export class WqtController {
         network: this.network,
       },
       defaults: {
+        delegate,
         delegator,
-        delegatee,
         timestamp,
         transactionHash,
         network: this.network,
