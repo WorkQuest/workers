@@ -64,11 +64,11 @@ export class WqtController {
         network: this.network,
       },
       defaults: {
+        delegator,
+        delegatee,
         timestamp,
         transactionHash,
         network: this.network,
-        delegatorAddress: delegator,
-        delegateeAddress: delegate,
         blockNumber: eventsData.blockNumber,
         newBalance: eventsData.returnValues.newBalance,
         previousBalance: eventsData.returnValues.previousBalance,
