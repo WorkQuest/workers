@@ -8,6 +8,7 @@ import { Clients } from "./src/providers/types";
 import Web3 from "web3";
 import path from "path";
 import fs from "fs";
+import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
 
 const abiFilePath = path.join(__dirname, '../../src/bridge/abi/WQBridge.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -62,7 +63,7 @@ export async function init() {
   const bscClients: Clients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
   const ethClients: Clients = { web3: web3Eth, webSocketProvider: ethWsProvider };
 
-  const wqBridgeProvider = new BridgeProvider(wqClients, bridgeWqContract);
+  const wqBridgeProvider = new BridgeWorkNetProvider(wqClients, bridgeWqContract);
   const bscBridgeProvider = new BridgeProvider(bscClients, bridgeBscContract);
   const ethBridgeProvider = new BridgeProvider(ethClients, bridgeEthContract);
 

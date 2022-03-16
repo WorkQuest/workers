@@ -13,31 +13,6 @@ export class BridgeProvider implements IContractProvider {
     public readonly contract: Contract,
   ) {}
 
-  private contractTransactionsListenerInit() {
-    const query = `tm.event='Tx' AND ethereum_tx.recipient='0x841e6d5991F67D8c9F88a6F9726246774a4ab376'`;
-
-    const stream = this.clients.tendermintWsClient.listen({
-      id: 0,
-      jsonrpc: '2.0',
-      method: 'subscribe',
-      params: { query },
-    });
-
-    stream.addListener({
-      next: data => this.onEventTendermintData(data),
-      error: err => console.error(err),
-      complete: () => console.log('completed'),
-    });
-  }
-
-  private async onEventTendermintData(txData) {
-    const blockTxHeight = txData["data"]["value"]['TxResult']["height"] as string;
-    const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock: blockTxHeight, toBlock: blockTxHeight });
-
-    /** See range (fromBlock: blockTxHeight, toBlock: blockTxHeight) */
-    await this.onEventData(eventsData[0]);
-  }
-
   private contractEventsListenerInit() {
     this.contract.events
       .allEvents({ fromBlock: "latest" })
@@ -54,11 +29,7 @@ export class BridgeProvider implements IContractProvider {
   }
 
   public startListener() {
-    if (this.clients.tendermintWsClient) {
-      this.contractTransactionsListenerInit();
-    } else {
-      this.contractEventsListenerInit();
-    }
+    this.contractEventsListenerInit();
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
