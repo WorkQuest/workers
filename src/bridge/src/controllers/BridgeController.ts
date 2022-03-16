@@ -9,6 +9,7 @@ import {
   BridgeSwapTokenEvent,
   BridgeParserBlockInfo,
 } from "@workquest/database-models/lib/models";
+import { BridgeMessageBroker } from "./BrokerController";
 
 export class BridgeController implements IController {
   constructor(
@@ -41,8 +42,8 @@ export class BridgeController implements IController {
 
   public async swapRedeemedEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
-    const initiatorAddress = eventsData.returnValues.sender.toLowerCase();
-    const recipientAddress = eventsData.returnValues.recipient.toLowerCase();
+    const initiator = eventsData.returnValues.sender.toLowerCase();
+    const recipient = eventsData.returnValues.recipient.toLowerCase();
 
     /** Не трогать последовательность */
     const messageHash = this.clients.web3.eth.accounts.sign(Web3.utils.soliditySha3(
@@ -58,11 +59,11 @@ export class BridgeController implements IController {
     const [_, isCreated] = await BridgeSwapTokenEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
+        initiator,
+        recipient,
         messageHash,
         transactionHash,
         network: this.network,
-        initiator: initiatorAddress,
-        recipient: recipientAddress,
         event: BridgeEvents.swapRedeemed,
         blockNumber: eventsData.blockNumber,
         nonce: eventsData.returnValues.nonce,
@@ -78,13 +79,19 @@ export class BridgeController implements IController {
       return;
     }
 
+    BridgeMessageBroker.sendBridgeNotification({
+      recipients: [recipient],
+      action: BridgeEvents.swapRedeemed,
+      data: eventsData
+    });
+
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   public async swapInitializedEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
-    const initiatorAddress = eventsData.returnValues.sender.toLowerCase();
-    const recipientAddress = eventsData.returnValues.recipient.toLowerCase();
+    const initiator = eventsData.returnValues.sender.toLowerCase();
+    const recipient = eventsData.returnValues.recipient.toLowerCase();
 
     /** Не трогать последовательность */
     const messageHash = this.clients.web3.eth.accounts.sign(Web3.utils.soliditySha3(
@@ -100,11 +107,11 @@ export class BridgeController implements IController {
     const [_, isCreated] = await BridgeSwapTokenEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
+        initiator,
+        recipient,
         messageHash,
         transactionHash,
         network: this.network,
-        initiator: initiatorAddress,
-        recipient: recipientAddress,
         event: BridgeEvents.swapInitialized,
         blockNumber: eventsData.blockNumber,
         nonce: eventsData.returnValues.nonce,
@@ -119,6 +126,12 @@ export class BridgeController implements IController {
     if (!isCreated) {
       return;
     }
+
+    BridgeMessageBroker.sendBridgeNotification({
+      recipients: [recipient],
+      action: BridgeEvents.swapInitialized,
+      data: eventsData
+    });
 
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }

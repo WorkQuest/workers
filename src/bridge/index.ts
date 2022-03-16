@@ -1,5 +1,7 @@
 import { BlockchainNetworks, BridgeParserBlockInfo, initDatabase } from "@workquest/database-models/lib/models";
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
+import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
+import { BridgeMessageBroker } from "./src/controllers/BrokerController";
 import { BridgeController } from "./src/controllers/BridgeController";
 import { BridgeProvider } from "./src/providers/BridgeProvider";
 import configDatabase from "../bridge/config/config.common";
@@ -8,13 +10,13 @@ import { Clients } from "./src/providers/types";
 import Web3 from "web3";
 import path from "path";
 import fs from "fs";
-import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
 
 const abiFilePath = path.join(__dirname, '../../src/bridge/abi/WQBridge.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
   await initDatabase(configDatabase.database.link, false, true);
+  BridgeMessageBroker.initMessageBroker();
 
   const networks = [configBridge.bscNetwork, configBridge.ethereumNetwork, configBridge.workQuestNetwork];
 

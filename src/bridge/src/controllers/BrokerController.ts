@@ -1,6 +1,5 @@
 import amqp from 'amqplib/callback_api';
 import config from '../../config/config.common';
-import { BridgeEventType } from './BridgeContract';
 
 export class BridgeBrokerController {
   private channel;
@@ -9,6 +8,8 @@ export class BridgeBrokerController {
     amqp.connect(config.notificationMessageBroker.link, (connectError, conn) => {
       if (connectError) {
         console.error(connectError.message);
+
+        return;
       }
 
       conn.on('error', (connectionError) => {
@@ -33,13 +34,13 @@ export class BridgeBrokerController {
     });
   }
 
-  private convertData(data: BridgeEventType): Buffer {
+  private convertData(data: any): Buffer {
     const stringData = JSON.stringify(data);
 
     return Buffer.from(stringData);
   }
 
-  public sendBridgeNotification(data: BridgeEventType): void {
+  public sendBridgeNotification(data: any): void {
     if (!this.channel) return;
 
     const convertedData = this.convertData(data);
