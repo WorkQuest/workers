@@ -26,7 +26,6 @@ export async function init() {
     throw err;
   });
 
-  const bscRpcProvider = new Web3.providers.HttpProvider(bscDefaultConfig.linkRpcProvider);
   const bscWsProvider = new Web3.providers.WebsocketProvider(bscDefaultConfig.linkWsProvider, {
     clientConfig: {
       keepalive: true,
@@ -39,7 +38,6 @@ export async function init() {
     },
   })
 
-  const ethRpcProvider = new Web3.providers.HttpProvider(ethDefaultConfig.linkRpcProvider);
   const ethWsProvider = new Web3.providers.WebsocketProvider(ethDefaultConfig.linkWsProvider, {
     clientConfig: {
       keepalive: true,
@@ -53,8 +51,8 @@ export async function init() {
   })
 
   const web3Wq = new Web3(wqRpcProvider);
-  const web3Bsc = new Web3(bscRpcProvider);
-  const web3Eth = new Web3(ethRpcProvider);
+  const web3Bsc = new Web3(bscWsProvider);
+  const web3Eth = new Web3(ethWsProvider);
 
   const bridgeWqContract = new web3Wq.eth.Contract(abi, wqDefaultConfig.contractAddress);
   const bridgeBscContract = new web3Bsc.eth.Contract(abi, bscDefaultConfig.contractAddress);
@@ -86,7 +84,6 @@ export async function init() {
 
   //                       network, blockNumber
   const blockInfos = new Map<string, number>();
-
   for (const network of networks) {
     const [bridgeBlockInfo] = await BridgeParserBlockInfo.findOrCreate({
       where: { network },

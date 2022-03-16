@@ -41,11 +41,11 @@ export default {
     // @ts-ignore
     return this.default[this.default.workQuestNetwork];
   },
-  defaultBscConfigNetwork: (): { contractAddress: string, linkWsProvider: string, linkRpcProvider: string, parseEventsFromHeight: number } => {
+  defaultBscConfigNetwork: (): { contractAddress: string, linkWsProvider: string, parseEventsFromHeight: number } => {
     // @ts-ignore
     return this.default[this.default.bscNetwork];
   },
-  defaultEthConfigNetwork: (): { contractAddress: string, linkWsProvider: string, linkRpcProvider: string, parseEventsFromHeight: number } => {
+  defaultEthConfigNetwork: (): { contractAddress: string, linkWsProvider: string, parseEventsFromHeight: number } => {
     // @ts-ignore
     return this.default[this.default.ethereumNetwork];
   },
