@@ -49,5 +49,5 @@ export default {
     // @ts-ignore
     return this.default[this.default.ethereumNetwork];
   },
-  privateKey: process.env.BRIDGE_CONTRACT_PRIVAT_KEY,
+  privateKey: process.env.BRIDGE_CONTRACT_PRIVATE_KEY,
 };

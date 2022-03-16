@@ -56,7 +56,7 @@ export class BridgeController implements IController {
       eventsData.returnValues.symbol,
     ), configBridge.privateKey).message;
 
-    const [_, isCreated] = await BridgeSwapTokenEvent.findOrCreate({
+    const [, isCreated] = await BridgeSwapTokenEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         initiator,
