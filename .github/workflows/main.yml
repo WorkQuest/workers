@@ -2,7 +2,7 @@ name: Node-CI
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ master, staging, develop ]
 
 jobs:
   build:
@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Copy code files to container
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
 
       - name: Install Node.js
-        uses: actions/setup-node@v2.5.1
+        uses: actions/setup-node@v3
         with:
           node-version: '14.x'
 
@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Copy code files to container
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
 
       - name: Environment preparation
         run: |
@@ -122,7 +122,7 @@ jobs:
 
     steps:
       - name: Copy code files to container
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
 
       - name: Environment preparation
         run: |
@@ -193,5 +193,88 @@ jobs:
           PM2_WQT_WBNB_WORKER_NAME=${{ secrets.DEV_PM2_WQT_WBNB_WORKER_NAME }} \
           PM2_PENSION_FUND_WORKER_NAME=${{ secrets.DEV_PM2_PENSION_FUND_WORKER_NAME }} \
           PM2_REFERRAL_WORKER_NAME=${{ secrets.DEV_PM2_REFERRAL_WORKER_NAME }} \
+
+          SRC_DIR=${{ github.workspace }}/" backend-update.yml;
+
+  deploy-staging:
+    environment: staging
+
+    if: "github.ref == 'refs/heads/staging'"
+    runs-on: ubuntu-latest
+    needs: [ build ]
+
+    steps:
+      - name: Copy code files to container
+        uses: actions/checkout@v3
+
+      - name: Environment preparation
+        run: |
+          mkdir -p ~/.ssh/
+          touch ~/.ssh/id_rsa
+          chmod -R go= ~/.ssh
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SERVER_SSH_KEY }}" >> ~/.ssh/id_rsa
+          sudo apt-add-repository -y -u ppa:ansible/ansible
+          sudo apt-get install -y rsync
+          sudo apt-get install -y ansible
+
+      - name: Deploy to Server
+        run: |
+          chmod 700 ci-scripts
+          cd ci-scripts
+          ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
+
+          DB_LINK=${{ secrets.DB_LINK }} \
+
+          NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.NOTIFICATION_MESSAGE_BROKER_LINK }} \
+
+          BLOCKCHAIN_NETWORK=${{ secrets.BLOCKCHAIN_NETWORK }} \
+          BSC_BLOCKCHAIN_NETWORK=${{ secrets.BSC_BLOCKCHAIN_NETWORK }} \
+          ETHEREUM_BLOCKCHAIN_NETWORK=${{ secrets.ETHEREUM_BLOCKCHAIN_NETWORK }} \
+
+          WORK_QUEST_DEV_NETWORK_RPC_PROVIDER=${{ secrets.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER }} \
+          WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER=${{ secrets.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER }} \
+          WORK_QUEST_DEV_NETWORK_WEBSOCKET_PROVIDER=${{ secrets.WORK_QUEST_DEV_NETWORK_WEBSOCKET_PROVIDER }} \
+
+          WORK_QUEST_DEV_NETWORK_BRIDGE_CONTRACT=${{ secrets.WORK_QUEST_DEV_NETWORK_BRIDGE_CONTRACT }} \
+          WORK_QUEST_DEV_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.WORK_QUEST_DEV_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT }} \
+          ETH_MAIN_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.ETH_MAIN_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT }} \
+          ETH_MAIN_NETWORK_BRIDGE_CONTRACT=${{ secrets.ETH_MAIN_NETWORK_BRIDGE_CONTRACT }} \
+          ETH_MAIN_NETWORK_BRIDGE_WEBSOCKET_PROVIDER=${{ secrets.ETH_MAIN_NETWORK_BRIDGE_WEBSOCKET_PROVIDER }} \
+          BSC_MAIN_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.BSC_MAIN_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT }} \
+          BSC_MAIN_NETWORK_BRIDGE_CONTRACT=${{ secrets.BSC_MAIN_NETWORK_BRIDGE_CONTRACT }} \
+          BSC_MAIN_NETWORK_BRIDGE_WEBSOCKET_PROVIDER=${{ secrets.BSC_MAIN_NETWORK_BRIDGE_WEBSOCKET_PROVIDER }} \
+          RINKEBY_TEST_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.RINKEBY_TEST_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT }} \
+          RINKEBY_TEST_NETWORK_BRIDGE_CONTRACT=${{ secrets.RINKEBY_TEST_NETWORK_BRIDGE_CONTRACT }} \
+          RINKEBY_TEST_NETWORK_BRIDGE_WEBSOCKET_PROVIDER=${{ secrets.RINKEBY_TEST_NETWORK_BRIDGE_WEBSOCKET_PROVIDER }} \
+          BSC_TEST_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.BSC_TEST_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT }} \
+          BSC_TEST_NETWORK_BRIDGE_CONTRACT=${{ secrets.BSC_TEST_NETWORK_BRIDGE_CONTRACT }} \
+          BSC_TEST_NETWORK_BRIDGE_WEBSOCKET_PROVIDER=${{ secrets.BSC_TEST_NETWORK_BRIDGE_WEBSOCKET_PROVIDER }} \
+          BRIDGE_CONTRACT_PRIVATE_KEY=${{ secrets.BRIDGE_CONTRACT_PRIVATE_KEY }} \
+
+          DAILY_LIQUIDITY_CONTRACT_ADDRESS=${{ secrets.DAILY_LIQUIDITY_CONTRACT_ADDRESS }} \
+          DAILY_LIQUIDITY_WEBSOCKET_PROVIDER=${{ secrets.DAILY_LIQUIDITY_WEBSOCKET_PROVIDER }} \
+
+          PROPOSAL_WQ_DEV_NETWORK_CONTRACT=${{ secrets.PROPOSAL_WQ_DEV_NETWORK_CONTRACT }} \
+          PROPOSAL_WQ_DEV_NETWORK_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.PROPOSAL_WQ_DEV_NETWORK_PARSE_EVENTS_FROM_HEIGHT }} \
+
+          WQT_WBNB_CONTRACT_ADDRESS=${{ secrets.WQT_WBNB_CONTRACT_ADDRESS }} \
+          WQT_WBNB_WEBSOCKET_PROVIDER=${{ secrets.WQT_WBNB_WEBSOCKET_PROVIDER }} \
+          WQT_WBNB_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.WQT_WBNB_PARSE_EVENTS_FROM_HEIGHT }} \
+
+          PENSION_FUND_CONTRACT_ADDRESS=${{ secrets.PENSION_FUND_CONTRACT_ADDRESS }} \
+          PENSION_FUND_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.PENSION_FUND_PARSE_EVENTS_FROM_HEIGHT }} \
+
+          WORK_QUEST_DEV_NETWORK_REFERRAL_CONTRACT_ADDRESS=${{ secrets.WORK_QUEST_DEV_NETWORK_REFERRAL_CONTRACT_ADDRESS }} \
+          WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT }} \
+
+          WORKERS_BIN=${{ secrets.WORKERS_BIN }} \
+
+          PM2_BRIDGE_WORKER_NAME=${{ secrets.PM2_BRIDGE_WORKER_NAME }} \
+          PM2_LIQUIDITY_WORKER_NAME=${{ secrets.PM2_LIQUIDITY_WORKER_NAME }} \
+          PM2_PROPOSAL_WORKER_NAME=${{ secrets.PM2_PROPOSAL_WORKER_NAME }} \
+          PM2_WQT_WBNB_WORKER_NAME=${{ secrets.PM2_WQT_WBNB_WORKER_NAME }} \
+          PM2_PENSION_FUND_WORKER_NAME=${{ secrets.PM2_PENSION_FUND_WORKER_NAME }} \
+          PM2_REFERRAL_WORKER_NAME=${{ secrets.PM2_REFERRAL_WORKER_NAME }} \
 
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;
