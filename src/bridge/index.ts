@@ -110,11 +110,9 @@ export async function init() {
 
   console.log('Start bridge listener');
 
-  await Promise.all([
-    wqBridgeProvider.startListener(),
-    bscBridgeProvider.startListener(),
-    ethBridgeProvider.startListener()
-  ]);
+  wqBridgeProvider.startListener();
+  bscBridgeProvider.startListener();
+  ethBridgeProvider.startListener();
 }
 
 init().catch(console.error);
