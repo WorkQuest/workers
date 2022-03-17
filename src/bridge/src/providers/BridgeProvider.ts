@@ -50,23 +50,27 @@ export class BridgeProvider implements IContractProvider {
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
-          collectedEvents.push(...eventsData); break;
+          if (eventsData !== undefined) {
+            collectedEvents.push(...eventsData); break;
+          }
         }
 
         console.info('Block from: ', fromBlock, ' block to: ', toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
-        collectedEvents.push(...eventsData);
+        if (eventsData !== undefined) {
+          collectedEvents.push(...eventsData);
+        }
 
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;
       }
     } catch (error) {
       console.error(error);
-      console.error('GetAllEvents: Last block: ', collectedEvents[collectedEvents.length - 1].blockNumber);
+      console.error('GetAllEvents: Last block: ', fromBlock);
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: collectedEvents[collectedEvents.length - 1].blockNumber };
+      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
     }
 
     return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
