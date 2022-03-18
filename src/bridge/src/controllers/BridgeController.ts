@@ -24,9 +24,9 @@ export class BridgeController implements IController {
 
   private async onEvent(eventsData: EventData) {
     if (eventsData.event === BridgeEvents.swapRedeemed) {
-      return this.swapInitializedEventHandler(eventsData);
-    } else if (eventsData.event === BridgeEvents.swapInitialized) {
       return this.swapRedeemedEventHandler(eventsData);
+    } else if (eventsData.event === BridgeEvents.swapInitialized) {
+      return this.swapInitializedEventHandler(eventsData);
     }
   }
 
