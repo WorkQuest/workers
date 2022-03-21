@@ -29,7 +29,7 @@ export class QuestController implements IController {
     });
   }
 
-  private onEvent(eventsData: EventData): Promise<any> {
+  private onEvent(eventsData: EventData): Promise<void> {
     if (eventsData.event === QuestEvent.Assigned) {
       return this.assignedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobStarted) {
@@ -41,8 +41,8 @@ export class QuestController implements IController {
     }
   }
 
-  protected updateBlockViewHeight(blockHeight: number) {
-    return QuestBlockInfo.update({ lastParsedBlock: blockHeight }, {
+  protected updateBlockViewHeight(blockHeight: number): Promise<void> {
+    return void QuestBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -50,7 +50,7 @@ export class QuestController implements IController {
     });
   }
 
-  protected async assignedEventHandler(eventsData: EventData) {
+  protected async assignedEventHandler(eventsData: EventData): Promise<void> {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
@@ -82,7 +82,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!workerModelController && !questModelController) {
-      return questAssignedEvent.update({
+      return void questAssignedEvent.update({
         status: QuestAssignedEventStatus.WorkerOrQuestEntityNotFound,
       });
     }
@@ -90,7 +90,7 @@ export class QuestController implements IController {
         QuestStatus.Recruitment,
         QuestStatus.WaitingForConfirmFromWorkerOnAssign
     )) {
-      return questAssignedEvent.update({
+      return void questAssignedEvent.update({
         status: QuestAssignedEventStatus.QuestStatusDoesNotMatch,
       });
     }
@@ -100,10 +100,10 @@ export class QuestController implements IController {
     }
 
     // TODO нотификации о назначении
-    await questModelController.assignWorkerOnQuest(workerModelController.user);
+    return questModelController.assignWorkerOnQuest(workerModelController.user);
   }
 
-  protected async jobStartedEventHandler(eventsData: EventData) {
+  protected async jobStartedEventHandler(eventsData: EventData): Promise<void> {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
@@ -134,25 +134,27 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      return questJobStartedEvent.update({
+      return void questJobStartedEvent.update({
         status: QuestJobStartedEventStatus.QuestEntityNotFound,
       });
     }
     if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     )) {
-      return questJobStartedEvent.update({
+      return void questJobStartedEvent.update({
         status: QuestJobStartedEventStatus.QuestStatusDoesNotMatch,
       });
     }
 
     // TODO нотификации
-    await questModelController.startQuest();
-    await questResponsesModelController.closeAllWorkingResponses();
-    await questChatModelController.closeAllWorkChatsExceptAssignedWorker();
+    return void Promise.all([
+      questModelController.startQuest(),
+      questResponsesModelController.closeAllWorkingResponses(),
+      questChatModelController.closeAllWorkChatsExceptAssignedWorker(),
+    ]);
   }
 
-  protected async jobFinishedEventHandler(eventsData: EventData) {
+  protected async jobFinishedEventHandler(eventsData: EventData): Promise<void> {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
@@ -191,7 +193,7 @@ export class QuestController implements IController {
     await questModelController.finishWorkOnQuest();
   }
 
-  protected async jobDoneEventHandler(eventsData: EventData) {
+  protected async jobDoneEventHandler(eventsData: EventData): Promise<void> {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
