@@ -30,6 +30,7 @@ npm-debug.log
 .env.pensionFund
 .env.referral
 .env.questFactory
+.env.borrowing
 
 # build directory
 build/

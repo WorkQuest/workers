@@ -3,7 +3,7 @@ import { onEventCallBack, Web3Provider } from "./types";
 import { Contract, EventData } from "web3-eth-contract";
 import Web3 from "web3";
 
-export class BorrowProvider implements Web3Provider {
+export class BorrowingProvider implements Web3Provider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
@@ -15,6 +15,7 @@ export class BorrowProvider implements Web3Provider {
   ) {}
 
   private contractTransactionsListenerInit() {
+    // TODO: Узнать адрес контракта у Васи
     const query = `tm.event='Tx' AND ethereum_tx.recipient='0x29cb0DfED19f0e6Eb53bdDd14732fAd8EaFbca19'`;
 
     const stream = this.tendermintWs.listen({
