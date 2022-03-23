@@ -9,6 +9,7 @@ import {
   BlockchainNetworks,
   QuestFactoryCreatedEvent,
 } from '@workquest/database-models/lib/models';
+import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
 
 export class QuestFactoryController implements IController {
   constructor(
@@ -68,6 +69,10 @@ export class QuestFactoryController implements IController {
     }
     if (quest && quest.status == QuestStatus.Pending) {
       await quest.update({ contractAddress, status: QuestStatus.Recruitment });
+      await updateQuestsStatisticJob({
+        userId: quest.userId,
+        role: quest.user.role
+      })
     }
   }
 
