@@ -6,23 +6,23 @@ export class QuestModelController {
   ) {
   }
 
-  public completeQuest(): Promise<void> {
-    return void this.quest.update({ status: QuestStatus.Completed });
-  }
-
-  public finishWorkOnQuest(): Promise<void> {
-    return void this.quest.update({ status: QuestStatus.WaitingForEmployerConfirmationWork });
-  }
-
-  public assignWorkerOnQuest(worker: User): Promise<void> {
-    return void this.quest.update({
+  public assignWorkerOnQuest(worker: User): Promise<any> {
+    return this.quest.update({
       assignedWorkerId: worker.id,
       status: QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     });
   }
 
-  public startQuest(): Promise<void> {
-    return void this.quest.update({ status: QuestStatus.ExecutionOfWork });
+  public startQuest(): Promise<any> {
+    return this.quest.update({ status: QuestStatus.ExecutionOfWork });
+  }
+
+  public finishWork(): Promise<any> {
+    return this.quest.update({ status: QuestStatus.WaitingForEmployerConfirmationWork });
+  }
+
+  public completeQuest(): Promise<any> {
+    return this.quest.update({ status: QuestStatus.Completed });
   }
 
   public statusDoesMatch(...statuses: QuestStatus[]): boolean {
