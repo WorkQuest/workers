@@ -131,7 +131,7 @@ export class ProposalController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     const proposalCreatedEvent = await ProposalCreatedEvent.findOne({
-      where: { contractProposalId: eventsData.returnValues.proposalId },
+      where: { contractProposalId: eventsData.returnValues.id },
     });
 
     const [executedEvent, isCreated] = await ProposalExecutedEvent.findOrCreate({
