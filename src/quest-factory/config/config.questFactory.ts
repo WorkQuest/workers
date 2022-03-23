@@ -3,7 +3,7 @@ import {config} from "dotenv";
 config({ path: __dirname +  '/../../../.env.quest-factory'});
 
 export default {
-  network: process.env.QUEST_FACTORY_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
+  network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
     contractAddress: process.env.QUEST_FACTORY_WQ_DEVNETWORK_CONTRACT,
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
