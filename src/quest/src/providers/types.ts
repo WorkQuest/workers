@@ -13,7 +13,7 @@ export type QuestPayload = {
 
 export interface IQuestCacheProvider {
   get(questContactAddress: string): Promise<QuestPayload | null>;
-  set(questContactAddress: string, payload: QuestPayload): Promise<void>;
+  set(questContactAddress: string, payload: QuestPayload): Promise<any>;
 }
 
 export interface Clients {

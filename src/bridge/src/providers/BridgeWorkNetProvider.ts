@@ -17,7 +17,7 @@ export class BridgeWorkNetProvider implements IContractProvider {
   private contractTransactionsListenerInit() {
     // configReferral.contractAddress
     // TODO WHYYYYY????  NOT WORKING!!!!!
-    const query = `tm.event='Tx' AND ethereum_tx.recipient=' '`;
+    const query = `tm.event='Tx' AND ethereum_tx.recipient='0x841e6d5991F67D8c9F88a6F9726246774a4ab376'`;
 
     const stream = this.clients.tendermintWsClient.listen({
       id: 0,
