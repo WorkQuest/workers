@@ -14,14 +14,21 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 export async function init() {
   await initDatabase(configDatabase.dbLink, true, true);
 
-  const rpcProvider = new Web3.providers.HttpProvider(configPensionFund.rpcProvider);
-  const tendermintWsProvider = new TendermintWebsocketClient(configPensionFund.tendermintProvider, error => {
+    const {
+      linkRpcProvider,
+      contractAddress,
+      parseEventsFromHeight,
+      linkTendermintProvider,
+    } = configPensionFund.defaultConfigNetwork();
+
+  const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
+  const tendermintWsProvider = new TendermintWebsocketClient(linkTendermintProvider, error => {
     throw error;
   });
 
   const web3 = new Web3(rpcProvider);
 
-  const pensionFundContract = new web3.eth.Contract(abi, configPensionFund.contractAddress);
+  const pensionFundContract = new web3.eth.Contract(abi, contractAddress);
 
   // @ts-ignore
   const pensionFundProvider = new PensionFundProvider(web3, tendermintWsProvider, pensionFundContract);
@@ -31,7 +38,7 @@ export async function init() {
     where: { network: BlockchainNetworks.workQuestNetwork },
     defaults: {
       network: BlockchainNetworks.workQuestNetwork,
-      lastParsedBlock: configPensionFund.parseEventsFromHeight,
+      lastParsedBlock: parseEventsFromHeight,
     },
   });
 

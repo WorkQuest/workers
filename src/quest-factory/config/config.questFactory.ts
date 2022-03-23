@@ -1,14 +1,14 @@
 import {config} from "dotenv";
 
-config({ path: __dirname +  '/../../../.env.quest-factory'});
+config({ path: __dirname +  '/../../../.env.questFactory'});
 
 export default {
   network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
-    contractAddress: process.env.QUEST_FACTORY_WQ_DEVNETWORK_CONTRACT,
+    contractAddress: process.env.WORK_QUEST_DEV_NETWORK_QUEST_FACTORY_CONTRACT_ADDRESS,
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
-    parseEventsFromHeight: parseInt(process.env.QUEST_FACTORY_WQ_DEVNETWORK_PARSE_EVENTS_FROM_HEIGHT),
+    parseEventsFromHeight: parseInt(process.env.WORK_QUEST_DEV_NETWORK_QUEST_FACTORY_PARSE_EVENTS_FROM_HEIGHT || "0"),
   },
   workQuestTestNetwork: {
 
