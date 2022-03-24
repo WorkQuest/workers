@@ -1,5 +1,5 @@
 import { Contract, EventData } from "web3-eth-contract";
-import {IContractProvider, onEventCallBack, Clients} from "./types";
+import { IContractProvider, onEventCallBack, Clients } from "./types";
 
 export class ProposalProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -29,8 +29,6 @@ export class ProposalProvider implements IContractProvider {
   }
 
   private async onEventTendermintData(txData) {
-    console.log(txData);
-
     const blockTxHeight = txData["data"]["value"]['TxResult']["height"] as string;
     const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock: blockTxHeight, toBlock: blockTxHeight });
 

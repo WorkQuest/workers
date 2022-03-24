@@ -10,8 +10,7 @@ export interface ChildWorkerPayload {
 export class ContractTransactionsFetcher {
   constructor(
     public readonly web3Provider: Web3,
-  ) {
-  }
+  ) {}
 
   private _fetchedUpToBlockNumber;
 

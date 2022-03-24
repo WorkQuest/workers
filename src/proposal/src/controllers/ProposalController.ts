@@ -24,8 +24,6 @@ export class ProposalController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
-    console.log(eventsData.blockNumber);
-    console.log(eventsData.event);
     if (eventsData.event === TrackedEvents.ProposalCreated) {
       return this.proposalCreatedEventHandler(eventsData);
     } else if (eventsData.event === TrackedEvents.VoteCast) {

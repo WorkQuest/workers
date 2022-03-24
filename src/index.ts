@@ -3,7 +3,7 @@ import Web3 from "web3";
 import path from "path";
 import childProcess from 'child_process';
 import configFetcher from "./fetchers/config/config.fetcher";
-import {ContractTransactionsFetcher} from "./fetchers/ContractTransactionsFetcher";
+import { ContractTransactionsFetcher } from "./fetchers/ContractTransactionsFetcher";
 
 const bridgeAbiFilePath = path.join(__dirname,  '/../src/bridge/abi/WQBridge.json');
 const bridgeAbi: any[] = JSON.parse(fs.readFileSync(bridgeAbiFilePath).toString()).abi;
@@ -38,13 +38,13 @@ async function init() {
 
   const childProposal = childProcess.fork(path.join(__dirname, '/proposal/index.js'));
   const childBridge = childProcess.fork(path.join(__dirname, '/bridge/index.js'));
-  const childPensionFund = childProcess.fork(path.join(__dirname, '/pension-fund/index.js'));
+  // const childPensionFund = childProcess.fork(path.join(__dirname, '/pension-fund/index.js'));
   const childReferralProgram = childProcess.fork(path.join(__dirname, '/referral-program/index.js'));
 
   contractTransactionsFetcher
     .addContractAddresses({ childProcess: childProposal, name: 'proposal', contract: proposalContract })
     .addContractAddresses({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract })
-    .addContractAddresses({ childProcess: childPensionFund, name: 'Pension fund', contract: pensionFundContract })
+    // .addContractAddresses({ childProcess: childPensionFund, name: 'Pension fund', contract: pensionFundContract })
     .addContractAddresses({ childProcess: childReferralProgram, name: 'Referral program', contract: referralProgramContract })
 
   await contractTransactionsFetcher.startFetcher();

@@ -6,7 +6,7 @@ import configDatabase from './config/config.database';
 import { ProposalController } from "./src/controllers/ProposalController";
 import { ChildProcessProvider } from './src/providers/ChildProcessProvider';
 import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
-import {Clients} from "./src/providers/types";
+import { Clients } from "./src/providers/types";
 
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;

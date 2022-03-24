@@ -1,6 +1,5 @@
 import { PensionFundEvent } from './types';
 import { EventData } from 'web3-eth-contract';
-import {Web3Provider } from "../providers/types";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
@@ -8,13 +7,15 @@ import {
   PensionFundWithdrewEvent,
   PensionFundWalletUpdatedEvent,
 } from '@workquest/database-models/lib/models';
+import { Clients, IContractProvider } from "../providers/types";
 
 export class PensionFundController {
   constructor(
-    private readonly web3Provider: Web3Provider,
-    private readonly network: BlockchainNetworks,
+    public readonly clients: Clients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider,
   ) {
-    this.web3Provider.subscribeOnEvents(async (eventData) => {
+    this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
     });
   }
@@ -30,7 +31,7 @@ export class PensionFundController {
   }
 
   protected async receivedEventHandler(eventsData: EventData) {
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     await PensionFundReceivedEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
@@ -54,7 +55,7 @@ export class PensionFundController {
   }
 
   protected async withdrewEventHandler(eventsData: EventData) {
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     await PensionFundWithdrewEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
@@ -78,7 +79,7 @@ export class PensionFundController {
   }
 
   protected async walletUpdatedEventHandler(eventsData: EventData) {
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     await PensionFundWalletUpdatedEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
@@ -103,7 +104,7 @@ export class PensionFundController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
+    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {

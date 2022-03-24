@@ -18,8 +18,8 @@ import {
 export class ReferralController implements IController {
   constructor(
     public readonly clients: Clients,
-    public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider,
   ) {
     this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);

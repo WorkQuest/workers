@@ -1,14 +1,14 @@
-import Web3 from "web3";
 import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, Web3Provider } from "./types";
+import { onEventCallBack, IContractProvider } from "./types";
+import { Clients } from "../../../proposal/src/providers/types";
 
-export class ChildProcessProvider implements Web3Provider {
+export class ChildProcessProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
 
   constructor (
-    public readonly web3: Web3,
+    public readonly clients: Clients,
     public readonly contract: Contract,
   ) {};
 
@@ -27,6 +27,8 @@ export class ChildProcessProvider implements Web3Provider {
       if (!parsedMessage.message || parsedMessage.message !== 'onEvents') {
         return;
       }
+
+      delete parsedMessage.message;
     } catch (err) {
       return;
     }
@@ -58,7 +60,7 @@ export class ChildProcessProvider implements Web3Provider {
 
   public async getAllEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
