@@ -15,7 +15,9 @@
     "PensionFund:start": "nodemon -e ts --exec \"npm run PensionFund:compile\"",
     "PensionFund:compile": "tsc && node ./build/pension-fund/index.js",
     "Referral:start": "nodemon -e ts --exec \"npm run Referral:compile\"",
-    "Referral:compile": "tsc && node ./build/referral-program/index.js"
+    "Referral:compile": "tsc && node ./build/referral-program/index.js",
+    "init:start": "nodemon -e ts --exec \"npm run init:compile\"",
+    "init:compile": "tsc && node ./build/index.js"
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",

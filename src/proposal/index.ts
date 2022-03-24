@@ -3,10 +3,10 @@ import * as fs from 'fs';
 import Web3 from 'web3';
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
-import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
-import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { ProposalController } from "./src/controllers/ProposalController";
-import { ProposalProvider } from './src/providers/ProposalProvider';
+import { ChildProcessProvider } from './src/providers/ChildProcessProvider';
+import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
+import {Clients} from "./src/providers/types";
 
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -18,21 +18,18 @@ export async function init() {
     linkRpcProvider,
     contractAddress,
     parseEventsFromHeight,
-    linkTendermintProvider,
   } = configProposal.defaultConfigNetwork();
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
-  const tendermintWsProvider = new TendermintWebsocketClient(linkTendermintProvider, err => {
-    throw err;
-  });
 
   const web3 = new Web3(rpcProvider);
 
+  const clients: Clients = { web3 };
+
   const proposalContract = new web3.eth.Contract(abi, contractAddress);
 
-  // @ts-ignore
-  const proposalProvider = new ProposalProvider(web3, tendermintWsProvider, proposalContract);
-  const proposalController = new ProposalController(proposalProvider, configProposal.network as BlockchainNetworks);
+  const proposalProvider = new ChildProcessProvider(clients, proposalContract);
+  const proposalController = new ProposalController(clients, configProposal.network as BlockchainNetworks, proposalProvider);
 
   const [proposalBlockInfo] = await ProposalParseBlock.findOrCreate({
     where: { network: configProposal.network as BlockchainNetworks },
