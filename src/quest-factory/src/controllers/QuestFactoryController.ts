@@ -1,14 +1,16 @@
 import { EventData } from 'web3-eth-contract';
-import {IController, QuestFactoryEvent} from './types';
-import { IContractProvider, Clients } from '../providers/types';
+import { IController, QuestFactoryEvent } from './types';
+import { Clients, IContractProvider } from '../providers/types';
 import {
-  Quest,
-  QuestStatus,
-  QuestBlockInfo,
-  QuestFactoryStatus,
   BlockchainNetworks,
+  Quest,
+  QuestBlockInfo,
   QuestFactoryCreatedEvent,
+  QuestFactoryStatus,
+  QuestStatus,
+  UserRole,
 } from '@workquest/database-models/lib/models';
+import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
 
 export class QuestFactoryController implements IController {
   constructor(
@@ -68,6 +70,10 @@ export class QuestFactoryController implements IController {
     }
     if (quest && quest.status == QuestStatus.Pending) {
       await quest.update({ contractAddress, status: QuestStatus.Recruitment });
+      await updateQuestsStatisticJob({
+        userId: quest.userId,
+        role: UserRole.Employer
+      });
     }
   }
 

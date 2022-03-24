@@ -17,8 +17,10 @@ import {
   QuestJobFinishedEvent,
   QuestAssignedEventStatus,
   QuestJobStartedEventStatus,
-  QuestJobFinishedEventStatus,
+  QuestJobFinishedEventStatus, UserRole,
 } from "@workquest/database-models/lib/models";
+import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
+import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
 
 export class QuestController implements IController {
   constructor(
@@ -217,6 +219,22 @@ export class QuestController implements IController {
     )) {
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestStatusDoesNotMatch });
     }
+
+    await addUpdateReviewStatisticsJob({
+      userId: questModelController.quest.userId,
+    });
+    await addUpdateReviewStatisticsJob({
+      userId: questModelController.quest.assignedWorkerId,
+    });
+
+    await updateQuestsStatisticJob({
+      userId: questModelController.quest.assignedWorkerId,
+      role: UserRole.Worker,
+    });
+    await updateQuestsStatisticJob({
+      userId: questModelController.quest.id,
+      role: UserRole.Employer,
+    });
 
     return questModelController.completeQuest();
   }
