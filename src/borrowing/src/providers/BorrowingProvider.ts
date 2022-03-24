@@ -15,8 +15,7 @@ export class BorrowingProvider implements Web3Provider {
   ) {}
 
   private contractTransactionsListenerInit() {
-    // TODO: Узнать адрес контракта у Васи
-    const query = `tm.event='Tx' AND ethereum_tx.recipient='0x29cb0DfED19f0e6Eb53bdDd14732fAd8EaFbca19'`;
+    const query = `tm.event='Tx' AND ethereum_tx.recipient='0xAFB4C7684C07FBCb1387c706c22aA75fD11Eea86'`;
 
     const stream = this.tendermintWs.listen({
       id: 0,
