@@ -61,7 +61,7 @@ export class QuestController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const workerAddress = eventsData.returnValues.worker.toLowerCase();
 
-    const workerModelController = await UserModelController.byWalletAddress(contractAddress);
+    const workerModelController = await UserModelController.byWalletAddress(workerAddress);
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 
     const [questAssignedEvent, isCreated] = await QuestAssignedEvent.findOrCreate({
