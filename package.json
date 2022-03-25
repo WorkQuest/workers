@@ -1,6 +1,6 @@
 {
   "name": "work-quest-workers",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "scripts": {
     "build": "tsc",
@@ -17,7 +17,9 @@
     "Referral:start": "nodemon -e ts --exec \"npm run Referral:compile\"",
     "Referral:compile": "tsc && node ./build/referral-program/index.js",
     "questFactory:start": "nodemon -e ts --exec \"npm run questFactory:compile\"",
-    "questFactory:compile": "tsc && node ./build/quest-factory/npindex.js"
+    "questFactory:compile": "tsc && node ./build/quest-factory/npindex.js",
+    "init:start": "nodemon -e ts --exec \"npm run init:compile\"",
+    "init:compile": "tsc && node ./build/index.js"
   },
   "jest": {
     "transform": {

@@ -5,10 +5,10 @@ config({ path: __dirname + '/../../../.env.proposal' });
 export default {
   network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
-    contractAddress: process.env.WORK_QUEST_DEV_NETWORK_PROPOSAL_CONTRACT,
+    contractAddress: process.env.WORK_QUEST_DEV_NETWORK_PROPOSAL_CONTRACT_ADDRESS,
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
-    parseEventsFromHeight: parseInt(process.env.WORK_QUEST_DEV_NETWORK_PROPOSAL_PARSE_EVENTS_FROM_HEIGHT || '0'),
+    parseEventsFromHeight: parseInt(process.env.WORK_QUEST_DEV_NETWORK_PROPOSAL_PARSE_EVENTS_FROM_HEIGHT),
   },
   workQuestTestNetwork: {
   },

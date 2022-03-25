@@ -1,6 +1,6 @@
-import { TrackedEvents } from "./types";
+import {IController, TrackedEvents} from "./types";
 import { EventData } from "web3-eth-contract";
-import { Web3Provider } from "../providers/types";
+import {Clients, IContractProvider} from "../providers/types";
 import {
   Proposal,
   Discussion,
@@ -12,12 +12,13 @@ import {
   ProposalVoteCastEvent,
 } from "@workquest/database-models/lib/models";
 
-export class ProposalController {
+export class ProposalController implements IController {
   constructor (
-    private readonly web3Provider: Web3Provider,
-    private readonly network: BlockchainNetworks
+    public readonly clients: Clients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider,
   ) {
-    this.web3Provider.subscribeOnEvents(async (eventData) => {
+    this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
     });
   }
@@ -40,7 +41,7 @@ export class ProposalController {
   }
 
   protected async proposalCreatedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const proposer = eventsData.returnValues.proposer.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -89,7 +90,7 @@ export class ProposalController {
   }
 
   protected async voteCastEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const voter = eventsData.returnValues.voter.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -126,7 +127,7 @@ export class ProposalController {
   }
 
   protected async proposalExecutedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
@@ -171,7 +172,7 @@ export class ProposalController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
+    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
@@ -188,7 +189,7 @@ export class ProposalController {
     );
 
     if (!isGotAllEvents) {
-      throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);
+      throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);
     }
   }
 }

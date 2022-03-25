@@ -1,17 +1,13 @@
-import Web3 from 'web3';
 import { Contract, EventData } from 'web3-eth-contract';
-import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
-import { onEventCallBack, Web3Provider } from './types';
-import configPensionFund from "../../config/config.pensionFund";
+import { Clients, IContractProvider, onEventCallBack } from './types';
 
-export class PensionFundProvider implements Web3Provider {
+export class PensionFundProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
 
   constructor(
-    public readonly web3: Web3,
-    private readonly tendermintWs: TendermintWebsocketClient,
+    public readonly clients: Clients,
     public readonly contract: Contract,
   ) {}
 
@@ -19,7 +15,7 @@ export class PensionFundProvider implements Web3Provider {
     // TODO WHYYYYY???? ${configPensionFund.contractAddress} NOT WORKING!!!!!
     const query = `tm.event='Tx' AND ethereum_tx.recipient='0xfaC60Ac942b8Ac6a2BC2470D81124C34e8719d88'`;
 
-    const stream = this.tendermintWs.listen({
+    const stream = this.clients.tendermintWsClient.listen({
       id: 0,
       jsonrpc: '2.0',
       method: 'subscribe',
@@ -55,7 +51,7 @@ export class PensionFundProvider implements Web3Provider {
 
   public async getAllEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
@@ -81,9 +77,9 @@ export class PensionFundProvider implements Web3Provider {
       }
     } catch (error) {
       console.error(error);
-      console.error('GetAllEvents: Last block: ', collectedEvents[collectedEvents.length - 1].blockNumber);
+      console.error('GetAllEvents: Last block: ', fromBlock);
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: collectedEvents[collectedEvents.length - 1].blockNumber };
+      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
     }
 
     return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
