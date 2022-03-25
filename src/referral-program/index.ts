@@ -3,10 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import configDatabase from './config/config.database';
 import configReferral from './config/config.referral';
-import { ReferralProvider } from "./src/providers/ReferralProvider"
 import { ReferralController } from "./src/controllers/ReferralController";
 import { ReferralMessageBroker } from "./src/controllers/BrokerController";
-import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { BlockchainNetworks, ReferralProgramParseBlock, initDatabase } from '@workquest/database-models/lib/models';
 import {Clients} from "./src/providers/types";
 import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
