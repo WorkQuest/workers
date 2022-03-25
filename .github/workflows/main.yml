@@ -224,14 +224,9 @@ jobs:
           WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.DEV_WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT }} \
 
         # PM2 worker names
-          PM2_BRIDGE_WORKER_NAME=${{ secrets.DEV_PM2_BRIDGE_WORKER_NAME }} \
-          PM2_LIQUIDITY_WORKER_NAME=${{ secrets.DEV_PM2_LIQUIDITY_WORKER_NAME }} \
-          PM2_PROPOSAL_WORKER_NAME=${{ secrets.DEV_PM2_PROPOSAL_WORKER_NAME }} \
-          PM2_WQT_WBNB_WORKER_NAME=${{ secrets.DEV_PM2_WQT_WBNB_WORKER_NAME }} \
-          PM2_PENSION_FUND_WORKER_NAME=${{ secrets.DEV_PM2_PENSION_FUND_WORKER_NAME }} \
-          PM2_REFERRAL_WORKER_NAME=${{ secrets.DEV_PM2_REFERRAL_WORKER_NAME }} \
-
-        # Folders
+          PM2_INIT_WORKER_NAME=${{ secrets.DEV_PM2_INIT_WORKER_NAME }} \          
+          
+          # Folders
           WORKERS_BIN=${{ secrets.DEV_WORKERS_BIN }} \
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;
 
