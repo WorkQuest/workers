@@ -41,15 +41,29 @@ async function init() {
   const childPensionFund = childProcess.fork(path.join(__dirname, '/pension-fund/index.js'));
   const childReferralProgram = childProcess.fork(path.join(__dirname, '/referral-program/index.js'));
 
+  childProposal.on('exit', (_) => {
+    process.exit();
+  });
+  childBridge.on('exit', (_) => {
+    process.exit();
+  });
+  childPensionFund.on('exit', (_) => {
+    process.exit();
+  });
+  childReferralProgram.on('exit', (_) => {
+    process.exit();
+  });
+
   contractTransactionsFetcher
-    .addContractAddresses({ childProcess: childProposal, name: 'proposal', contract: proposalContract, address: proposalContractAddress })
-    .addContractAddresses({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract, address: bridgeContractAddress })
-    .addContractAddresses({ childProcess: childPensionFund, name: 'Pension fund', contract: pensionFundContract, address: pensionFundContractAddress })
-    .addContractAddresses({ childProcess: childReferralProgram, name: 'Referral program', contract: referralProgramContract, address: referralProgramContractAddress })
+    .addChildFetcher({ childProcess: childProposal, name: 'Proposal', contract: proposalContract, address: proposalContractAddress })
+    .addChildFetcher({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract, address: bridgeContractAddress })
+    .addChildFetcher({ childProcess: childPensionFund, name: 'Pension fund', contract: pensionFundContract, address: pensionFundContractAddress })
+    .addChildFetcher({ childProcess: childReferralProgram, name: 'Referral program', contract: referralProgramContract, address: referralProgramContractAddress })
 
   await contractTransactionsFetcher.startFetcher();
 }
 
 init().catch(e => {
-  throw e;
+  console.error(e);
+  process.exit(e);
 });

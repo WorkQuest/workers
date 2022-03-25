@@ -15,7 +15,7 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 export async function init() {
   ReferralMessageBroker.initMessageBroker();
 
-  await initDatabase(configDatabase.dbLink, true, true);
+  await initDatabase(configDatabase.dbLink, true, false);
 
   const network = configReferral.network as BlockchainNetworks;
 
@@ -46,4 +46,8 @@ export async function init() {
   referralProvider.startListener();
 }
 
-init().catch(console.error);
+init().catch(e => {
+  console.error(e);
+  process.exit(e);
+});
+

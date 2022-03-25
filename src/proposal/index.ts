@@ -52,4 +52,8 @@ export async function init() {
   proposalProvider.startListener();
 }
 
-init().catch(console.error);
+init().catch(e => {
+  console.error(e);
+  process.exit(e);
+});
+

@@ -16,7 +16,7 @@ const abiFilePath = path.join(__dirname, '../../src/bridge/abi/WQBridge.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  await initDatabase(configDatabase.database.link, false, true);
+  await initDatabase(configDatabase.database.link, false, false);
   BridgeMessageBroker.initMessageBroker();
 
   const networks = [configBridge.bscNetwork, configBridge.ethereumNetwork, configBridge.workQuestNetwork];
@@ -113,4 +113,7 @@ export async function init() {
   ethBridgeProvider.startListener();
 }
 
-init().catch(console.error);
+init().catch(e => {
+  console.error(e);
+  process.exit(e);
+});
