@@ -184,7 +184,7 @@ export class ReferralController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const {collectedEvents, isGotAllEvents, lastBlockNumber} = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
@@ -201,7 +201,7 @@ export class ReferralController implements IController {
     );
 
     if (!isGotAllEvents) {
-      throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);
+      throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);
     }
   }
 }

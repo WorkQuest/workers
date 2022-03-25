@@ -189,7 +189,7 @@ export class ProposalController implements IController {
     );
 
     if (!isGotAllEvents) {
-      throw new Error('Failed to process all events. Last processed block: ' + collectedEvents[collectedEvents.length - 1]);
+      throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);
     }
   }
 }
