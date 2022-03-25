@@ -42,10 +42,10 @@ async function init() {
   const childReferralProgram = childProcess.fork(path.join(__dirname, '/referral-program/index.js'));
 
   contractTransactionsFetcher
-    .addContractAddresses({ childProcess: childProposal, name: 'proposal', contract: proposalContract })
-    .addContractAddresses({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract })
-    .addContractAddresses({ childProcess: childPensionFund, name: 'Pension fund', contract: pensionFundContract })
-    .addContractAddresses({ childProcess: childReferralProgram, name: 'Referral program', contract: referralProgramContract })
+    .addContractAddresses({ childProcess: childProposal, name: 'proposal', contract: proposalContract, address: proposalContractAddress })
+    .addContractAddresses({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract, address: bridgeContractAddress })
+    .addContractAddresses({ childProcess: childPensionFund, name: 'Pension fund', contract: pensionFundContract, address: pensionFundContractAddress })
+    .addContractAddresses({ childProcess: childReferralProgram, name: 'Referral program', contract: referralProgramContract, address: referralProgramContractAddress })
 
   await contractTransactionsFetcher.startFetcher();
 }
