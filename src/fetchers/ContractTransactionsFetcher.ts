@@ -23,7 +23,7 @@ export class ContractTransactionsFetcher {
   private viewingTxsTracedContracts(txs: Transaction[]) {
     const tracedTxs = txs
       .filter(tx => this.singleContractChildWorkers
-          .findIndex(worker => worker.address.toLowerCase() === tx.to.toLowerCase()) !== -1
+          .findIndex( worker => tx.to && worker.address.toLowerCase() === tx.to.toLowerCase()) !== -1
         );
 
     if (tracedTxs.length === 0) {
@@ -48,7 +48,7 @@ export class ContractTransactionsFetcher {
 
   private async viewingTxsTracedContractsInCache(txs: Transaction[]) {
     const tracedTxs = txs
-      .filter(tx => this.factoryContractsChildWorkers
+      .filter(tx => tx.to && this.factoryContractsChildWorkers
         .findIndex(async worker => await worker.cacheProvider.get(tx.to.toLowerCase()))
       );
 
