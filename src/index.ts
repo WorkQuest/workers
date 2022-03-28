@@ -49,7 +49,7 @@ async function init() {
   // const childBridge = childProcess.fork(path.join(__dirname, '/bridge/index.js'));
   // const childPensionFund = childProcess.fork(path.join(__dirname, '/pension-fund/index.js'));
   // const childReferralProgram = childProcess.fork(path.join(__dirname, '/referral-program/index.js'));
-  const childQuest = childProcess.fork(path.join(__dirname, '/quest/index.js'));
+  // const childQuest = childProcess.fork(path.join(__dirname, '/quest/index.js'));
   const childQuestFactory = childProcess.fork(path.join(__dirname, '/quest-factory/index.js'));
 
   // childProposal.on('exit', (_) => {
@@ -64,9 +64,9 @@ async function init() {
   // childReferralProgram.on('exit', (_) => {
   //   process.exit();
   // });
-  childQuest.on('exit', (_) => {
-    process.exit();
-  });
+  // childQuest.on('exit', (_) => {
+  //   process.exit();
+  // });
   childQuestFactory.on('exit', (_) => {
     process.exit();
   });
