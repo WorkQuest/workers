@@ -1,10 +1,10 @@
 import {ChildProcess} from "child_process";
 import {Contract} from "web3-eth-contract";
-import {IQuestCacheProvider} from "../quest/src/providers/types";
+import {IContractCacheProvider} from '../types'
 
 export interface ChildWorker {
-  readonly childProcess: ChildProcess;
   readonly name: string;
+  readonly childProcess: ChildProcess;
 }
 
 export interface SingleContractChildWorker extends ChildWorker {
@@ -13,5 +13,5 @@ export interface SingleContractChildWorker extends ChildWorker {
 }
 
 export interface FactoryContractsChildWorker extends ChildWorker {
-  readonly cacheProvider: IQuestCacheProvider; // TODO абрстрагировать и обобщить тип)
+  readonly cacheProvider: IContractCacheProvider<any>;
 }
