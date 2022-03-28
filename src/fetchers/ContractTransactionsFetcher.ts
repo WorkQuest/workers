@@ -49,7 +49,7 @@ export class ContractTransactionsFetcher {
       .map(block => block.transactions)
       .reduce((prev, current) => [...prev, ...current])
       .filter(tx => this.childWorkers
-        .findIndex(chW => chW.address.toLowerCase() === tx.to.toLowerCase()) !== -1
+        .findIndex(chW => tx.to && chW.address.toLowerCase() === tx.to.toLowerCase()) !== -1
       );
 
     if (txs.length !== 0) {
