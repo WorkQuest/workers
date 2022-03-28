@@ -1,20 +1,20 @@
 import { EventData } from 'web3-eth-contract';
 import { IController, QuestFactoryEvent } from './types';
-import { Clients, IContractProvider } from '../providers/types';
-import {
-  BlockchainNetworks,
-  Quest,
-  QuestBlockInfo,
-  QuestFactoryCreatedEvent,
-  QuestFactoryStatus,
-  QuestStatus,
-  UserRole,
-} from '@workquest/database-models/lib/models';
+import { QuestFactoryClients, IContractProvider } from '../providers/types';
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
+import {
+  Quest,
+  UserRole,
+  QuestStatus,
+  QuestBlockInfo,
+  QuestFactoryStatus,
+  BlockchainNetworks,
+  QuestFactoryCreatedEvent,
+} from '@workquest/database-models/lib/models';
 
 export class QuestFactoryController implements IController {
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: QuestFactoryClients,
     public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
   ) {

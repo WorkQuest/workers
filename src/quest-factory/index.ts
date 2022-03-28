@@ -2,10 +2,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import Web3 from 'web3';
 import { createClient } from 'redis';
-import {Clients} from "./src/providers/types";
+import {QuestFactoryClients} from "./src/providers/types";
 import configDatabase from './config/config.database';
 import configQuestFactory from './config/config.questFactory';
-import { QuestFactoryProvider } from './src/providers/QuestFactoryProvider';
 import { QuestFactoryController } from './src/controllers/QuestFactoryController';
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { initDatabase, QuestFactoryBlockInfo, BlockchainNetworks } from '@workquest/database-models/lib/models';
@@ -34,7 +33,7 @@ export async function init() {
   const questFactoryContract = new web3.eth.Contract(abi, contractAddress);
   // @ts-ignore
   const questCacheProvider = new QuestCacheProvider(redisClient);
-  const clients: Clients = { web3, questCacheProvider }
+  const clients: QuestFactoryClients = { web3, questCacheProvider }
 
   const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
     where: { network: BlockchainNetworks.workQuestDevNetwork },

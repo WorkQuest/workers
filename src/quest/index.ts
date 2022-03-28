@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import Web3 from "web3";
 import {createClient} from "redis";
-import { Clients } from "./src/providers/types";
+import { QuestClients } from "./src/providers/types";
 import configQuest from "./config/config.quest";
 import configDatabase from "./config/config.database";
 import { QuestController } from "./src/controllers/QuestController";
@@ -28,7 +28,7 @@ export async function init() {
   const questContract = new web3.eth.Contract(abi, contractAddress);
   // @ts-ignore
   const questCacheProvider = new QuestCacheProvider(redisClient);
-  const clients: Clients = { web3, questCacheProvider };
+  const clients: QuestClients = { web3, questCacheProvider };
 
   const [questBlockInfo] = await QuestBlockInfo.findOrCreate({
     where: { network: configQuest.network },

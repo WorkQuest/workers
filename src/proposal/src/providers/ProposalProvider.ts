@@ -1,5 +1,5 @@
 import { Contract, EventData } from "web3-eth-contract";
-import { IContractProvider, onEventCallBack, Clients } from "./types";
+import { IContractProvider, onEventCallBack, ProposalClients } from "./types";
 
 export class ProposalProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -7,7 +7,7 @@ export class ProposalProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
 
   constructor (
-    public readonly clients: Clients,
+    public readonly clients: ProposalClients,
     public readonly contract: Contract,
   ) {};
 

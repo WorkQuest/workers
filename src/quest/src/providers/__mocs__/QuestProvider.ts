@@ -1,4 +1,4 @@
-import {Clients, IContractProvider, onEventCallBack} from "../types";
+import {QuestClients, IContractProvider, onEventCallBack} from "../types";
 import {Contract, EventData} from "web3-eth-contract";
 
 export class QuestProvider implements IContractProvider {
@@ -6,7 +6,7 @@ export class QuestProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: QuestClients,
     public readonly contract: Contract,
   ) {
   }

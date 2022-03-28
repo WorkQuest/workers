@@ -1,6 +1,6 @@
+import { PensionFundClients } from "./types";
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider } from "./types";
-import { Clients } from "../../../proposal/src/providers/types";
 
 export class ChildProcessProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -8,7 +8,7 @@ export class ChildProcessProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
 
   constructor (
-    public readonly clients: Clients,
+    public readonly clients: PensionFundClients,
     public readonly contract: Contract,
   ) {};
 
