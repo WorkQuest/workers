@@ -106,5 +106,3 @@ export class ContractTransactionsFetcher {
     }, 15000);
   }
 }
-
-
