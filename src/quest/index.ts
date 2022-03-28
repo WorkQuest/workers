@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import Web3 from "web3";
-import {createClient} from "redis";
+import { createClient } from "redis";
 import { Clients } from "./src/providers/types";
 import configQuest from "./config/config.quest";
 import configDatabase from "./config/config.database";
@@ -16,10 +16,11 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 export async function init() {
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const redisConfig = configDatabase.redis.defaultConfigNetwork();
+  const { host, password, number } = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider, contractAddress, parseEventsFromHeight, linkTendermintProvider } = configQuest.defaultConfigNetwork();
 
-  const redisClient = createClient(redisConfig);
+  const redisClient = createClient({ url: host, database: number });
+  await redisClient.auth({ password });
 
   await redisClient.on('error', (err) => { throw err });
   await redisClient.connect();

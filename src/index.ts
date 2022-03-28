@@ -32,7 +32,6 @@ async function init() {
     pensionFundContractAddress,
     referralProgramContractAddress,
     questFactoryContractAddress,
-    questContractAddress,
   } = configFetcher.defaultConfigNetwork();
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
@@ -44,9 +43,7 @@ async function init() {
   const bridgeContract = new web3.eth.Contract(bridgeAbi, bridgeContractAddress);
   const pensionFundContract = new web3.eth.Contract(pensionFundAbi, pensionFundContractAddress);
   const referralProgramContract = new web3.eth.Contract(referralProgramAbi, referralProgramContractAddress);
-  const questContract = new web3.eth.Contract(questAbi, questContractAddress);
   const questFactoryContract = new web3.eth.Contract(questFactoryAbi, questFactoryContractAddress);
-
 
   // const childProposal = childProcess.fork(path.join(__dirname, '/proposal/index.js'));
   // const childBridge = childProcess.fork(path.join(__dirname, '/bridge/index.js'));
@@ -75,7 +72,6 @@ async function init() {
   });
 
   contractTransactionsFetcher
-    .addChildFetcher({ childProcess: childQuest, name: 'Quest', contract: questContract, address: questContractAddress })
     .addChildFetcher({ childProcess: childQuestFactory, name: 'Quest Factory', contract: questFactoryContract, address: questFactoryContractAddress });
   //   .addChildFetcher({ childProcess: childProposal, name: 'Proposal', contract: proposalContract, address: proposalContractAddress })
   //   .addChildFetcher({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract, address: bridgeContractAddress })

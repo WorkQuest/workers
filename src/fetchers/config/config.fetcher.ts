@@ -11,7 +11,6 @@ export default {
     pensionFundContractAddress: process.env.WORK_QUEST_DEV_NETWORK_PENSION_FUND_CONTRACT_ADDRESS,
     bridgeContractAddress: process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_CONTRACT,
     questFactoryContractAddress: process.env.WORK_QUEST_DEV_NETWORK_QUEST_FACTORY_CONTRACT_ADDRESS,
-    questContractAddress: process.env.WORK_QUEST_DEV_NETWORK_QUEST_CONTRACT_ADDRESS,
   },
 
   defaultConfigNetwork: (): {
@@ -21,7 +20,6 @@ export default {
     pensionFundContractAddress: string,
     bridgeContractAddress: string,
     questFactoryContractAddress: string,
-    questContractAddress: string
   } => {
     // @ts-ignore
     return this.default[this.default.network];
