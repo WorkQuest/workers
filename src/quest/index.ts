@@ -16,11 +16,10 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 export async function init() {
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const { host, password, number } = configDatabase.redis.defaultConfigNetwork();
+  const { url, number } = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider, contractAddress, parseEventsFromHeight, linkTendermintProvider } = configQuest.defaultConfigNetwork();
 
-  const redisClient = createClient({ url: host, database: number });
-  await redisClient.auth({ password });
+  const redisClient = createClient({ url, database: number });
 
   await redisClient.on('error', (err) => { throw err });
   await redisClient.connect();
