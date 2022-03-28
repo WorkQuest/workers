@@ -15,6 +15,6 @@ export class QuestCacheProvider implements IQuestCacheProvider {
   }
 
   public remove() {
-
+    // this.client.del()
   }
 }
