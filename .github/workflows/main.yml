@@ -229,6 +229,7 @@ jobs:
           ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
 
           DB_LINK=${{ secrets.DB_LINK }} \
+          REDIS_LINK=${{ secrets.REDIS_LINK }} \
 
           NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.NOTIFICATION_MESSAGE_BROKER_LINK }} \
 
