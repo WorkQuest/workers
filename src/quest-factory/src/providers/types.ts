@@ -1,19 +1,10 @@
 import Web3 from "web3";
 import {Contract, EventData} from "web3-eth-contract";
+import {IQuestCacheProvider} from '../../../quest/src/providers/types'
 import {WebsocketClient as TendermintWebsocketClient} from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
 
 export type onEventCallBack = {
   (eventData): Promise<void>;
-}
-
-export type QuestPayload = {
-  nonce: string;
-  transactionHash: string;
-}
-
-export interface IQuestCacheProvider {
-  get(questContactAddress: string): Promise<QuestPayload | null>;
-  set(questContactAddress: string, payload: QuestPayload): Promise<any>;
 }
 
 export interface Clients {
