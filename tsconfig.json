@@ -15,6 +15,7 @@
   "exclude": ["node_modules"],
   "include": [
     "./src/**/*.ts",
+    "./src/quest-factory/abi/*.json",
     "./src/bridge/abi/*.json",
     "./src/proposal/abi/*.json",
     "./src/daily-liquidity/abi/*.json",

@@ -81,10 +81,10 @@ async function init() {
   contractTransactionsFetcher
     .addFactoryContractsWorker({ childProcess: childQuest, name: 'Quest', cacheProvider: questCacheProvider })
     .addSingleContractWorker({ childProcess: childQuestFactory, name: 'Quest-factory', contract: questFactoryContract, address: questFactoryContractAddress })
-  //   .addChildFetcher({ childProcess: childProposal, name: 'Proposal', contract: proposalContract, address: proposalContractAddress })
-  //   .addChildFetcher({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract, address: bridgeContractAddress })
-  //   .addChildFetcher({ childProcess: childPensionFund, name: 'Pension fund', contract: pensionFundContract, address: pensionFundContractAddress })
-  //   .addChildFetcher({ childProcess: childReferralProgram, name: 'Referral program', contract: referralProgramContract, address: referralProgramContractAddress })
+    // .addSingleContractWorker({ childProcess: childProposal, name: 'Proposal', contract: proposalContract, address: proposalContractAddress })
+    // .addSingleContractWorker({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract, address: bridgeContractAddress })
+    // .addSingleContractWorker({ childProcess: childPensionFund, name: 'Pension-fund', contract: pensionFundContract, address: pensionFundContractAddress })
+    // .addSingleContractWorker({ childProcess: childReferralProgram, name: 'Referral-program', contract: referralProgramContract, address: referralProgramContractAddress })
 
   await contractTransactionsFetcher.startFetcher();
 }
