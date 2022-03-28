@@ -19,7 +19,7 @@ export interface IQuestCacheProvider {
 export interface Clients {
   readonly web3: Web3;
   readonly questCacheProvider: IQuestCacheProvider;
-  readonly tendermintWsClient: TendermintWebsocketClient;
+  readonly tendermintWsClient?: TendermintWebsocketClient;
 }
 
 export interface IContractProvider {

@@ -1,4 +1,4 @@
-import { addJob } from "../../../utils/scheduler";
+import { addJob } from "../../utils/scheduler";
 import { UserRole } from "@workquest/database-models/lib/models";
 
 export interface Data {

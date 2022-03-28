@@ -3,36 +3,34 @@ import * as fs from 'fs';
 import * as path from 'path';
 import configDatabase from './config/config.database';
 import configPensionFund from './config/config.pensionFund';
-import { BlockchainNetworks, initDatabase, PensionFundBlockInfo} from '@workquest/database-models/lib/models';
+import { BlockchainNetworks, initDatabase, PensionFundBlockInfo } from '@workquest/database-models/lib/models';
 import { PensionFundController } from "./src/controllers/pensionFundController";
-import { PensionFundProvider } from "./src/providers/pensionFundProvider"
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
+import { Clients } from "./src/providers/types";
+import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
 
 const abiFilePath = path.join(__dirname, '/abi/WQPensionFund.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  await initDatabase(configDatabase.dbLink, true, true);
+  await initDatabase(configDatabase.dbLink, true, false);
 
-    const {
-      linkRpcProvider,
-      contractAddress,
-      parseEventsFromHeight,
-      linkTendermintProvider,
-    } = configPensionFund.defaultConfigNetwork();
+  const {
+    linkRpcProvider,
+    contractAddress,
+    parseEventsFromHeight,
+  } = configPensionFund.defaultConfigNetwork();
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
-  const tendermintWsProvider = new TendermintWebsocketClient(linkTendermintProvider, error => {
-    throw error;
-  });
 
   const web3 = new Web3(rpcProvider);
 
+  const clients: Clients = { web3 };
+
   const pensionFundContract = new web3.eth.Contract(abi, contractAddress);
 
-  // @ts-ignore
-  const pensionFundProvider = new PensionFundProvider(web3, tendermintWsProvider, pensionFundContract);
-  const pensionFundController = new PensionFundController(pensionFundProvider, BlockchainNetworks.workQuestNetwork);
+  const pensionFundProvider = new ChildProcessProvider(clients, pensionFundContract);
+  const pensionFundController = new PensionFundController(clients, configPensionFund.network as BlockchainNetworks, pensionFundProvider);
 
   const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
     where: { network: BlockchainNetworks.workQuestNetwork },
@@ -46,7 +44,11 @@ export async function init() {
 
   console.log('Start pension fund listener');
 
- await pensionFundProvider.startListener();
+  await pensionFundProvider.startListener();
 }
 
-init().catch(console.error);
+init().catch(e => {
+  console.error(e);
+  process.exit(e);
+});
+

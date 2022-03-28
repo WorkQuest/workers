@@ -1,4 +1,4 @@
-import { addJob } from "../../../utils/scheduler";
+import { addJob } from "../../utils/scheduler";
 
 export interface StatisticPayload {
   userId: string;

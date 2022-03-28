@@ -10,6 +10,7 @@ import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint
 import { initDatabase, QuestFactoryBlockInfo, BlockchainNetworks } from '@workquest/database-models/lib/models';
 import {QuestCacheProvider} from "./src/providers/QuestCacheProvider";
 import {Clients} from "./src/providers/types";
+import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
 
 const abiFilePath = path.join(__dirname, '../../src/quest-factory/abi/QuestFactory.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -33,7 +34,7 @@ export async function init() {
   const questFactoryContract = new web3.eth.Contract(abi, contractAddress);
   // @ts-ignore
   const questCacheProvider = new QuestCacheProvider(redisClient);
-  const clients: Clients = { web3, tendermintWsClient, questCacheProvider }
+  const clients: Clients = { web3, questCacheProvider }
 
   const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
     where: { network: BlockchainNetworks.workQuestDevNetwork },
@@ -49,7 +50,7 @@ export async function init() {
     await questFactoryInfo.save();
   }
 
-  const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract);
+  const questFactoryProvider = new ChildProcessProvider(clients, questFactoryContract);
   const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
 
   await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);

@@ -19,14 +19,14 @@ export interface IQuestCacheProvider {
 export interface Clients {
   readonly web3: Web3;
   readonly questCacheProvider: IQuestCacheProvider;
-  readonly tendermintWsClient: TendermintWebsocketClient;
+  readonly tendermintWsClient?: TendermintWebsocketClient;
 }
 
 export interface IContractProvider {
   readonly clients: Clients;
   readonly contract: Contract;
 
-  startListener(): Promise<void>;
+  startListener(): void;
   subscribeOnEvents(onEventCallBack: onEventCallBack): void;
   getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[], isGotAllEvents: boolean }>;
 }

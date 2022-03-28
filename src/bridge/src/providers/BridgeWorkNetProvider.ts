@@ -15,7 +15,6 @@ export class BridgeWorkNetProvider implements IContractProvider {
   }
 
   private contractTransactionsListenerInit() {
-    // configReferral.contractAddress
     // TODO WHYYYYY????  NOT WORKING!!!!!
     const query = `tm.event='Tx' AND ethereum_tx.recipient='0x841e6d5991F67D8c9F88a6F9726246774a4ab376'`;
 
@@ -85,9 +84,9 @@ export class BridgeWorkNetProvider implements IContractProvider {
       }
     } catch (error) {
       console.error(error);
-      console.error('GetAllEvents: Last block: ', collectedEvents[collectedEvents.length - 1].blockNumber);
+      console.error('GetAllEvents: Last block: ', fromBlock);
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: collectedEvents[collectedEvents.length - 1].blockNumber };
+      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
     }
 
     return { collectedEvents, isGotAllEvents: true, lastBlockNumber };

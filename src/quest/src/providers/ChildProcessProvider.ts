@@ -1,7 +1,7 @@
 import { Contract, EventData } from "web3-eth-contract";
-import { IContractProvider, onEventCallBack, Clients } from "./types";
+import { onEventCallBack, IContractProvider, Clients } from "./types";
 
-export class ProposalProvider implements IContractProvider {
+export class ChildProcessProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
@@ -11,29 +11,36 @@ export class ProposalProvider implements IContractProvider {
     public readonly contract: Contract,
   ) {};
 
-  private contractTransactionsListenerInit() {
-    const query = `tm.event='Tx' AND ethereum_tx.recipient='0x29cb0DfED19f0e6Eb53bdDd14732fAd8EaFbca19'`;
-
-    const stream = this.clients.tendermintWsClient.listen({
-      id: 0,
-      jsonrpc: '2.0',
-      method: 'subscribe',
-      params: { query },
-    });
-
-    stream.addListener({
-      next: data => this.onEventTendermintData(data),
-      error: err => console.error(err),
-      complete: () => console.log('completed'),
+  private initFatherProcessListener() {
+    process.on('message', async (message: string) => {
+      await this.processMessage(message);
     });
   }
 
-  private async onEventTendermintData(txData) {
-    const blockTxHeight = txData["data"]["value"]['TxResult']["height"] as string;
-    const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock: blockTxHeight, toBlock: blockTxHeight });
+  private async processMessage(rawMessage: string) {
+    let parsedMessage;
 
-    /** See range (fromBlock: blockTxHeight, toBlock: blockTxHeight) */
-    await this.onEventData(eventsData[0]);
+    try {
+      parsedMessage = JSON.parse(rawMessage);
+
+      if (!parsedMessage.message || parsedMessage.message !== 'onEvents') {
+        return;
+      }
+
+      delete parsedMessage.message;
+    } catch (err) {
+      return;
+    }
+
+    await this.onEventFromFatherProcess(parsedMessage);
+  }
+
+  private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number }) {
+    const eventsData = await this.contract.getPastEvents('allEvents', payload);
+
+    return Promise.all(
+      eventsData.map(async data => this.onEventData(data))
+    );
   }
 
   private onEventData(eventData) {
@@ -43,7 +50,7 @@ export class ProposalProvider implements IContractProvider {
   }
 
   public startListener() {
-    this.contractTransactionsListenerInit();
+    this.initFatherProcessListener();
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {

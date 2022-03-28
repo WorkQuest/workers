@@ -80,9 +80,9 @@ export class ReferralProvider implements IContractProvider {
       }
     } catch (error) {
       console.error(error);
-      console.error('GetAllEvents: Last block: ', collectedEvents[collectedEvents.length - 1].blockNumber);
+      console.error('GetAllEvents: Last block: ', fromBlock);
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: collectedEvents[collectedEvents.length - 1].blockNumber };
+      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
     }
 
     return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
