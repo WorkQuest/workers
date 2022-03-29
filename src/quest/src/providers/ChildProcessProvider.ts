@@ -9,7 +9,7 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 export class ChildProcessProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
-  private readonly preParsingSteps = 6000;
+  private readonly preParsingSteps = 100;
 
   constructor (
     public readonly clients: QuestClients,
