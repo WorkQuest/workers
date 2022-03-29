@@ -74,6 +74,7 @@ export class QuestController implements IController {
         contractAddress,
         transactionHash,
         network: this.network,
+        blockNumber: eventsData.blockNumber,
         status: QuestAssignedEventStatus.Successfully,
       }
     });
@@ -117,6 +118,7 @@ export class QuestController implements IController {
         contractAddress,
         transactionHash,
         network: this.network,
+        blockNumber: eventsData.blockNumber,
         status: QuestJobStartedEventStatus.Successfully,
       },
     });
@@ -161,6 +163,7 @@ export class QuestController implements IController {
         contractAddress,
         transactionHash,
         network: this.network,
+        blockNumber: eventsData.blockNumber,
         status: QuestJobFinishedEventStatus.Successfully,
       },
     });
@@ -201,6 +204,7 @@ export class QuestController implements IController {
         contractAddress,
         transactionHash,
         network: this.network,
+        blockNumber: eventsData.blockNumber,
         status: QuestJobDoneStatus.Successfully,
       },
     });
