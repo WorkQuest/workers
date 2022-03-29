@@ -1,5 +1,5 @@
-import { IQuestCacheProvider, QuestPayload } from "./types";
 import { RedisClusterType } from "@node-redis/client";
+import { IQuestCacheProvider, QuestPayload } from "./types";
 
 export class QuestCacheProvider implements IQuestCacheProvider {
   constructor(
@@ -11,10 +11,10 @@ export class QuestCacheProvider implements IQuestCacheProvider {
   }
 
   public async set(questContactAddress: string, payload: QuestPayload) {
-    await this.client.set(questContactAddress.toLowerCase(), JSON.stringify(payload));
+    await this.client.set(questContactAddress.toLowerCase(), JSON.stringify({ name: 'quest', ...payload }));
   }
 
   public remove() {
-
+    // this.client.del()
   }
 }

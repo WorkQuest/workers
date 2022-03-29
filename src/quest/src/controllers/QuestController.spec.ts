@@ -2,7 +2,7 @@ import Web3 from "web3";
 import * as sinon from 'sinon';
 import {QuestProvider} from "../providers/QuestProvider";
 import {QuestCacheProvider} from "../providers/QuestCacheProvider";
-import {Clients} from "../providers/types";
+import {QuestClients} from "../providers/types";
 import {QuestController} from "./QuestController";
 import {WebsocketClient as TendermintWebsocketClient} from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
 import {
@@ -137,7 +137,7 @@ describe('QuestController', () => {
   let questCacheProvider: QuestCacheProvider;
   let tendermintWsClient: TendermintWebsocketClient;
 
-  let clients: Clients;
+  let clients: QuestClients;
 
   beforeAll(() => {
     web3 = new Web3();

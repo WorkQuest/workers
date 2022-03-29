@@ -1,5 +1,6 @@
-import { PensionFundEvent } from './types';
 import { EventData } from 'web3-eth-contract';
+import { PensionFundEvents, IController } from './types';
+import { PensionFundClients, IContractProvider } from "../providers/types";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
@@ -7,11 +8,10 @@ import {
   PensionFundWithdrewEvent,
   PensionFundWalletUpdatedEvent,
 } from '@workquest/database-models/lib/models';
-import { Clients, IContractProvider } from "../providers/types";
 
-export class PensionFundController {
+export class PensionFundController implements IController {
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: PensionFundClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -21,11 +21,11 @@ export class PensionFundController {
   }
 
   private async onEvent(eventsData: EventData) {
-    if (eventsData.event === PensionFundEvent.Received) {
+    if (eventsData.event === PensionFundEvents.Received) {
       await this.receivedEventHandler(eventsData);
-    } else if (eventsData.event === PensionFundEvent.Withdrew) {
+    } else if (eventsData.event === PensionFundEvents.Withdrew) {
       await this.withdrewEventHandler(eventsData);
-    } else if (eventsData.event === PensionFundEvent.WalletUpdated) {
+    } else if (eventsData.event === PensionFundEvents.WalletUpdated) {
       await this.walletUpdatedEventHandler(eventsData);
     }
   }
@@ -41,7 +41,7 @@ export class PensionFundController {
         transactionHash: eventsData.transactionHash.toLowerCase(),
         user: eventsData.returnValues.user.toLowerCase(),
         amount: eventsData.returnValues.amount,
-        event: PensionFundEvent.Received,
+        event: PensionFundEvents.Received,
         network: this.network,
       },
     });
@@ -65,7 +65,7 @@ export class PensionFundController {
         transactionHash: eventsData.transactionHash.toLowerCase(),
         user: eventsData.returnValues.user.toLowerCase(),
         amount: eventsData.returnValues.amount,
-        event: PensionFundEvent.Withdrew,
+        event: PensionFundEvents.Withdrew,
         network: this.network,
       },
     });
@@ -90,7 +90,7 @@ export class PensionFundController {
         user: eventsData.returnValues.user.toLowerCase(),
         newFee: eventsData.returnValues.newFee,
         unlockDate: eventsData.returnValues.unlockDate,
-        event: PensionFundEvent.WalletUpdated,
+        event: PensionFundEvents.WalletUpdated,
         network: this.network,
       },
     });

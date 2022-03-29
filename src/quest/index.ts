@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import Web3 from "web3";
-import { createClient } from "redis";
-import { Clients } from "./src/providers/types";
+import {createClient} from "redis";
+import { QuestClients } from "./src/providers/types";
 import configQuest from "./config/config.quest";
 import configDatabase from "./config/config.database";
 import { QuestController } from "./src/controllers/QuestController";
@@ -16,10 +16,10 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 export async function init() {
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const { url, number } = configDatabase.redis.defaultConfigNetwork();
+  const redisConfig = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider, contractAddress, parseEventsFromHeight, linkTendermintProvider } = configQuest.defaultConfigNetwork();
 
-  const redisClient = createClient({ url, database: number });
+  const redisClient = createClient(redisConfig);
 
   await redisClient.on('error', (err) => { throw err });
   await redisClient.connect();
@@ -28,7 +28,7 @@ export async function init() {
   const questContract = new web3.eth.Contract(abi, contractAddress);
   // @ts-ignore
   const questCacheProvider = new QuestCacheProvider(redisClient);
-  const clients: Clients = { web3, questCacheProvider };
+  const clients: QuestClients = { web3, questCacheProvider };
 
   const [questBlockInfo] = await QuestBlockInfo.findOrCreate({
     where: { network: configQuest.network },

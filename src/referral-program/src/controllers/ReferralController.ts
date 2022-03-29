@@ -1,7 +1,7 @@
-import {IController, ReferralEvent} from './types';
 import {EventData} from 'web3-eth-contract';
-import {Clients, IContractProvider} from "../providers/types";
+import {IController, ReferralEvent} from './types';
 import {ReferralMessageBroker} from "./BrokerController";
+import {ReferralClients, IContractProvider} from "../providers/types";
 import {
   Wallet,
   RewardStatus,
@@ -17,7 +17,7 @@ import {
 
 export class ReferralController implements IController {
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: ReferralClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {

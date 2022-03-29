@@ -1,6 +1,6 @@
-import {IController, TrackedEvents} from "./types";
 import { EventData } from "web3-eth-contract";
-import {Clients, IContractProvider} from "../providers/types";
+import { IController, ProposalEvents } from "./types";
+import { ProposalClients, IContractProvider } from "../providers/types";
 import {
   Proposal,
   Discussion,
@@ -14,7 +14,7 @@ import {
 
 export class ProposalController implements IController {
   constructor (
-    public readonly clients: Clients,
+    public readonly clients: ProposalClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -24,11 +24,11 @@ export class ProposalController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
-    if (eventsData.event === TrackedEvents.ProposalCreated) {
+    if (eventsData.event === ProposalEvents.ProposalCreated) {
       return this.proposalCreatedEventHandler(eventsData);
-    } else if (eventsData.event === TrackedEvents.VoteCast) {
+    } else if (eventsData.event === ProposalEvents.VoteCast) {
       return this.voteCastEventHandler(eventsData);
-    } else if (eventsData.event === TrackedEvents.ProposalExecuted) {
+    } else if (eventsData.event === ProposalEvents.ProposalExecuted) {
       return this.proposalExecutedEventHandler(eventsData);
     }
   }

@@ -1,13 +1,6 @@
 import Web3 from "web3";
-import { Contract } from 'web3-eth-contract';
-import {ChildProcess} from "child_process";
-
-export interface ChildWorkerPayload {
-  childProcess: ChildProcess;
-  name: string;
-  address: string;
-  contract: Contract;
-}
+import { Transaction } from 'web3-eth';
+import { SingleContractChildWorker, FactoryContractsChildWorker } from './types';
 
 export class ContractTransactionsFetcher {
   constructor(
@@ -16,7 +9,8 @@ export class ContractTransactionsFetcher {
 
   private _fetchedUpToBlockNumber;
 
-  private childWorkers: ChildWorkerPayload[] = []
+  private singleContractChildWorkers: SingleContractChildWorker[] = [];
+  private factoryContractsChildWorkers: FactoryContractsChildWorker[] = [];
 
   private get fetchedUpToBlockNumber() {
     return this._fetchedUpToBlockNumber;
@@ -24,6 +18,54 @@ export class ContractTransactionsFetcher {
 
   private set fetchedUpToBlockNumber(blockNumber) {
     this._fetchedUpToBlockNumber = blockNumber;
+  }
+
+  private viewingTxsTracedContracts(txs: Transaction[]) {
+    const tracedTxs = txs
+      .filter(tx => this.singleContractChildWorkers
+          .findIndex( worker => tx.to && worker.address.toLowerCase() === tx.to.toLowerCase()) !== -1
+        );
+
+    if (tracedTxs.length === 0) {
+      return;
+    }
+
+    for (const tx of tracedTxs) {
+      const worker = this.singleContractChildWorkers
+        .find(chW => tx.to.toLowerCase() === chW.address.toLowerCase())
+
+      if (!worker) {
+        continue;
+      }
+
+      worker.childProcess.send(JSON.stringify({
+        message: 'onEvents',
+        toBlock: tx.blockNumber,
+        fromBlock: this.fetchedUpToBlockNumber,
+      }));
+    }
+  }
+
+  private async viewingTxsTracedContractsInCache(txs: Transaction[]) {
+    const tracedTxs = txs
+      .filter(tx => tx.to && this.factoryContractsChildWorkers
+        .findIndex(async worker => await worker.cacheProvider.get(tx.to.toLowerCase()))
+      );
+
+    for (const tx of tracedTxs) {
+      const worker = this.factoryContractsChildWorkers
+        .find(async worker => await worker.cacheProvider.get(tx.to.toLowerCase()))
+
+      if (!worker) {
+        continue;
+      }
+
+      worker.childProcess.send(JSON.stringify({
+        message: 'onEvents',
+        toBlock: tx.blockNumber,
+        fromBlock: this.fetchedUpToBlockNumber,
+      }));
+    }
   }
 
   protected async runTaskFetcher() {
@@ -47,55 +89,26 @@ export class ContractTransactionsFetcher {
 
     const txs = blocks
       .map(block => block.transactions)
-      .reduce((prev, current) => [...prev, ...current])
-      .filter(tx => this.childWorkers
-        .findIndex(chW => chW.address.toLowerCase() === tx.to.toLowerCase()) !== -1
-      );
+      .reduce((prev, current) => [...prev, ...current]);
 
     if (txs.length !== 0) {
-      for (const chW of this.childWorkers) {
-        const contractTx = txs
-          .find(tx => tx.to.toLowerCase() === chW.address.toLowerCase())
-
-        if (!contractTx) {
-          continue;
-        }
-
-        const eventsData = await chW.contract.getPastEvents('allEvents', rangeBlock);
-
-        if (eventsData.length !== 0) {
-          console.log(chW.name + ': on eventsData length = ', eventsData.length);
-
-          chW.childProcess.send(JSON.stringify({
-            message: 'onEvents',
-            toBlock: currentBlockNumber,
-            fromBlock: this.fetchedUpToBlockNumber,
-          }));
-        }
-      }
+      this.viewingTxsTracedContracts(txs);
+      await this.viewingTxsTracedContractsInCache(txs);
     }
 
     this.fetchedUpToBlockNumber = currentBlockNumber;
   }
 
-  public addChildFetcher(payload: ChildWorkerPayload): this {
-    this.childWorkers.push(payload);
+  public addSingleContractWorker(worker: SingleContractChildWorker): this {
+    this.singleContractChildWorkers.push(worker);
 
     return this;
   }
 
-  public removeChildFetcher(name: string): ChildWorkerPayload | null {
-    const index = this.childWorkers.findIndex((cW) => cW.name === name);
+  public addFactoryContractsWorker(worker: FactoryContractsChildWorker): this {
+    this.factoryContractsChildWorkers.push(worker);
 
-    if (index === -1) {
-      return;
-    }
-
-    const returnValue = this.childWorkers[index];
-
-    this.childWorkers.splice(index, 1);
-
-    return returnValue;
+    return this;
   }
 
   public async startFetcher() {

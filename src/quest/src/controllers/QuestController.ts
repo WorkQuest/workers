@@ -1,11 +1,13 @@
 import {Op} from "sequelize";
 import {IController, QuestEvent} from "./types";
 import {EventData} from "web3-eth-contract";
-import {Clients, IContractProvider} from "../providers/types";
+import {QuestClients, IContractProvider} from "../providers/types";
 import {QuestModelController} from "./models/QuestModelController";
 import {UserModelController} from "./models/UserModelController";
 import {QuestResponsesModelController} from "./models/QuestResponsesModelController";
 import {QuestChatModelController} from "./models/QuestChatModelController";
+import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
+import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
 import {
   QuestStatus,
   QuestBlockInfo,
@@ -19,12 +21,10 @@ import {
   QuestJobStartedEventStatus,
   QuestJobFinishedEventStatus, UserRole,
 } from "@workquest/database-models/lib/models";
-import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
-import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
 
 export class QuestController implements IController {
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: QuestClients,
     public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
   ) {

@@ -1,12 +1,12 @@
-import * as path from 'path';
-import * as fs from 'fs';
 import Web3 from 'web3';
+import * as fs from 'fs';
+import * as path from 'path';
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
+import { ProposalClients } from './src/providers/types';
 import { ProposalController } from "./src/controllers/ProposalController";
 import { ChildProcessProvider } from './src/providers/ChildProcessProvider';
 import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
-import { Clients } from "./src/providers/types";
 
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -24,7 +24,7 @@ export async function init() {
 
   const web3 = new Web3(rpcProvider);
 
-  const clients: Clients = { web3 };
+  const clients: ProposalClients = { web3 };
 
   const proposalContract = new web3.eth.Contract(abi, contractAddress);
 

@@ -1,6 +1,6 @@
 import {onEventCallBack} from "./types";
-import {Clients, IContractProvider} from "./types";
 import {Contract, EventData} from "web3-eth-contract";
+import {BridgeClients, IContractProvider} from "./types";
 
 export class BridgeProvider implements IContractProvider {
 
@@ -9,7 +9,7 @@ export class BridgeProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
 
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: BridgeClients,
     public readonly contract: Contract,
   ) {}
 

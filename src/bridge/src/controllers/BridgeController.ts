@@ -1,19 +1,19 @@
 import Web3 from "web3";
-import {Op} from "sequelize";
-import {EventData} from "web3-eth-contract";
-import {BridgeEvents, IController} from "./types";
+import { Op } from "sequelize";
+import { EventData } from "web3-eth-contract";
+import { BridgeEvents, IController } from "./types";
 import configBridge from "../../config/config.bridge";
-import {Clients, IContractProvider} from "../providers/types";
+import { BridgeMessageBroker } from "./BrokerController";
+import { BridgeClients, IContractProvider } from "../providers/types";
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,
   BridgeParserBlockInfo,
 } from "@workquest/database-models/lib/models";
-import { BridgeMessageBroker } from "./BrokerController";
 
 export class BridgeController implements IController {
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: BridgeClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {

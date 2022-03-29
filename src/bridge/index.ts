@@ -1,16 +1,18 @@
-import { BlockchainNetworks, BridgeParserBlockInfo, initDatabase } from "@workquest/database-models/lib/models";
-import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
-import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
-import { BridgeMessageBroker } from "./src/controllers/BrokerController";
-import { BridgeController } from "./src/controllers/BridgeController";
-import { BridgeProvider } from "./src/providers/BridgeProvider";
-import configDatabase from "../bridge/config/config.common";
-import configBridge from "./config/config.bridge";
-import { Clients } from "./src/providers/types";
+import fs from "fs";
 import Web3 from "web3";
 import path from "path";
-import fs from "fs";
+import configBridge from "./config/config.bridge";
+import { BridgeClients } from "./src/providers/types";
+import configDatabase from "../bridge/config/config.common";
+import { BridgeProvider } from "./src/providers/BridgeProvider";
+import { BridgeController } from "./src/controllers/BridgeController";
+import { BridgeMessageBroker } from "./src/controllers/BrokerController";
 import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import {
+  initDatabase,
+  BlockchainNetworks,
+  BridgeParserBlockInfo,
+} from "@workquest/database-models/lib/models";
 
 const abiFilePath = path.join(__dirname, '../../src/bridge/abi/WQBridge.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -59,9 +61,9 @@ export async function init() {
   const bridgeBscContract = new web3Bsc.eth.Contract(abi, bscDefaultConfig.contractAddress);
   const bridgeEthContract = new web3Eth.eth.Contract(abi, ethDefaultConfig.contractAddress);
 
-  const wqClients: Clients = { web3: web3Wq };
-  const bscClients: Clients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
-  const ethClients: Clients = { web3: web3Eth, webSocketProvider: ethWsProvider };
+  const wqClients: BridgeClients = { web3: web3Wq };
+  const bscClients: BridgeClients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
+  const ethClients: BridgeClients = { web3: web3Eth, webSocketProvider: ethWsProvider };
 
   const wqBridgeProvider = new ChildProcessProvider(wqClients, bridgeWqContract);
   const bscBridgeProvider = new BridgeProvider(bscClients, bridgeBscContract);
