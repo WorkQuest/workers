@@ -17,7 +17,9 @@
     "Referral:start": "nodemon -e ts --exec \"npm run Referral:compile\"",
     "Referral:compile": "tsc && node ./build/referral-program/index.js",
     "questFactory:start": "nodemon -e ts --exec \"npm run questFactory:compile\"",
-    "questFactory:compile": "tsc && node ./build/quest-factory/npindex.js",
+    "questFactory:compile": "tsc && node ./build/quest-factory/index.js",
+    "quest:start": "nodemon -e ts --exec \"npm run quest:compile\"",
+    "quest:compile": "tsc && node ./build/quest/index.js",
     "init:start": "nodemon -e ts --exec \"npm run init:compile\"",
     "init:compile": "tsc && node ./build/index.js"
   },
