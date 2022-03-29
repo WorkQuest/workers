@@ -7,8 +7,9 @@ export type onEventCallBack = {
 };
 
 export interface IContractCacheProvider<Payload> {
-  get(questContactAddress: string): Promise<Payload | null>;
-  set(questContactAddress: string, payload: Payload): Promise<any>;
+  get(contractAddress: string): Promise<Payload | null>;
+  set(contractAddress: string, payload: Payload): Promise<void>;
+  remove(contractAddress: string): Promise<void>;
 }
 
 export interface Clients {

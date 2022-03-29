@@ -9,6 +9,12 @@ export class QuestCacheProvider implements IQuestCacheProvider {
   }
 
   public set(questContactAddress: string, payload: QuestPayload) {
-    return void this.contracts.set(questContactAddress.toLowerCase(), payload);
+    this.contracts.set(questContactAddress.toLowerCase(), payload);
+    return void 0;
+  }
+
+  public remove(questContactAddress: string): Promise<void> {
+    this.contracts.delete(questContactAddress);
+    return void 0;
   }
 }

@@ -14,7 +14,7 @@ export class QuestCacheProvider implements IQuestCacheProvider {
     await this.client.set(questContactAddress.toLowerCase(), JSON.stringify({ name: 'quest', ...payload }));
   }
 
-  public remove() {
-    // this.client.del()
+  public async remove(questContactAddress: string) {
+    await this.client.del(questContactAddress);
   }
 }

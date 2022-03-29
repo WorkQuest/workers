@@ -139,7 +139,7 @@ export class QuestController implements IController {
     }
 
     // TODO нотификации
-    return Promise.all([
+    await Promise.all([
       questModelController.startQuest(),
       questResponsesModelController.closeAllWorkingResponses(),
       questChatModelController.closeAllWorkChatsExceptAssignedWorker(),
@@ -184,7 +184,7 @@ export class QuestController implements IController {
     }
 
     // TODO нотификации
-    return questModelController.finishWork();
+    await questModelController.finishWork();
   }
 
   protected async jobDoneEventHandler(eventsData: EventData) {
@@ -240,7 +240,8 @@ export class QuestController implements IController {
       role: UserRole.Employer,
     });
 
-    return questModelController.completeQuest();
+    await questModelController.completeQuest();
+    await this.clients.questCacheProvider.remove(contractAddress);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
