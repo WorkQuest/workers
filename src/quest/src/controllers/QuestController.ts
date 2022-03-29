@@ -33,15 +33,15 @@ export class QuestController implements IController {
     });
   }
 
-  private onEvent(eventsData: EventData): Promise<any> {
+  private async onEvent(eventsData: EventData) {
     if (eventsData.event === QuestEvent.Assigned) {
-      return this.assignedEventHandler(eventsData);
+      await this.assignedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobStarted) {
-      return this.jobStartedEventHandler(eventsData);
+      await this.jobStartedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobFinished) {
-      return this.jobFinishedEventHandler(eventsData);
+      await this.jobFinishedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobDone) {
-      return this.jobDoneEventHandler(eventsData);
+      await this.jobDoneEventHandler(eventsData);
     }
   }
 
