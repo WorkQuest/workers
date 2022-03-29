@@ -86,7 +86,7 @@ async function init() {
     // .addSingleContractWorker({ childProcess: childPensionFund, name: 'Pension-fund', contract: pensionFundContract, address: pensionFundContractAddress })
     // .addSingleContractWorker({ childProcess: childReferralProgram, name: 'Referral-program', contract: referralProgramContract, address: referralProgramContractAddress })
 
-  // await contractTransactionsFetcher.startFetcher();
+  await contractTransactionsFetcher.startFetcher();
 }
 
 init().catch(e => {
