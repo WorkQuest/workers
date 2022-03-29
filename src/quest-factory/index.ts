@@ -51,7 +51,7 @@ export async function init() {
   const questFactoryProvider = new ChildProcessProvider(clients, questFactoryContract);
   const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
 
-  // await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
+  await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
 
   questFactoryProvider.startListener();
 }
