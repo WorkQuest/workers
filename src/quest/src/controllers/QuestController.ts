@@ -96,7 +96,7 @@ export class QuestController implements IController {
     }
 
     // TODO нотификации
-    return questModelController.assignWorkerOnQuest(workerModelController.user);
+    await questModelController.assignWorkerOnQuest(workerModelController.user);
   }
 
   protected async jobStartedEventHandler(eventsData: EventData) {
