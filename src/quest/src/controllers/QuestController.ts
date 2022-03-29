@@ -132,7 +132,7 @@ export class QuestController implements IController {
     if (!questModelController) {
       return questJobStartedEvent.update({ status: QuestJobStartedEventStatus.QuestEntityNotFound });
     }
-    if (questModelController.statusDoesMatch(
+    if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     )) {
       return questJobStartedEvent.update({ status: QuestJobStartedEventStatus.QuestStatusDoesNotMatch });
