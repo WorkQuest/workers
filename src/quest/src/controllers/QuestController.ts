@@ -87,7 +87,7 @@ export class QuestController implements IController {
     if (workerModelController && questModelController) {
       return questAssignedEvent.update({ status: QuestAssignedEventStatus.WorkerOrQuestEntityNotFound });
     }
-    if (questModelController.statusDoesMatch(
+    if (!questModelController.statusDoesMatch(
       QuestStatus.Recruitment,
       QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     )) {
@@ -174,7 +174,7 @@ export class QuestController implements IController {
     if (!questModelController) {
       return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestEntityNotFound });
     }
-    if (questModelController.statusDoesMatch(
+    if (!questModelController.statusDoesMatch(
       QuestStatus.ExecutionOfWork,
     )) {
       return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestStatusDoesNotMatch });
@@ -214,7 +214,7 @@ export class QuestController implements IController {
     if (!questModelController) {
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestEntityNotFound });
     }
-    if (questModelController.statusDoesMatch(
+    if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForEmployerConfirmationWork,
     )) {
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestStatusDoesNotMatch });
