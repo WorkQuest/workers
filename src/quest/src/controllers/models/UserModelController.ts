@@ -26,7 +26,7 @@ export class UserModelController {
       }
     });
 
-    if (user) {
+    if (!user) {
       return null;
     }
 
