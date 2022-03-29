@@ -85,7 +85,7 @@ export class QuestController implements IController {
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
-    if (workerModelController && questModelController) {
+    if (!workerModelController || !questModelController) {
       return questAssignedEvent.update({ status: QuestAssignedEventStatus.WorkerOrQuestEntityNotFound });
     }
     if (!questModelController.statusDoesMatch(
