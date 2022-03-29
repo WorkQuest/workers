@@ -15,7 +15,7 @@ export default {
   workQuestMainNetwork: {
 
   },
-  defaultConfigNetwork: (): { contractAddress: string, linkTendermintProvider: string, linkRpcProvider: string, parseEventsFromHeight: number } => {
+  defaultConfigNetwork: (): { linkTendermintProvider: string, linkRpcProvider: string, parseEventsFromHeight: number } => {
     // @ts-ignore
     return this.default[this.default.network];
   },

@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import * as sinon from 'sinon';
-import {QuestProvider} from "../providers/QuestProvider";
+// import {QuestProvider} from "../providers/QuestProvider";
 import {QuestCacheProvider} from "../providers/QuestCacheProvider";
 import {QuestClients} from "../providers/types";
 import {QuestController} from "./QuestController";
@@ -131,7 +131,7 @@ const assignedEventData = {
 describe('QuestController', () => {
   let questController: QuestController;
 
-  let questProvider: QuestProvider;
+  // let questProvider: QuestProvider;
 
   let web3: Web3;
   let questCacheProvider: QuestCacheProvider;
@@ -146,13 +146,13 @@ describe('QuestController', () => {
 
     clients = { web3, tendermintWsClient, questCacheProvider }
 
-    questProvider = new QuestProvider(clients, null);
+    // questProvider = new QuestProvider(clients, null);
 
-    questController = new QuestController(
-      clients,
-      questProvider,
-      BlockchainNetworks.workQuestDevNetwork,
-    );
+    // questController = new QuestController(
+    //   clients,
+    //   questProvider,
+    //   BlockchainNetworks.workQuestDevNetwork,
+    // );
 
     // TODO
     // questCacheProvider.set()
@@ -243,7 +243,7 @@ describe('QuestController', () => {
       return [{ ...defaults, id: 1 }, false];
     });
 
-    await (questProvider as any).onEventData(assignedEventData.event);
+    // await (questProvider as any).onEventData(assignedEventData.event);
 
     expect(questModelUpdateSpy.notCalled).toBe(true);
     expect(questsResponseModelUpdateSpy.notCalled).toBe(true);

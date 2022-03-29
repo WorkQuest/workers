@@ -1,5 +1,10 @@
-import { Contract, EventData } from "web3-eth-contract";
+import fs from "fs";
+import path from "path";
+import { EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, QuestClients } from "./types";
+
+const abiFilePath = path.join(__dirname, '/../../abi/WorkQuest.json');
+const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export class ChildProcessProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -8,7 +13,6 @@ export class ChildProcessProvider implements IContractProvider {
 
   constructor (
     public readonly clients: QuestClients,
-    public readonly contract: Contract,
   ) {};
 
   private initFatherProcessListener() {
@@ -35,8 +39,9 @@ export class ChildProcessProvider implements IContractProvider {
     await this.onEventFromFatherProcess(parsedMessage);
   }
 
-  private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number }) {
-    const eventsData = await this.contract.getPastEvents('allEvents', payload);
+  private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number, contractAddress: string }) {
+    const contract = new this.clients.web3.eth.Contract(abi, payload.contractAddress);
+    const eventsData = await contract.getPastEvents('allEvents', payload);
 
     return Promise.all(
       eventsData.map(async data => this.onEventData(data))
@@ -69,16 +74,54 @@ export class ChildProcessProvider implements IContractProvider {
         if (toBlock >= lastBlockNumber) {
           console.info('Block from: ', fromBlock, ' block to: ', toBlock);
 
-          const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
+          const blocks = await Promise.all(
+            [...Array(lastBlockNumber - fromBlock).keys()]
+              .map(i => i + fromBlock + 1)
+              .map(async bn => this.clients.web3.eth.getBlock(bn, true))
+          );
 
-          collectedEvents.push(...eventsData); break;
+          const txs = blocks
+            .map(block => block.transactions)
+            .reduce((prev, current) => [...prev, ...current]);
+
+          const tracedTxs = txs
+            .filter(async tx => tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase()))
+
+          if (tracedTxs.length !== 0) {
+            for (const tx of tracedTxs) {
+              const contract = new this.clients.web3.eth.Contract(abi, tx.to);
+              const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
+
+              collectedEvents.push(...eventsData);
+            }
+          }
+
+          break;
         }
 
         console.info('Block from: ', fromBlock, ' block to: ', toBlock);
 
-        const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
+        const blocks = await Promise.all(
+          [...Array(toBlock - fromBlock).keys()]
+            .map(i => i + fromBlock + 1)
+            .map(async bn => this.clients.web3.eth.getBlock(bn, true))
+        );
 
-        collectedEvents.push(...eventsData);
+        const txs = blocks
+          .map(block => block.transactions)
+          .reduce((prev, current) => [...prev, ...current]);
+
+        const tracedTxs = txs
+          .filter(async tx => tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase()))
+
+        if (tracedTxs.length !== 0) {
+          for (const tx of tracedTxs) {
+            const contract = new this.clients.web3.eth.Contract(abi, tx.to);
+            const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
+
+            collectedEvents.push(...eventsData);
+          }
+        }
 
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;

@@ -56,7 +56,7 @@ async function init() {
   // const childBridge = childProcess.fork(path.join(__dirname, '/bridge/index.js'));
   // const childPensionFund = childProcess.fork(path.join(__dirname, '/pension-fund/index.js'));
   // const childReferralProgram = childProcess.fork(path.join(__dirname, '/referral-program/index.js'));
-  // const childQuest = childProcess.fork(path.join(__dirname, '/quest/index.js'));
+  const childQuest = childProcess.fork(path.join(__dirname, '/quest/index.js'));
   const childQuestFactory = childProcess.fork(path.join(__dirname, '/quest-factory/index.js'));
 
   // childProposal.on('exit', (_) => {
@@ -71,22 +71,22 @@ async function init() {
   // childReferralProgram.on('exit', (_) => {
   //   process.exit();
   // });
-  // childQuest.on('exit', (_) => {
-  //   process.exit();
-  // });
+  childQuest.on('exit', (_) => {
+    process.exit();
+  });
   childQuestFactory.on('exit', (_) => {
     process.exit();
   });
 
   contractTransactionsFetcher
-    // .addFactoryContractsWorker({ childProcess: childQuest, name: 'Quest', cacheProvider: questCacheProvider })
+    .addFactoryContractsWorker({ childProcess: childQuest, name: 'Quest', cacheProvider: questCacheProvider })
     .addSingleContractWorker({ childProcess: childQuestFactory, name: 'Quest-factory', contract: questFactoryContract, address: questFactoryContractAddress })
     // .addSingleContractWorker({ childProcess: childProposal, name: 'Proposal', contract: proposalContract, address: proposalContractAddress })
     // .addSingleContractWorker({ childProcess: childBridge, name: 'Bridge', contract: bridgeContract, address: bridgeContractAddress })
     // .addSingleContractWorker({ childProcess: childPensionFund, name: 'Pension-fund', contract: pensionFundContract, address: pensionFundContractAddress })
     // .addSingleContractWorker({ childProcess: childReferralProgram, name: 'Referral-program', contract: referralProgramContract, address: referralProgramContractAddress })
 
-  await contractTransactionsFetcher.startFetcher();
+  // await contractTransactionsFetcher.startFetcher();
 }
 
 init().catch(e => {

@@ -62,6 +62,7 @@ export class ContractTransactionsFetcher {
 
       worker.childProcess.send(JSON.stringify({
         message: 'onEvents',
+        contractAddress: tx.to,
         toBlock: tx.blockNumber,
         fromBlock: this.fetchedUpToBlockNumber,
       }));
