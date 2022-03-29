@@ -52,6 +52,8 @@ export class ContractTransactionsFetcher {
         .findIndex(async worker => await worker.cacheProvider.get(tx.to.toLowerCase()))
       );
 
+    console.log('viewingTxsTracedContractsInCache: ', tracedTxs.length);
+
     for (const tx of tracedTxs) {
       const worker = this.factoryContractsChildWorkers
         .find(async worker => await worker.cacheProvider.get(tx.to.toLowerCase()))
