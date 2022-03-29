@@ -49,10 +49,8 @@ export class ContractTransactionsFetcher {
   private async viewingTxsTracedContractsInCache(txs: Transaction[]) {
     const tracedTxs = txs
       .filter(tx => tx.to && this.factoryContractsChildWorkers
-        .findIndex(async worker => await worker.cacheProvider.get(tx.to.toLowerCase()))
+        .findIndex(async worker => await worker.cacheProvider.get(tx.to.toLowerCase())) !== -1
       );
-
-    console.log('viewingTxsTracedContractsInCache: ', tracedTxs.length);
 
     for (const tx of tracedTxs) {
       const worker = this.factoryContractsChildWorkers
