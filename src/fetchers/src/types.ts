@@ -1,6 +1,6 @@
 import {ChildProcess} from "child_process";
 import {Contract} from "web3-eth-contract";
-import {IContractCacheProvider} from '../types'
+import {IContractCacheProvider} from '../../types'
 
 export interface ChildWorker {
   readonly name: string;

@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import { createClient } from "redis";
-import { Logger } from "../quest/logger/pino";
+import { Logger } from "./logger/pino";
 import { QuestClients } from "./src/providers/types";
 import configQuest from "./config/config.quest";
 import configDatabase from "./config/config.database";
@@ -33,8 +33,7 @@ export async function init() {
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  // @ts-ignore
-  const questCacheProvider = new QuestCacheProvider(redisClient);
+  const questCacheProvider = new QuestCacheProvider(redisClient as any);
   const clients: QuestClients = { web3, questCacheProvider };
 
   const [questBlockInfo] = await QuestBlockInfo.findOrCreate({
