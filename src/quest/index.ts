@@ -60,7 +60,7 @@ export async function init() {
 }
 
 init().catch(e => {
-  Logger.error(e, 'Worker "Quest factory" is stopped with error');
+  Logger.error(e, 'Worker "Quest" is stopped with error');
   process.exit(-1);
 });
 
