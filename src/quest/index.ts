@@ -1,5 +1,6 @@
 import Web3 from "web3";
-import {createClient} from "redis";
+import { createClient } from "redis";
+import { Logger } from "../quest/logger/pino";
 import { QuestClients } from "./src/providers/types";
 import configQuest from "./config/config.quest";
 import configDatabase from "./config/config.database";
@@ -13,14 +14,21 @@ import {
 } from "@workquest/database-models/lib/models";
 
 export async function init() {
+  Logger.info('Start worker "Quest". Network: "%s"', configQuest.network);
+
   await initDatabase(configDatabase.dbLink, false, true);
 
   const redisConfig = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider, parseEventsFromHeight } = configQuest.defaultConfigNetwork();
 
+  Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
+
   const redisClient = createClient(redisConfig);
 
-  await redisClient.on('error', (err) => { throw err });
+  await redisClient.on('error', (err) => {
+    Logger.error(err, 'Redis is stopped with error');
+    process.exit(-1);
+  });
   await redisClient.connect();
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
@@ -51,5 +59,8 @@ export async function init() {
   questProvider.startListener();
 }
 
-init().catch(e => { throw e });
+init().catch(e => {
+  Logger.error(e, 'Worker "Quest factory" is stopped with error');
+  process.exit(-1);
+});
 

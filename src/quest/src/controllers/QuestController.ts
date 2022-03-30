@@ -1,11 +1,12 @@
-import {Op} from "sequelize";
-import {IController, QuestEvent} from "./types";
-import {EventData} from "web3-eth-contract";
-import {QuestClients, IContractProvider} from "../providers/types";
-import {QuestModelController} from "./models/QuestModelController";
-import {UserModelController} from "./models/UserModelController";
-import {QuestResponsesModelController} from "./models/QuestResponsesModelController";
-import {QuestChatModelController} from "./models/QuestChatModelController";
+import { Op } from "sequelize";
+import { IController, QuestEvent } from "./types";
+import { EventData } from "web3-eth-contract";
+import { Logger } from "../../../quest/logger/pino";
+import { QuestClients, IContractProvider } from "../providers/types";
+import { QuestModelController } from "./models/QuestModelController";
+import { UserModelController } from "./models/UserModelController";
+import { QuestResponsesModelController } from "./models/QuestResponsesModelController";
+import { QuestChatModelController } from "./models/QuestChatModelController";
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
 import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
 import {
@@ -34,6 +35,12 @@ export class QuestController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
+    Logger.info('Event handler: name %s, block number %s, address %s',
+      eventsData.event,
+      eventsData.blockNumber,
+      eventsData.address,
+    );
+
     if (eventsData.event === QuestEvent.Assigned) {
       await this.assignedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobStarted) {
@@ -46,6 +53,8 @@ export class QuestController implements IController {
   }
 
   protected updateBlockViewHeight(blockHeight: number): Promise<any> {
+    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+
     return QuestBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
@@ -60,6 +69,8 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const workerAddress = eventsData.returnValues.worker.toLowerCase();
+
+    Logger.debug('Assigned event handler: timestamp "%s", event data o%', timestamp, eventsData);
 
     const workerModelController = await UserModelController.byWalletAddress(workerAddress);
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
@@ -80,18 +91,32 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Assigned event handler: event "%s" handling is skipped because it has already been created',
+        eventsData.event
+      );
+
       return;
     }
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!workerModelController || !questModelController) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because worker or quest entity not found',
+        workerAddress,
+        eventsData.event,
+      );
+
       return questAssignedEvent.update({ status: QuestAssignedEventStatus.WorkerOrQuestEntityNotFound });
     }
     if (!questModelController.statusDoesMatch(
       QuestStatus.Recruitment,
       QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     )) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
+        workerAddress,
+        eventsData.event,
+      );
+
       return questAssignedEvent.update({ status: QuestAssignedEventStatus.QuestStatusDoesNotMatch });
     }
 
@@ -104,6 +129,8 @@ export class QuestController implements IController {
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug('Job started event handler: timestamp "%s", event data o%', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questResponsesModelController = new QuestResponsesModelController(questModelController);
@@ -124,17 +151,29 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Job started event handler: event "%s" handling is skipped because it has already been created',
+        eventsData.event
+      );
+
       return;
     }
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
+        eventsData.event,
+      );
+
       return questJobStartedEvent.update({ status: QuestJobStartedEventStatus.QuestEntityNotFound });
     }
     if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     )) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
+        eventsData.event,
+      );
+
       return questJobStartedEvent.update({ status: QuestJobStartedEventStatus.QuestStatusDoesNotMatch });
     }
 
@@ -151,6 +190,8 @@ export class QuestController implements IController {
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug('Job finished event handler: timestamp "%s", event data o%', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 
@@ -169,17 +210,29 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Job finished event handler: event "%s" handling is skipped because it has already been created',
+        eventsData.event
+      );
+
       return;
     }
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
+        eventsData.event,
+      );
+
       return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestEntityNotFound });
     }
     if (!questModelController.statusDoesMatch(
       QuestStatus.ExecutionOfWork,
     )) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
+        eventsData.event,
+      );
+
       return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestStatusDoesNotMatch });
     }
 
@@ -192,6 +245,8 @@ export class QuestController implements IController {
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug('Job done event handler: timestamp "%s", event data o%', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 
@@ -210,17 +265,29 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Job done event handler: event "%s" handling is skipped because it has already been created',
+        eventsData.event
+      );
+
       return;
     }
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
+        eventsData.event,
+      );
+
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestEntityNotFound });
     }
     if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForEmployerConfirmationWork,
     )) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
+        eventsData.event,
+      );
+
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestStatusDoesNotMatch });
     }
 
@@ -245,19 +312,22 @@ export class QuestController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+
     const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
         await this.onEvent(event);
       } catch (err) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
+        Logger.error(error, 'Event processing ended with error');
+
         throw err;
       }
     }
 
     if (error) {
-      throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);
+      throw error;
     }
   }
 }

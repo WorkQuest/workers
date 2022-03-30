@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, QuestClients } from "./types";
+import { Logger } from "../../../quest-factory/logger/pino";
 
 const abiFilePath = path.join(__dirname, '/../../abi/WorkQuest.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -40,8 +41,16 @@ export class ChildProcessProvider implements IContractProvider {
   }
 
   private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number, contractAddress: string }) {
+    Logger.info('Parent process listener: message "onEvents", payload %o', payload);
+
     const contract = new this.clients.web3.eth.Contract(abi, payload.contractAddress);
     const eventsData = await contract.getPastEvents('allEvents', payload);
+
+    Logger.info('Received events from contract. Range: from block "%s", to block "%s". Events: "%s"',
+      payload.fromBlock,
+      payload.toBlock,
+      eventsData.length,
+    );
 
     return Promise.all(
       eventsData.map(async data => this.onEventData(data))
@@ -55,6 +64,8 @@ export class ChildProcessProvider implements IContractProvider {
   }
 
   public startListener() {
+    Logger.info('Start listening');
+
     this.initFatherProcessListener();
   }
 
@@ -66,13 +77,16 @@ export class ChildProcessProvider implements IContractProvider {
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
+    Logger.info('Last block number: "%s"', lastBlockNumber);
+    Logger.info('Range getting all events with contract: from "%s", to "%s". Steps: "%s"', fromBlockNumber, lastBlockNumber, this.preParsingSteps);
+
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
-          console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const blocks = await Promise.all(
             [...Array(lastBlockNumber - fromBlock).keys()]
@@ -93,13 +107,16 @@ export class ChildProcessProvider implements IContractProvider {
               const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
               collectedEvents.push(...eventsData);
+
+              Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+              Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
             }
           }
 
           break;
         }
 
-        console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+        Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const blocks = await Promise.all(
           [...Array(toBlock - fromBlock).keys()]
@@ -120,6 +137,8 @@ export class ChildProcessProvider implements IContractProvider {
             const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
             collectedEvents.push(...eventsData);
+
+            Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
           }
         }
 
@@ -127,8 +146,10 @@ export class ChildProcessProvider implements IContractProvider {
         toBlock = fromBlock + this.preParsingSteps - 1;
       }
     } catch (error) {
-      console.error(error);
-      console.error('GetAllEvents: Last block: ', fromBlock);
+      Logger.error(error, 'Collection of all events ended with an error.' +
+        ' Collected events to block number: "%s". Total collected events',
+        fromBlock, collectedEvents.length,
+      );
 
       return { collectedEvents, error, lastBlockNumber: fromBlock };
     }
