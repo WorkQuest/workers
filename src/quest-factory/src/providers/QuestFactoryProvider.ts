@@ -1,50 +1,68 @@
-import { Contract, EventData } from 'web3-eth-contract';
-import {onEventCallBack, IContractProvider, QuestFactoryClients} from './types';
+import {Logger} from "../../logger/pino";
+import { Contract, EventData } from "web3-eth-contract";
+import { onEventCallBack, IContractProvider, QuestFactoryClients } from "./types";
 
 export class QuestFactoryProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
 
-  constructor(
+  constructor (
     public readonly clients: QuestFactoryClients,
     public readonly contract: Contract,
-  ) {}
+  ) {};
 
-  private contractTransactionsListenerInit() {
-    // TODO WHYYYYY???? ${configPensionFund.contractAddress} NOT WORKING!!!!!
-    const query = `tm.event='Tx' AND ethereum_tx.recipient='0xF38E33e7DD7e1a91c772aF51A366cd126e4552BB'`;
-
-    const stream = this.clients.tendermintWsClient.listen({
-      id: 0,
-      jsonrpc: '2.0',
-      method: 'subscribe',
-      params: { query },
-    });
-
-    stream.addListener({
-      next: data => this.onEventTendermintData(data),
-      error: err => console.error(err),
-      complete: () => console.log('completed'),
+  private initFatherProcessListener() {
+    process.on('message', async (message: string) => {
+      await this.processMessage(message);
     });
   }
 
-  private async onEventTendermintData(txData) {
-    const blockTxHeight = txData["data"]["value"]['TxResult']["height"] as string;
-    const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock: blockTxHeight, toBlock: blockTxHeight });
+  private async processMessage(rawMessage: string) {
+    let parsedMessage;
 
-    /** See range (fromBlock: blockTxHeight, toBlock: blockTxHeight) */
-    await this.onEventData(eventsData[0]);
+    try {
+      parsedMessage = JSON.parse(rawMessage);
+
+      if (!parsedMessage.message || parsedMessage.message !== 'onEvents') {
+        return;
+      }
+    } catch (err) {
+      return;
+    }
+
+    await this.onEventFromFatherProcess(parsedMessage);
   }
 
-  private async onEventData(eventData) {
+  private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number }) {
+    Logger.info('Parent process listener: message "onEvents", payload %o', payload);
+
+    const eventsData = await this.contract.getPastEvents('allEvents', {
+      toBlock: payload.toBlock,
+      fromBlock: payload.fromBlock,
+    });
+
+    Logger.info('Received events from contract. Range: from block "%s", to block "%s". Events: "%s"',
+      payload.fromBlock,
+      payload.toBlock,
+      eventsData.length,
+    );
+
+    return Promise.all(
+      eventsData.map(async data => this.onEventData(data))
+    );
+  }
+
+  private onEventData(eventData) {
     return Promise.all(
       this.onEventCallBacks.map(async callBack => callBack(eventData))
     );
   }
 
   public startListener() {
-    this.contractTransactionsListenerInit();
+    Logger.info('Start listening');
+
+    this.initFatherProcessListener();
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
@@ -55,35 +73,47 @@ export class QuestFactoryProvider implements IContractProvider {
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
+    Logger.info('Last block number: "%s"', lastBlockNumber);
+    Logger.info('Range getting all events with contract: from "%s", to "%s". Steps: "%s"', fromBlockNumber, lastBlockNumber, this.preParsingSteps);
+
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
-          console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
-          collectedEvents.push(...eventsData); break;
+          collectedEvents.push(...eventsData);
+
+          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+          Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
+
+          break;
         }
 
-        console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+        Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
         collectedEvents.push(...eventsData);
 
+        Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;
       }
     } catch (error) {
-      console.error(error);
-      console.error('GetAllEvents: Last block: ', fromBlock);
+      Logger.error(error, 'Collection of all events ended with an error.' +
+        ' Collected events to block number: "%s". Total collected events',
+        fromBlock, collectedEvents.length,
+      );
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
+      return { collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
+    return { collectedEvents, lastBlockNumber };
   }
 }

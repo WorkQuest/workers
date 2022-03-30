@@ -38,8 +38,7 @@ async function init() {
   await redisClient.on('error', (err) => { throw err });
   await redisClient.connect();
 
-  // @ts-ignore
-  const questCacheProvider = new QuestCacheProvider(redisClient);
+  const questCacheProvider = new QuestCacheProvider(redisClient as any);
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
   const web3 = new Web3(rpcProvider);

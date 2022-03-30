@@ -1,11 +1,12 @@
-import * as path from 'path';
-import * as fs from 'fs';
 import Web3 from 'web3';
+import * as fs from 'fs';
+import * as path from 'path';
 import { createClient } from 'redis';
+import {Logger} from "./logger/pino";
 import {QuestFactoryClients} from "./src/providers/types";
 import configDatabase from './config/config.database';
 import configQuestFactory from './config/config.questFactory';
-import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import { QuestFactoryProvider } from "./src/providers/QuestFactoryProvider";
 import { QuestCacheProvider } from "../quest/src/providers/QuestCacheProvider";
 import { QuestFactoryController } from './src/controllers/QuestFactoryController';
 import {
@@ -18,20 +19,29 @@ const abiFilePath = path.join(__dirname, '../../src/quest-factory/abi/QuestFacto
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
+  Logger.info('Start worker "Quest factory". Network: "%s"', configQuestFactory.network);
+
   await initDatabase(configDatabase.dbLink, false, true);
 
   const { number, url } = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider, contractAddress, parseEventsFromHeight } = configQuestFactory.defaultConfigNetwork();
 
+  Logger.info('Listening on contract address: "%s"', contractAddress);
+  Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
+
   const redisClient = createClient({ url, database: number });
 
-  await redisClient.on('error', (err) => { throw err });
+  redisClient.on('error', (e) => {
+    Logger.error(e, 'Redis is stopped with error');
+    process.exit(-1);
+  });
+
   await redisClient.connect();
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
   const questFactoryContract = new web3.eth.Contract(abi, contractAddress);
-  // @ts-ignore
-  const questCacheProvider = new QuestCacheProvider(redisClient);
+
+  const questCacheProvider = new QuestCacheProvider(redisClient as any);
   const clients: QuestFactoryClients = { web3, questCacheProvider }
 
   const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
@@ -48,7 +58,7 @@ export async function init() {
     await questFactoryInfo.save();
   }
 
-  const questFactoryProvider = new ChildProcessProvider(clients, questFactoryContract);
+  const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract);
   const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
 
   await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
@@ -56,4 +66,7 @@ export async function init() {
   questFactoryProvider.startListener();
 }
 
-init().catch(console.error);
+init().catch(e => {
+  Logger.error(e, 'Worker "Quest factory" is stopped with error');
+  process.exit(-1);
+});

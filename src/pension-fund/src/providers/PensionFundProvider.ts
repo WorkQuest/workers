@@ -79,9 +79,9 @@ export class PensionFundProvider implements IContractProvider {
       console.error(error);
       console.error('GetAllEvents: Last block: ', fromBlock);
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
+      return { collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
+    return { collectedEvents, lastBlockNumber };
   }
 }

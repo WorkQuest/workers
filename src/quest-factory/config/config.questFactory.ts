@@ -3,6 +3,7 @@ import {config} from "dotenv";
 config({ path: __dirname +  '/../../../.env.questFactory'});
 
 export default {
+  logLevel: 'debug',
   sentryLink: process.env.DEV_SENTRY_LINK || '',
   network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {

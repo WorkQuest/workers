@@ -104,7 +104,7 @@ export class PensionFundController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
@@ -121,7 +121,7 @@ export class PensionFundController implements IController {
       },
     );
 
-    if (!isGotAllEvents) {
+    if (error) {
       throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);
     }
   }

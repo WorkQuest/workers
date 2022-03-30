@@ -19,7 +19,7 @@ export interface Clients {
 export interface IContractProvider {
   startListener(): void;
   subscribeOnEvents(onEventCallBack: onEventCallBack): void;
-  getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[], isGotAllEvents: boolean, lastBlockNumber: number }>;
+  getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[], error?: any, lastBlockNumber: number }>;
 }
 
 export interface IController {

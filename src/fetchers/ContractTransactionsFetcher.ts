@@ -77,16 +77,11 @@ export class ContractTransactionsFetcher {
       return;
     }
 
-    console.log(rangeBlock);
-
     const blocks = await Promise.all(
       [...Array(rangeBlock.toBlock - rangeBlock.fromBlock).keys()]
         .map(i => i + rangeBlock.fromBlock + 1)
         .map(async bn => this.web3Provider.eth.getBlock(bn, true))
     );
-
-    console.log(rangeBlock);
-    console.log(blocks.length);
 
     const txs = blocks
       .map(block => block.transactions)
