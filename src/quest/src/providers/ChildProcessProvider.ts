@@ -19,7 +19,7 @@ export class ChildProcessProvider implements IContractProvider {
   ) {};
 
   private async initFatherProcessListener() {
-    await this.transactionBroker.initConsumer(this.onEventFromFatherProcess);
+    await this.transactionBroker.initConsumer(this.onEventFromFatherProcess.bind(this));
   }
 
   private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number, contractAddress: string }) {
