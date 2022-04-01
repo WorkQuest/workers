@@ -11,14 +11,13 @@ export class QuestFactoryProvider implements IContractProvider {
   constructor (
     public readonly clients: QuestFactoryClients,
     public readonly contract: Contract,
-    public readonly transactionBroker: TransactionBroker,
   ) {};
 
-  private async initFatherProcessListener() {
-    await this.transactionBroker.initConsumer(this.onEventFromFatherProcess.bind(this));
+  private async initBrokerListener() {
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
   }
 
-  private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number }) {
+  private async onEventFromBroker(payload: { toBlock: number, fromBlock: number }) {
     Logger.info('Parent process listener: message "onEvents", payload %o', payload);
 
     const eventsData = await this.contract.getPastEvents('allEvents', {
@@ -46,7 +45,7 @@ export class QuestFactoryProvider implements IContractProvider {
   public async startListener() {
     Logger.info('Start listening');
 
-    await this.initFatherProcessListener();
+    await this.initBrokerListener();
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {

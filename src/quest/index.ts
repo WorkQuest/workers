@@ -34,11 +34,11 @@ export async function init() {
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  const transactionBroker = new TransactionBroker(configDatabase.mqLink, 'quest');
-  await transactionBroker.init();
+  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest');
+  await transactionsBroker.init();
 
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
-  const clients: QuestClients = { web3, questCacheProvider };
+  const clients: QuestClients = { web3, questCacheProvider, transactionsBroker };
 
   const [questBlockInfo] = await QuestBlockInfo.findOrCreate({
     where: { network: configQuest.network },
@@ -54,7 +54,7 @@ export async function init() {
     await questBlockInfo.save();
   }
 
-  const questProvider = new ChildProcessProvider(clients, transactionBroker);
+  const questProvider = new ChildProcessProvider(clients);
   const questController = new QuestController(clients, questProvider, configQuest.network as BlockchainNetworks);
 
   await questController.collectAllUncollectedEvents(questBlockInfo.lastParsedBlock);

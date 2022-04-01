@@ -15,14 +15,13 @@ export class ChildProcessProvider implements IContractProvider {
 
   constructor (
     public readonly clients: QuestClients,
-    public readonly transactionBroker: TransactionBroker,
   ) {};
 
-  private async initFatherProcessListener() {
-    await this.transactionBroker.initConsumer(this.onEventFromFatherProcess.bind(this));
+  private async initBrokerListener() {
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
   }
 
-  private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number, contractAddress: string }) {
+  private async onEventFromBroker(payload: { toBlock: number, fromBlock: number, contractAddress: string }) {
     Logger.info('Parent process listener: message "onEvents", payload %o', payload);
 
     const contract = new this.clients.web3.eth.Contract(abi, payload.contractAddress);
@@ -48,7 +47,7 @@ export class ChildProcessProvider implements IContractProvider {
   public async startListener() {
     Logger.info('Start listening');
 
-    await this.initFatherProcessListener();
+    await this.initBrokerListener();
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
