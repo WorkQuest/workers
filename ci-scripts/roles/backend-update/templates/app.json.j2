@@ -4,7 +4,7 @@
       "name": "{{ PM2_FETCHER_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
-      "script": "./build/index.js",
+      "script": "./build/fetchers/index.js",
       "cron_restart": "0 */5 * * *",
       "restart_delay": 15000,
       "autorestart": true,
