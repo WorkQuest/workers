@@ -8,7 +8,7 @@ import configQuestFactory from './config/config.questFactory';
 import { QuestFactoryClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { QuestFactoryProvider } from "./src/providers/QuestFactoryProvider";
-import { QuestCacheProvider } from "../quest/src/providers/__mocs__/QuestCacheProvider";
+import { QuestCacheProvider } from "../quest/src/providers/QuestCacheProvider";
 import { QuestFactoryController } from './src/controllers/QuestFactoryController';
 import {
   initDatabase,
@@ -30,14 +30,14 @@ export async function init() {
   Logger.info('Listening on contract address: "%s"', contractAddress);
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
 
-  // const redisClient = createClient({ url, database: number });
-  //
-  // redisClient.on('error', (e) => {
-  //   Logger.error(e, 'Redis is stopped with error');
-  //   process.exit(-1);
-  // });
-  //
-  // await redisClient.connect();
+  const redisClient = createClient({ url, database: number });
+
+  redisClient.on('error', (e) => {
+    Logger.error(e, 'Redis is stopped with error');
+    process.exit(-1);
+  });
+
+  await redisClient.connect();
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
   const questFactoryContract = new web3.eth.Contract(abi, contractAddress);
@@ -45,7 +45,7 @@ export async function init() {
   const transactionBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
   await transactionBroker.init()
 
-  const questCacheProvider = new QuestCacheProvider(/** redisClient as any */);
+  const questCacheProvider = new QuestCacheProvider(redisClient as any);
   const clients: QuestFactoryClients = { web3, questCacheProvider }
 
   const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
