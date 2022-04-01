@@ -1,12 +1,35 @@
 {
   "apps": [
     {
-      "name": "{{ PM2_INIT_WORKER_NAME }}",
+      "name": "{{ PM2_FETCHER_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
       "script": "./build/index.js",
       "cron_restart": "0 */5 * * *",
       "restart_delay": 15000,
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_QUEST_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/quest/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_QUEST_FACTORY_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/quest-factory/index.js",
       "autorestart": true,
       "listen_timeout": 15000,
       "env": {

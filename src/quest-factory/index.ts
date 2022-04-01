@@ -2,12 +2,13 @@ import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createClient } from 'redis';
-import {Logger} from "./logger/pino";
-import {QuestFactoryClients} from "./src/providers/types";
+import { Logger } from "./logger/pino";
 import configDatabase from './config/config.database';
 import configQuestFactory from './config/config.questFactory';
+import { QuestFactoryClients } from "./src/providers/types";
+import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { QuestFactoryProvider } from "./src/providers/QuestFactoryProvider";
-import { QuestCacheProvider } from "../quest/src/providers/QuestCacheProvider";
+import { QuestCacheProvider } from "../quest/src/providers/__mocs__/QuestCacheProvider";
 import { QuestFactoryController } from './src/controllers/QuestFactoryController';
 import {
   initDatabase,
@@ -29,19 +30,22 @@ export async function init() {
   Logger.info('Listening on contract address: "%s"', contractAddress);
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
 
-  const redisClient = createClient({ url, database: number });
-
-  redisClient.on('error', (e) => {
-    Logger.error(e, 'Redis is stopped with error');
-    process.exit(-1);
-  });
-
-  await redisClient.connect();
+  // const redisClient = createClient({ url, database: number });
+  //
+  // redisClient.on('error', (e) => {
+  //   Logger.error(e, 'Redis is stopped with error');
+  //   process.exit(-1);
+  // });
+  //
+  // await redisClient.connect();
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
   const questFactoryContract = new web3.eth.Contract(abi, contractAddress);
 
-  const questCacheProvider = new QuestCacheProvider(redisClient as any);
+  const transactionBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
+  await transactionBroker.init()
+
+  const questCacheProvider = new QuestCacheProvider(/** redisClient as any */);
   const clients: QuestFactoryClients = { web3, questCacheProvider }
 
   const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
@@ -58,12 +62,12 @@ export async function init() {
     await questFactoryInfo.save();
   }
 
-  const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract);
+  const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract, transactionBroker);
   const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
 
   await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
 
-  questFactoryProvider.startListener();
+  await questFactoryProvider.startListener();
 }
 
 init().catch(e => {

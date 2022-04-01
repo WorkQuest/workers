@@ -1,10 +1,10 @@
 import Web3 from "web3";
-import { Transaction } from 'web3-eth';
-import { SingleContractChildWorker, FactoryContractsChildWorker } from './types';
+import { BrokerRouter } from "../../brokers/src/BrokerRouter";
 
 export class TransactionsFetcher {
   constructor(
     public readonly web3Provider: Web3,
+    public readonly brokerRouter: BrokerRouter,
   ) {}
 
   private _fetchedUpToBlockNumber;
@@ -36,7 +36,12 @@ export class TransactionsFetcher {
       .reduce((prev, current) => [...prev, ...current]);
 
     if (txs.length !== 0) {
-
+      for (const tx of txs) {
+        await this.brokerRouter.sendMessageToExchange({
+          toBlock: tx.blockNumber,
+          fromBlock: this.fetchedUpToBlockNumber
+        });
+      }
     }
 
     this.fetchedUpToBlockNumber = currentBlockNumber;

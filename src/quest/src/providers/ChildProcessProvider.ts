@@ -3,6 +3,7 @@ import path from "path";
 import { EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, QuestClients } from "./types";
 import { Logger } from "../../../quest-factory/logger/pino";
+import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 
 const abiFilePath = path.join(__dirname, '/../../abi/WorkQuest.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -14,30 +15,11 @@ export class ChildProcessProvider implements IContractProvider {
 
   constructor (
     public readonly clients: QuestClients,
+    public readonly transactionBroker: TransactionBroker,
   ) {};
 
-  private initFatherProcessListener() {
-    process.on('message', async (message: string) => {
-      await this.processMessage(message);
-    });
-  }
-
-  private async processMessage(rawMessage: string) {
-    let parsedMessage;
-
-    try {
-      parsedMessage = JSON.parse(rawMessage);
-
-      if (!parsedMessage.message || parsedMessage.message !== 'onEvents') {
-        return;
-      }
-
-      delete parsedMessage.message;
-    } catch (err) {
-      return;
-    }
-
-    await this.onEventFromFatherProcess(parsedMessage);
+  private async initFatherProcessListener() {
+    await this.transactionBroker.initConsumer(this.onEventFromFatherProcess);
   }
 
   private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number, contractAddress: string }) {
@@ -63,10 +45,10 @@ export class ChildProcessProvider implements IContractProvider {
     );
   }
 
-  public startListener() {
+  public async startListener() {
     Logger.info('Start listening');
 
-    this.initFatherProcessListener();
+    await this.initFatherProcessListener();
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {

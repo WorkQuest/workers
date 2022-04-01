@@ -22,6 +22,7 @@ import {
   QuestJobStartedEventStatus,
   QuestJobFinishedEventStatus, UserRole,
 } from "@workquest/database-models/lib/models";
+import { BrokerMessageStatus } from "../../../brokers/src/types";
 
 export class QuestController implements IController {
   constructor(

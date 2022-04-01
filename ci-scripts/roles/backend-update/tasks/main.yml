@@ -53,10 +53,10 @@
     src: ./{{ fetcher_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ fetcher_env }}'
 
-- name: Copy or generate fetcher env file
+- name: Copy or generate broker env file
   template:
-    src: ./{{ fetcher_env }}.j2
-    dest: '{{ WORKERS_BIN }}/{{ fetcher_env }}'
+    src: ./{{ broker_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ broker_env }}'
 
 - name: Start backend process
   shell: pm2 reload app.json

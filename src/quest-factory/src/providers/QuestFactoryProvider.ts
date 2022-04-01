@@ -1,6 +1,7 @@
-import {Logger} from "../../logger/pino";
+import { Logger } from "../../logger/pino";
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, QuestFactoryClients } from "./types";
+import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 
 export class QuestFactoryProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -10,28 +11,11 @@ export class QuestFactoryProvider implements IContractProvider {
   constructor (
     public readonly clients: QuestFactoryClients,
     public readonly contract: Contract,
+    public readonly transactionBroker: TransactionBroker,
   ) {};
 
-  private initFatherProcessListener() {
-    process.on('message', async (message: string) => {
-      await this.processMessage(message);
-    });
-  }
-
-  private async processMessage(rawMessage: string) {
-    let parsedMessage;
-
-    try {
-      parsedMessage = JSON.parse(rawMessage);
-
-      if (!parsedMessage.message || parsedMessage.message !== 'onEvents') {
-        return;
-      }
-    } catch (err) {
-      return;
-    }
-
-    await this.onEventFromFatherProcess(parsedMessage);
+  private async initFatherProcessListener() {
+    await this.transactionBroker.initConsumer(this.onEventFromFatherProcess.bind(this));
   }
 
   private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number }) {
@@ -59,10 +43,10 @@ export class QuestFactoryProvider implements IContractProvider {
     );
   }
 
-  public startListener() {
+  public async startListener() {
     Logger.info('Start listening');
 
-    this.initFatherProcessListener();
+    await this.initFatherProcessListener();
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {

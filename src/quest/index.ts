@@ -4,6 +4,7 @@ import { Logger } from "./logger/pino";
 import { QuestClients } from "./src/providers/types";
 import configQuest from "./config/config.quest";
 import configDatabase from "./config/config.database";
+import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { QuestController } from "./src/controllers/QuestController";
 import { QuestCacheProvider } from "./src/providers/QuestCacheProvider";
 import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
@@ -19,7 +20,7 @@ export async function init() {
   await initDatabase(configDatabase.dbLink, false, true);
 
   const redisConfig = configDatabase.redis.defaultConfigNetwork();
-  const { linkRpcProvider, parseEventsFromHeight } = configQuest.defaultConfigNetwork();
+  const { linkRpcProvider, parseEventsFromHeight  } = configQuest.defaultConfigNetwork();
 
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
 
@@ -32,6 +33,9 @@ export async function init() {
   await redisClient.connect();
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
+
+  const transactionBroker = new TransactionBroker(configDatabase.mqLink, 'quest');
+  await transactionBroker.init();
 
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
   const clients: QuestClients = { web3, questCacheProvider };
@@ -50,12 +54,12 @@ export async function init() {
     await questBlockInfo.save();
   }
 
-  const questProvider = new ChildProcessProvider(clients);
+  const questProvider = new ChildProcessProvider(clients, transactionBroker);
   const questController = new QuestController(clients, questProvider, configQuest.network as BlockchainNetworks);
 
   await questController.collectAllUncollectedEvents(questBlockInfo.lastParsedBlock);
 
-  questProvider.startListener();
+  await questProvider.startListener();
 }
 
 init().catch(e => {

@@ -13,6 +13,7 @@ import {
   QuestFactoryBlockInfo,
   QuestFactoryCreatedEvent,
 } from '@workquest/database-models/lib/models';
+import { BrokerMessageStatus } from "../../../brokers/src/types";
 
 export class QuestFactoryController implements IController {
   constructor(
@@ -36,7 +37,7 @@ export class QuestFactoryController implements IController {
     });
   }
 
-  private onEvent(eventsData: EventData): Promise<void> {
+  private async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
@@ -44,7 +45,7 @@ export class QuestFactoryController implements IController {
     );
 
     if (eventsData.event === QuestFactoryEvent.Created) {
-      return this.createdEventHandler(eventsData);
+      await this.createdEventHandler(eventsData);
     }
   }
 

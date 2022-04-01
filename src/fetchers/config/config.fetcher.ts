@@ -6,7 +6,7 @@ export default {
   network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
-    linkMessageBroker: '',
+    linkMessageBroker: process.env.RABBIT_LINK,
   },
 
   defaultConfigNetwork: (): {
