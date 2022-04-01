@@ -234,7 +234,7 @@ jobs:
 
           DB_LINK=${{ secrets.DB_LINK }} \
           REDIS_LINK=${{ secrets.REDIS_LINK }} \
-          RABBIT_LINK=${{ secrets_RABBIT_LINK }} \
+          RABBIT_LINK=${{ secrets.RABBIT_LINK }} \
 
           SENTRY_LINK=${{ secrets.SENTRY_LINK }} \
 
