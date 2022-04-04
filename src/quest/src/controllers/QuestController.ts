@@ -321,16 +321,16 @@ export class QuestController implements IController {
       try {
         await this.onEvent(event);
       } catch (err) {
-        Logger.error(error, 'Event processing ended with error');
+        Logger.error(err, 'Event processing ended with error');
 
         throw err;
       }
     }
 
+    await this.updateBlockViewHeight(lastBlockNumber);
+
     if (error) {
       throw error;
     }
-
-    await this.updateBlockViewHeight(lastBlockNumber);
   }
 }

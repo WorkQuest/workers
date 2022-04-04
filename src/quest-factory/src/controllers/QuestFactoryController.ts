@@ -13,7 +13,6 @@ import {
   QuestFactoryBlockInfo,
   QuestFactoryCreatedEvent,
 } from '@workquest/database-models/lib/models';
-import { BrokerMessageStatus } from "../../../brokers/src/types";
 
 export class QuestFactoryController implements IController {
   constructor(

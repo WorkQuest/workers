@@ -1,7 +1,12 @@
+import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
+import configQuestFactory from '../../config/config.questFactory';
 import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, IContractProvider, QuestFactoryClients } from "./types";
-import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
+import {
+  onEventCallBack,
+  IContractProvider,
+  QuestFactoryClients,
+} from "./types";
 
 export class QuestFactoryProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -17,17 +22,31 @@ export class QuestFactoryProvider implements IContractProvider {
     await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
   }
 
-  private async onEventFromBroker(payload: { toBlock: number, fromBlock: number }) {
-    Logger.info('Parent process listener: message "onEvents", payload %o', payload);
+  private async onEventFromBroker(payload: { transactions: Transaction[] }) {
+    // Logger.info('Parent process listener: message "onEvents", payload %o', payload);
+
+    const factoryAddress = configQuestFactory
+      .defaultConfigNetwork()
+      .contractAddress
+      .toLowerCase()
+
+    const tracedTxs = payload
+      .transactions
+      .filter(tx => tx.to && tx.to.toLowerCase() === factoryAddress)
+      .sort((a, b) => a.blockNumber = b.blockNumber)
+
+    if (tracedTxs.length === 0) {
+      return;
+    }
 
     const eventsData = await this.contract.getPastEvents('allEvents', {
-      toBlock: payload.toBlock,
-      fromBlock: payload.fromBlock,
+      toBlock: tracedTxs[tracedTxs.length - 1].blockNumber,
+      fromBlock: tracedTxs[0].blockNumber,
     });
 
     Logger.info('Received events from contract. Range: from block "%s", to block "%s". Events: "%s"',
-      payload.fromBlock,
-      payload.toBlock,
+      '',
+      '',
       eventsData.length,
     );
 

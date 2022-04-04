@@ -1,5 +1,5 @@
 import Web3 from "web3";
-import {Contract, EventData} from "web3-eth-contract";
+import {EventData} from "web3-eth-contract";
 import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 
 export type onEventCallBack = {

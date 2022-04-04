@@ -3,6 +3,7 @@ import path from "path";
 import { EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, QuestClients } from "./types";
 import { Logger } from "../../logger/pino";
+import {Transaction} from "web3-eth";
 
 const abiFilePath = path.join(__dirname, '/../../abi/WorkQuest.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -26,21 +27,19 @@ export class ChildProcessProvider implements IContractProvider {
     await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
   }
 
-  private async onEventFromBroker(payload: { toBlock: number, fromBlock: number, contractAddress: string }) {
-    Logger.info('Parent process listener: message "onEvents", payload %o', payload);
-
-    const contract = new this.clients.web3.eth.Contract(abi, payload.contractAddress);
-    const eventsData = await contract.getPastEvents('allEvents', payload);
-
-    Logger.info('Received events from contract. Range: from block "%s", to block "%s". Events: "%s"',
-      payload.fromBlock,
-      payload.toBlock,
-      eventsData.length,
+  private async onEventFromBroker(payload: { transactions: Transaction[] }) {
+    const tracedTxs: Transaction[] = await asyncFilter(payload.transactions, async tx =>
+      tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase())
     );
 
-    return Promise.all(
-      eventsData.map(async data => this.onEventData(data))
-    );
+   for (const tx of tracedTxs) {
+     const contract = new this.clients.web3.eth.Contract(abi, tx.to);
+     const eventsData = await contract.getPastEvents('allEvents', { fromBlock: tx.blockNumber, toBlock: tx.blockNumber });
+
+     await Promise.all(
+       eventsData.map(async data => this.onEventData(data))
+     );
+   }
   }
 
   private onEventData(eventData) {
@@ -98,18 +97,16 @@ export class ChildProcessProvider implements IContractProvider {
             tracedTxs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
           );
 
-          if (tracedTxs.length !== 0) {
-            for (const tx of tracedTxs) {
-              Logger.debug('Traceable transaction: %o', tx);
+          for (const tx of tracedTxs) {
+            Logger.debug('Traceable transaction: %o', tx);
 
-              const contract = new this.clients.web3.eth.Contract(abi, tx.to);
-              const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
+            const contract = new this.clients.web3.eth.Contract(abi, tx.to);
+            const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
-              collectedEvents.push(...eventsData);
+            collectedEvents.push(...eventsData);
 
-              Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
-              Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
-            }
+            Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+            Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
           }
 
           break;
@@ -141,17 +138,15 @@ export class ChildProcessProvider implements IContractProvider {
           tracedTxs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
         );
 
-        if (tracedTxs.length !== 0) {
-          for (const tx of tracedTxs) {
-            Logger.debug('Traceable transaction: %o', { to: tx.to, from: tx.from, hash: tx.hash });
+        for (const tx of tracedTxs) {
+          Logger.debug('Traceable transaction: %o', { to: tx.to, from: tx.from, hash: tx.hash });
 
-            const contract = new this.clients.web3.eth.Contract(abi, tx.to);
-            const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
+          const contract = new this.clients.web3.eth.Contract(abi, tx.to);
+          const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
-            collectedEvents.push(...eventsData);
+          collectedEvents.push(...eventsData);
 
-            Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
-          }
+          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
         }
 
         fromBlock += this.preParsingSteps;
