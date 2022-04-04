@@ -35,14 +35,8 @@ export class TransactionsFetcher {
       .map(block => block.transactions)
       .reduce((prev, current) => [...prev, ...current]);
 
-    if (txs.length !== 0) {
-      for (const tx of txs) {
-        await this.brokerRouter.sendMessageToExchange({
-          toBlock: tx.blockNumber,
-          fromBlock: this.fetchedUpToBlockNumber
-        });
-      }
-    }
+
+    await this.brokerRouter.sendMessageToExchange({ transactions: txs });
 
     this.fetchedUpToBlockNumber = currentBlockNumber;
   }
