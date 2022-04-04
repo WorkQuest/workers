@@ -11,6 +11,7 @@ import {
   ProposalExecutedEvent,
   ProposalVoteCastEvent,
 } from "@workquest/database-models/lib/models";
+import { Logger } from "../../../bridge/logger/pino";
 
 export class ProposalController implements IController {
   constructor (
@@ -24,6 +25,12 @@ export class ProposalController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
+    Logger.info('Event handler: name %s, block number %s, address %s',
+      eventsData.event,
+      eventsData.blockNumber,
+      eventsData.address,
+    );
+
     if (eventsData.event === TrackedEvents.ProposalCreated) {
       return this.proposalCreatedEventHandler(eventsData);
     } else if (eventsData.event === TrackedEvents.VoteCast) {
@@ -34,6 +41,8 @@ export class ProposalController implements IController {
   }
 
   protected updateLastParseBlock(lastParsedBlock: number): Promise<void> {
+    Logger.debug('Update blocks: new block height "%s"', lastParsedBlock);
+
     return void ProposalParseBlock.update(
       { lastParsedBlock },
       { where: { network: this.network } },
@@ -45,6 +54,11 @@ export class ProposalController implements IController {
 
     const proposer = eventsData.returnValues.proposer.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug(
+      'Proposal created event handler: timestamp "%s", event data o%',
+      timestamp, eventsData
+    );
 
     const proposal = await Proposal.findOne({
       where: { nonce: eventsData.returnValues.nonce },
@@ -70,9 +84,19 @@ export class ProposalController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Proposal created event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        timestamp,
+        eventsData.event
+      );
+
       return;
     }
     if (!proposal) {
+      Logger.warn('Proposal created event handler (event timestamp "%s"): Proposal with nonce "%s" not found, event created, but proposal update skipped',
+        timestamp,
+        eventsData.returnValues.nonce
+      );
+
       return this.updateLastParseBlock(eventsData.blockNumber);
     }
 
@@ -94,6 +118,11 @@ export class ProposalController implements IController {
 
     const voter = eventsData.returnValues.voter.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug(
+      'Proposal vote cast event handler: timestamp "%s", event data o%',
+      timestamp, eventsData
+    );
 
     const proposalCreatedEvent = await ProposalCreatedEvent.findOne({
       where: { contractProposalId: eventsData.returnValues.proposalId },
@@ -117,6 +146,11 @@ export class ProposalController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Proposal vote cast event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        timestamp,
+        eventsData.event
+      );
+
       return;
     }
     if (!proposalCreatedEvent) {
@@ -130,6 +164,11 @@ export class ProposalController implements IController {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug(
+      'Proposal executed event handler: timestamp "%s", event data o%',
+      timestamp, eventsData
+    );
 
     const proposalCreatedEvent = await ProposalCreatedEvent.findOne({
       where: { contractProposalId: eventsData.returnValues.id },
@@ -152,9 +191,19 @@ export class ProposalController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Proposal executed event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        timestamp,
+        eventsData.event
+      );
+
       return;
     }
     if (!proposalCreatedEvent) {
+      Logger.warn('Proposal executed event handler (event timestamp "%s"): proposal created event not found, event "%s" saved, but proposal was not updated',
+        timestamp,
+        eventsData.event
+      );
+
       return this.updateLastParseBlock(eventsData.blockNumber);
     }
 
@@ -172,13 +221,16 @@ export class ProposalController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+
     const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
         await this.onEvent(event);
       } catch (e) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
+        Logger.error(e, 'Event processing ended with error');
+
         throw e;
       }
     }

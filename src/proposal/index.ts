@@ -7,6 +7,7 @@ import { ProposalController } from "./src/controllers/ProposalController";
 import { ChildProcessProvider } from './src/providers/ChildProcessProvider';
 import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
 import { Clients } from "./src/providers/types";
+import { Logger } from "./logger/pino";
 
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -47,13 +48,13 @@ export async function init() {
 
   await proposalController.collectAllUncollectedEvents(proposalBlockInfo.lastParsedBlock);
 
-  console.log('Start proposal listener');
+  Logger.info('Start proposal listener');
 
   proposalProvider.startListener();
 }
 
 init().catch(e => {
-  console.error(e);
-  process.exit(e);
+  Logger.error(e, 'Worker "Proposal" is stopped with error');
+  process.exit(-1);
 });
 
