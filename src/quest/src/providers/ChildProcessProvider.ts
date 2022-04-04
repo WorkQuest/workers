@@ -89,8 +89,9 @@ export class ChildProcessProvider implements IContractProvider {
             txs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
           );
 
-          const tracedTxs = txs
-            .filter(async tx => tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase()))
+          const tracedTxs = await asyncFilter(txs, async tx =>
+            tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase())
+          );
 
           Logger.debug(
             'Traceable transactions: %o',
