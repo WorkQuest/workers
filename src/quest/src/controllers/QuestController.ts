@@ -161,9 +161,9 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
-        eventsData.event,
-      );
+      // Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
+      //   eventsData.event,
+      // );
 
       return questJobStartedEvent.update({ status: QuestJobStartedEventStatus.QuestEntityNotFound });
     }
