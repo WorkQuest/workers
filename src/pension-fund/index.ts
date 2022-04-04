@@ -8,6 +8,7 @@ import { PensionFundController } from "./src/controllers/pensionFundController";
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { Clients } from "./src/providers/types";
 import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import { Logger } from "../bridge/logger/pino";
 
 const abiFilePath = path.join(__dirname, '/abi/WQPensionFund.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -42,13 +43,13 @@ export async function init() {
 
   await pensionFundController.collectAllUncollectedEvents(pensionFundBlockInfo.lastParsedBlock);
 
-  console.log('Start pension fund listener');
+  Logger.info('Start pension fund listener');
 
   await pensionFundProvider.startListener();
 }
 
 init().catch(e => {
-  console.error(e);
-  process.exit(e);
+  Logger.error(e, 'Worker "Pension Fund" is stopped with error');
+  process.exit(-1);
 });
 
