@@ -75,18 +75,22 @@ export class ChildProcessProvider implements IContractProvider {
               .map(async bn => this.clients.web3.eth.getBlock(bn, true))
           );
 
-          Logger.debug('Assembled blocks: %o', blocks);
-
           const txs = blocks
             .map(block => block.transactions)
             .reduce((prev, current) => [...prev, ...current]);
 
-          Logger.debug('Assembled transactions: %o', txs);
+          Logger.debug(
+            'Assembled transactions: %o',
+            txs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
+          );
 
           const tracedTxs = txs
             .filter(async tx => tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase()))
 
-          Logger.debug('Traceable transactions: %o', tracedTxs);
+          Logger.debug(
+            'Traceable transactions: %o',
+            tracedTxs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
+          );
 
           if (tracedTxs.length !== 0) {
             for (const tx of tracedTxs) {
@@ -113,22 +117,26 @@ export class ChildProcessProvider implements IContractProvider {
             .map(async bn => this.clients.web3.eth.getBlock(bn, true))
         );
 
-        Logger.debug('Assembled blocks: %o', blocks);
-
         const txs = blocks
           .map(block => block.transactions)
           .reduce((prev, current) => [...prev, ...current]);
 
-        Logger.debug('Assembled transactions: %o', txs);
+        Logger.debug(
+          'Assembled transactions: %o',
+          txs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
+        );
 
         const tracedTxs = txs
           .filter(async tx => tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase()))
 
-        Logger.debug('Traceable transactions: %o', tracedTxs);
+        Logger.debug(
+          'Traceable transactions: %o',
+          tracedTxs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
+        );
 
         if (tracedTxs.length !== 0) {
           for (const tx of tracedTxs) {
-            Logger.debug('Traceable transaction: %o', tx);
+            Logger.debug('Traceable transaction: %o', { to: tx.to, from: tx.from, hash: tx.hash });
 
             const contract = new this.clients.web3.eth.Contract(abi, tx.to);
             const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
