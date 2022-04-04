@@ -11,6 +11,7 @@ import Web3 from "web3";
 import path from "path";
 import fs from "fs";
 import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import { Logger } from "./logger/pino";
 
 const abiFilePath = path.join(__dirname, '../../src/bridge/abi/WQBridge.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -106,7 +107,7 @@ export async function init() {
     ethBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridge.ethereumNetwork)),
   ]);
 
-  console.log('Start bridge listener');
+  Logger.info('Start bridge listener');
 
   wqBridgeProvider.startListener();
   bscBridgeProvider.startListener();
@@ -114,6 +115,6 @@ export async function init() {
 }
 
 init().catch(e => {
-  console.error(e);
-  process.exit(e);
+  Logger.error(e, 'Worker "Bridge" is stopped with error');
+  process.exit(-1);
 });
