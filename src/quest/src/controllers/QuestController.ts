@@ -1,7 +1,7 @@
 import { Op } from "sequelize";
 import { IController, QuestEvent } from "./types";
 import { EventData } from "web3-eth-contract";
-import { Logger } from "../../../quest/logger/pino";
+import { Logger } from "../../logger/pino";
 import { QuestClients, IContractProvider } from "../providers/types";
 import { QuestModelController } from "./models/QuestModelController";
 import { UserModelController } from "./models/UserModelController";
@@ -22,7 +22,6 @@ import {
   QuestJobStartedEventStatus,
   QuestJobFinishedEventStatus, UserRole,
 } from "@workquest/database-models/lib/models";
-import { BrokerMessageStatus } from "../../../brokers/src/types";
 
 export class QuestController implements IController {
   constructor(
@@ -46,10 +45,10 @@ export class QuestController implements IController {
       await this.assignedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobStarted) {
       await this.jobStartedEventHandler(eventsData);
-    } else if (eventsData.event === QuestEvent.JobFinished) {
-      await this.jobFinishedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobDone) {
       await this.jobDoneEventHandler(eventsData);
+    } else if (eventsData.event === QuestEvent.JobFinished) {
+      await this.jobFinishedEventHandler(eventsData);
     }
   }
 
@@ -186,61 +185,6 @@ export class QuestController implements IController {
     ]);
   }
 
-  protected async jobFinishedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
-
-    const contractAddress = eventsData.address.toLowerCase();
-    const transactionHash = eventsData.transactionHash.toLowerCase();
-
-    Logger.debug('Job finished event handler: timestamp "%s", event data o%', timestamp, eventsData);
-
-    const questModelController = await QuestModelController.byContractAddress(contractAddress);
-
-    const [questJobFinishedEvent, isCreated] = await QuestJobFinishedEvent.findOrCreate({
-      where: {
-        transactionHash,
-        network: this.network,
-      }, defaults: {
-        timestamp,
-        contractAddress,
-        transactionHash,
-        network: this.network,
-        blockNumber: eventsData.blockNumber,
-        status: QuestJobFinishedEventStatus.Successfully,
-      },
-    });
-
-    if (!isCreated) {
-      Logger.warn('Job finished event handler: event "%s" handling is skipped because it has already been created',
-        eventsData.event
-      );
-
-      return;
-    }
-
-    await this.updateBlockViewHeight(eventsData.blockNumber);
-
-    if (!questModelController) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
-        eventsData.event,
-      );
-
-      return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestEntityNotFound });
-    }
-    if (!questModelController.statusDoesMatch(
-      QuestStatus.ExecutionOfWork,
-    )) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
-        eventsData.event,
-      );
-
-      return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestStatusDoesNotMatch });
-    }
-
-    // TODO нотификации
-    await questModelController.finishWork();
-  }
-
   protected async jobDoneEventHandler(eventsData: EventData) {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
@@ -283,33 +227,81 @@ export class QuestController implements IController {
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestEntityNotFound });
     }
     if (!questModelController.statusDoesMatch(
-      QuestStatus.WaitingForEmployerConfirmationWork,
+      QuestStatus.ExecutionOfWork,
     )) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
-        eventsData.event,
-      );
+      // Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
+      //   eventsData.event,
+      // );
 
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestStatusDoesNotMatch });
     }
 
-    await addUpdateReviewStatisticsJob({
-      userId: questModelController.quest.userId,
-    });
-    await addUpdateReviewStatisticsJob({
-      userId: questModelController.quest.assignedWorkerId,
+    // TODO нотификации
+    await questModelController.finishWork();
+  }
+
+  protected async jobFinishedEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug('Job finished event handler: timestamp "%s", event data o%', timestamp, eventsData);
+
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
+
+    const [questJobFinishedEvent, isCreated] = await QuestJobFinishedEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      }, defaults: {
+        timestamp,
+        contractAddress,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+        status: QuestJobFinishedEventStatus.Successfully,
+      },
     });
 
-    await updateQuestsStatisticJob({
-      userId: questModelController.quest.assignedWorkerId,
-      role: UserRole.Worker,
-    });
-    await updateQuestsStatisticJob({
-      userId: questModelController.quest.id,
-      role: UserRole.Employer,
-    });
+    if (!isCreated) {
+      Logger.warn('Job finished event handler: event "%s" handling is skipped because it has already been created',
+        eventsData.event
+      );
 
-    await questModelController.completeQuest();
-    await this.clients.questCacheProvider.remove(contractAddress);
+      return;
+    }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questModelController) {
+      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
+        eventsData.event,
+      );
+
+      return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestEntityNotFound });
+    }
+    if (!questModelController.statusDoesMatch(
+      QuestStatus.WaitingForEmployerConfirmationWork,
+    )) {
+      // Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
+      //   eventsData.event,
+      // );
+
+      return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestStatusDoesNotMatch });
+    }
+
+    await Promise.all([
+      questModelController.completeQuest(),
+      this.clients.questCacheProvider.remove(contractAddress),
+    ]);
+
+    await Promise.all([
+      addUpdateReviewStatisticsJob({ userId: questModelController.quest.userId }),
+      addUpdateReviewStatisticsJob({ userId: questModelController.quest.assignedWorkerId }),
+      updateQuestsStatisticJob({ userId: questModelController.quest.id, role: UserRole.Employer }),
+      updateQuestsStatisticJob({ userId: questModelController.quest.assignedWorkerId, role: UserRole.Worker }),
+    ]);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

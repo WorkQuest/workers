@@ -10,8 +10,8 @@ export enum QuestEvent {
 
   Assigned = 'Assigned',                      /** Employer assigned worker. QuestStatus.Recruitment -> QuestStatus.WaitingForConfirmFromWorkerOnAssign.                                         */
   JobStarted = 'JobStarted',                  /** After confirming the worker - the quest start. QuestStatus.WorkerAcceptedQuestAssignment -> QuestStatus.ExecutionOfWork.                      */
-  JobFinished = 'JobFinished',                /** Worker completed the quest. Waiting for employer confirmation. QuestStatus.ExecutionOfWork -> QuestStatus.WaitingForEmployerConfirmationWork. */
-  JobDone = 'JobDone',                        /** The employer confirmed the completed quest. QuestStatus.WaitingForEmployerConfirmationWork -> QuestStatus.Completed                           */
+  JobDone = 'JobDone',                        /** Worker completed the quest. Waiting for employer confirmation. QuestStatus.ExecutionOfWork -> QuestStatus.WaitingForEmployerConfirmationWork. */
+  JobFinished = 'JobFinished',                /** The employer confirmed the completed quest. QuestStatus.WaitingForEmployerConfirmationWork -> QuestStatus.Completed                           */
 
   // ArbitrationAcceptWork
   // ArbitrationDecreaseCost
