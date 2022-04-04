@@ -20,8 +20,8 @@
     "questFactory:compile": "tsc && node ./build/quest-factory/index.js",
     "quest:start": "nodemon -e ts --exec \"npm run quest:compile\"",
     "quest:compile": "tsc && node ./build/quest/index.js",
-    "init:start": "nodemon -e ts --exec \"npm run init:compile\"",
-    "init:compile": "tsc && node ./build/fetchers"
+    "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
+    "fetcher:compile": "tsc && node ./build/fetchers"
   },
   "jest": {
     "transform": {

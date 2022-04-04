@@ -1,5 +1,6 @@
 import Web3 from "web3";
 import { BrokerRouter } from "../../brokers/src/BrokerRouter";
+import { Logger } from "../logger/pino";
 
 export class TransactionsFetcher {
   constructor(
@@ -21,6 +22,8 @@ export class TransactionsFetcher {
     const currentBlockNumber = await this.web3Provider.eth.getBlockNumber();
     const rangeBlock = { fromBlock: this.fetchedUpToBlockNumber, toBlock: currentBlockNumber }
 
+    Logger.info('Parsing transactions in the range from "%s" to "%s" blocks', this.fetchedUpToBlockNumber, currentBlockNumber);
+
     if (rangeBlock.toBlock === rangeBlock.fromBlock) {
       return;
     }
@@ -35,6 +38,7 @@ export class TransactionsFetcher {
       .map(block => block.transactions)
       .reduce((prev, current) => [...prev, ...current]);
 
+    Logger.info('"%s" transactions found in current range', txs.length);
 
     await this.brokerRouter.sendMessageToExchange({ transactions: txs });
 
