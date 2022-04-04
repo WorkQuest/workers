@@ -8,6 +8,7 @@ import { ReferralMessageBroker } from "./src/controllers/BrokerController";
 import { BlockchainNetworks, ReferralProgramParseBlock, initDatabase } from '@workquest/database-models/lib/models';
 import {Clients} from "./src/providers/types";
 import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import { Logger } from "./logger/pino";
 
 const abiFilePath = path.join(__dirname, '/abi/WQReferral.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -41,13 +42,13 @@ export async function init() {
 
   await referralController.collectAllUncollectedEvents(referralBlockInfo.lastParsedBlock);
 
-  console.log('Start referral-program program listener');
+  Logger.info('Start referral-program program listener');
 
   referralProvider.startListener();
 }
 
 init().catch(e => {
-  console.error(e);
-  process.exit(e);
+  Logger.error(e, 'Worker "Referral Program" is stopped with error');
+  process.exit(-1);
 });
 

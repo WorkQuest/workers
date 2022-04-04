@@ -14,6 +14,7 @@ import {
   ReferralProgramEventRewardClaimed,
   ReferralProgramEventRegisteredAffiliate,
 } from '@workquest/database-models/lib/models';
+import { Logger } from "../../../bridge/logger/pino";
 
 export class ReferralController implements IController {
   constructor(
@@ -27,6 +28,12 @@ export class ReferralController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
+    Logger.info('Event handler: name %s, block number %s, address %s',
+      eventsData.event,
+      eventsData.blockNumber,
+      eventsData.address,
+    );
+
     if (eventsData.event === ReferralEvent.PaidReferral) {
       return this.paidReferralEventHandler(eventsData);
     } else if (eventsData.event === ReferralEvent.RegisteredAffiliate) {
@@ -43,6 +50,11 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
+    Logger.debug(
+      'Registered affiliate event handler: timestamp "%s", event data o%',
+      timestamp, eventsData
+    );
+
     const [_, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
@@ -56,6 +68,11 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Registered affiliate event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        timestamp,
+        eventsData.event
+      );
+
       return;
     }
 
@@ -76,7 +93,12 @@ export class ReferralController implements IController {
     ]);
 
     if (!referralWallet) {
-      return; // TODO add pino
+      Logger.warn('Registered Affiliate event handler (event timestamp "%s"): referral wallet not found',
+        timestamp,
+        eventsData.event
+      );
+
+      return;
     }
 
     return ReferralProgramReferral.update(
@@ -92,6 +114,11 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
+    Logger.debug(
+      'Paid referral event handler: timestamp "%s", event data o%',
+      timestamp, eventsData
+    );
+
     const [_, isCreated] = await ReferralProgramEventPaidReferral.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
@@ -106,6 +133,11 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Paid referral event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        timestamp,
+        eventsData.event
+      );
+
       return;
     }
 
@@ -126,7 +158,12 @@ export class ReferralController implements IController {
     ]);
 
     if (!referralWallet) {
-      return; // TODO add pino
+      Logger.warn('Paid referral event handler (event timestamp "%s"): referral wallet not found',
+        timestamp,
+        eventsData.event
+      );
+
+      return;
     }
 
     await ReferralProgramReferral.update(
@@ -141,6 +178,11 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
+    Logger.debug(
+      'Reward claimed event handler: timestamp "%s", event data o%',
+      timestamp, eventsData
+    );
+
     const [_, isCreated] = await ReferralProgramEventRewardClaimed.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
@@ -154,6 +196,11 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Reward claimed event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        timestamp,
+        eventsData.event
+      );
+
       return;
     }
 
@@ -174,7 +221,12 @@ export class ReferralController implements IController {
     ]);
 
     if (!affiliateWallet) {
-      return; // TODO add pino
+      Logger.warn('Reward claimed event handler (event timestamp "%s"): affiliate wallet not found',
+        timestamp,
+        eventsData.event
+      );
+
+      return;
     }
 
     await ReferralProgramAffiliate.update(
@@ -184,13 +236,16 @@ export class ReferralController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+
     const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
         await this.onEvent(event);
       } catch (e) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
+        Logger.error(e, 'Event processing ended with error');
+
         throw e;
       }
     }
