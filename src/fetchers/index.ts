@@ -1,6 +1,7 @@
 import { TransactionsFetcher } from "./src/TransactionsFetcher";
 import { BrokerRouter } from "../brokers/src/BrokerRouter";
 import configFetcher from "./config/config.fetcher";
+import { Logger } from "./logger/pino";
 import Web3 from "web3";
 
 async function init() {
@@ -21,5 +22,6 @@ async function init() {
 }
 
 init().catch(e => {
-
+  Logger.error(e, 'Worker "Fetcher" is stopped with error');
+  process.exit(-1);
 });

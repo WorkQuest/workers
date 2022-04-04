@@ -2,7 +2,9 @@ import { config } from 'dotenv';
 
 config({ path: __dirname + '/../../../.env.fetcher' });
 
-export default {
+export default
+{
+  logLevel: 'debug',
   network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
