@@ -2,11 +2,16 @@ import fs from "fs";
 import path from "path";
 import { EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, QuestClients } from "./types";
-import { Logger } from "../../../quest-factory/logger/pino";
-import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
+import { Logger } from "../../logger/pino";
 
 const abiFilePath = path.join(__dirname, '/../../abi/WorkQuest.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
+
+const asyncFilter = async (arr, predicate) => {
+  const results = await Promise.all(arr.map(predicate));
+
+  return arr.filter((_v, index) => results[index]);
+}
 
 export class ChildProcessProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -126,8 +131,9 @@ export class ChildProcessProvider implements IContractProvider {
           txs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
         );
 
-        const tracedTxs = txs
-          .filter(async tx => tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase()))
+        const tracedTxs = await asyncFilter(txs, async tx =>
+          tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase())
+        );
 
         Logger.debug(
           'Traceable transactions: %o',

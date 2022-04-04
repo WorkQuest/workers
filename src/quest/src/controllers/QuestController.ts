@@ -330,5 +330,7 @@ export class QuestController implements IController {
     if (error) {
       throw error;
     }
+
+    await this.updateBlockViewHeight(lastBlockNumber);
   }
 }
