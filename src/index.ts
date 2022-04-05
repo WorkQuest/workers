@@ -3,7 +3,7 @@ import Web3 from "web3";
 import path from "path";
 import childProcess from 'child_process';
 import configFetcher from "./fetchers/config/config.fetcher";
-import { ContractTransactionsFetcher } from "./fetchers/ContractTransactionsFetcher";
+import { ContractTransactionsFetcher } from "./fetchers/src/TransactionsFetcher";
 
 const bridgeAbiFilePath = path.join(__dirname,  '/../src/bridge/abi/WQBridge.json');
 const bridgeAbi: any[] = JSON.parse(fs.readFileSync(bridgeAbiFilePath).toString()).abi;
