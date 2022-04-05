@@ -21,5 +21,6 @@ async function init() {
 }
 
 init().catch(e => {
+  console.error(e);
   process.exit(-1);
 });

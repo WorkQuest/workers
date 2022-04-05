@@ -14,7 +14,7 @@ export class BrokerRouter extends BaseBrokerClient {
   }
 
   private async initExchange(): Promise<void> {
-    await this.channel.assetExchange(this.exchangeName);
+    await this.channel.assertExchange(this.exchangeName);
   }
 
   public async sendMessageToExchange(message: any) {
