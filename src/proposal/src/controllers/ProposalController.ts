@@ -1,3 +1,4 @@
+import { Logger } from "../../logger/pino";
 import {IController, TrackedEvents} from "./types";
 import { EventData } from "web3-eth-contract";
 import {Clients, IContractProvider} from "../providers/types";
@@ -11,7 +12,6 @@ import {
   ProposalExecutedEvent,
   ProposalVoteCastEvent,
 } from "@workquest/database-models/lib/models";
-import { Logger } from "../../../bridge/logger/pino";
 
 export class ProposalController implements IController {
   constructor (

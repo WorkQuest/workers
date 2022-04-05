@@ -1,6 +1,6 @@
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, Clients } from "./types";
-import { Logger } from "../../../bridge/logger/pino";
+import { Logger } from "../../logger/pino";
 
 export class ChildProcessProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];

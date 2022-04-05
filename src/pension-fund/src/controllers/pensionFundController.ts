@@ -1,5 +1,7 @@
+import { Clients, IContractProvider } from "../providers/types";
 import { PensionFundEvent } from './types';
 import { EventData } from 'web3-eth-contract';
+import { Logger } from "../../logger/pino";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
@@ -7,8 +9,6 @@ import {
   PensionFundWithdrewEvent,
   PensionFundWalletUpdatedEvent,
 } from '@workquest/database-models/lib/models';
-import { Clients, IContractProvider } from "../providers/types";
-import { Logger } from "../../../bridge/logger/pino";
 
 export class PensionFundController {
   constructor(

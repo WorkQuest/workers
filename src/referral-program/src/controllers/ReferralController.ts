@@ -2,6 +2,7 @@ import {IController, ReferralEvent} from './types';
 import {EventData} from 'web3-eth-contract';
 import {Clients, IContractProvider} from "../providers/types";
 import {ReferralMessageBroker} from "./BrokerController";
+import { Logger } from "../../logger/pino";
 import {
   Wallet,
   RewardStatus,
@@ -14,7 +15,6 @@ import {
   ReferralProgramEventRewardClaimed,
   ReferralProgramEventRegisteredAffiliate,
 } from '@workquest/database-models/lib/models';
-import { Logger } from "../../../bridge/logger/pino";
 
 export class ReferralController implements IController {
   constructor(

@@ -9,6 +9,7 @@ import BigNumber from 'bignumber.js';
 import { Coin, TokenPriceProvider, Web3Provider } from '../providers/types';
 import { WqtWbnbEvent } from './types';
 import { EventData } from 'web3-eth-contract';
+import { Logger } from "../../logger/pino";
 
 export class WqtWbnbController {
   constructor(
@@ -22,6 +23,12 @@ export class WqtWbnbController {
   }
 
   private async onEvent(eventsData: EventData) {
+    Logger.info('Event handler: name %s, block number %s, address %s',
+      eventsData.event,
+      eventsData.blockNumber,
+      eventsData.address,
+    );
+
     if (eventsData.event === WqtWbnbEvent.Swap) {
       return this.swapEventHandler(eventsData);
     } else if (eventsData.event === WqtWbnbEvent.Mint) {
@@ -33,6 +40,11 @@ export class WqtWbnbController {
 
   protected async swapEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    Logger.debug(
+      'Swap event handler: timestamp "%s", event data o%',
+      block.timestamp, eventsData
+    );
 
     const tokenPriceInUsd =
       eventsData.returnValues.amount0Out !== '0'
@@ -68,6 +80,11 @@ export class WqtWbnbController {
   protected async mintEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
+    Logger.debug(
+      'Mint event handler: timestamp "%s", event data o%',
+      block.timestamp, eventsData
+    );
+
     await WqtWbnbMintEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
@@ -90,6 +107,11 @@ export class WqtWbnbController {
 
   protected async burnEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    Logger.debug(
+      'Burn event handler: timestamp "%s", event data o%',
+      block.timestamp, eventsData
+    );
 
     await WqtWbnbBurnEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
@@ -117,13 +139,16 @@ export class WqtWbnbController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+
     const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
         await this.onEvent(event);
       } catch (e) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
+        Logger.error(e, 'Event processing ended with error');
+
         throw e;
       }
     }
