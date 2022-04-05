@@ -1,7 +1,7 @@
 import Web3 from 'web3';
 import { Contract, EventData } from 'web3-eth-contract';
 import { onEventCallBack, Web3Provider } from './types';
-import { Logger } from "../../../bridge/logger/pino";
+import { Logger } from "../../logger/pino";
 
 export class WqtWbnbProvider implements Web3Provider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
