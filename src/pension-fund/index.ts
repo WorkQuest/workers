@@ -8,7 +8,7 @@ import { PensionFundController } from "./src/controllers/pensionFundController";
 import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { Clients } from "./src/providers/types";
 import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
-import { Logger } from "../bridge/logger/pino";
+import { Logger } from "./logger/pino";
 
 const abiFilePath = path.join(__dirname, '/abi/WQPensionFund.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
