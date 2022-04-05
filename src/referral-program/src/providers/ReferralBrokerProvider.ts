@@ -1,7 +1,9 @@
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, Clients } from "./types";
+import { Transaction } from "web3-eth";
+import configReferral from "../../config/config.referral";
 
-export class ChildProcessProvider implements IContractProvider {
+export class ReferralBrokerProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
@@ -11,32 +13,29 @@ export class ChildProcessProvider implements IContractProvider {
     public readonly contract: Contract,
   ) {};
 
-  private initFatherProcessListener() {
-    process.on('message', async (message: string) => {
-      await this.processMessage(message);
-    });
+  private async initBrokerListener() {
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
   }
 
-  private async processMessage(rawMessage: string) {
-    let parsedMessage;
+  private async onEventFromBroker(payload: { transactions: Transaction[] }) {
+    const referralProgramAddress = configReferral
+      .defaultConfigNetwork()
+      .contractAddress
+      .toLowerCase();
 
-    try {
-      parsedMessage = JSON.parse(rawMessage);
+    const tracedTxs = payload
+      .transactions
+      .filter(tx => tx.to && tx.to.toLowerCase() === referralProgramAddress)
+      .sort((a, b) => a.blockNumber = b.blockNumber);
 
-      if (!parsedMessage.message || parsedMessage.message !== 'onEvents') {
-        return;
-      }
-
-      delete parsedMessage.message;
-    } catch (err) {
+    if (tracedTxs.length === 0) {
       return;
     }
 
-    await this.onEventFromFatherProcess(parsedMessage);
-  }
-
-  private async onEventFromFatherProcess(payload: { toBlock: number, fromBlock: number }) {
-    const eventsData = await this.contract.getPastEvents('allEvents', payload);
+    const eventsData = await this.contract.getPastEvents('allEvents', {
+      toBlock: tracedTxs[tracedTxs.length - 1].blockNumber,
+      fromBlock: tracedTxs[0].blockNumber,
+    });
 
     return Promise.all(
       eventsData.map(async data => this.onEventData(data))
@@ -49,8 +48,8 @@ export class ChildProcessProvider implements IContractProvider {
     );
   }
 
-  public startListener() {
-    this.initFatherProcessListener();
+  public async startListener() {
+    await this.initBrokerListener();
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {

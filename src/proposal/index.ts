@@ -4,9 +4,10 @@ import Web3 from 'web3';
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
 import { ProposalController } from "./src/controllers/ProposalController";
-import { ChildProcessProvider } from './src/providers/ChildProcessProvider';
+import { ProposalBrokerProvider } from './src/providers/ProposalBrokerProvider';
 import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
 import { Clients } from "./src/providers/types";
+import { TransactionBroker } from "../brokers/src/TransactionBroker";
 
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -24,11 +25,14 @@ export async function init() {
 
   const web3 = new Web3(rpcProvider);
 
-  const clients: Clients = { web3 };
+  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'proposal');
+  await transactionsBroker.init();
+
+  const clients: Clients = { web3, transactionsBroker };
 
   const proposalContract = new web3.eth.Contract(abi, contractAddress);
 
-  const proposalProvider = new ChildProcessProvider(clients, proposalContract);
+  const proposalProvider = new ProposalBrokerProvider(clients, proposalContract);
   const proposalController = new ProposalController(clients, configProposal.network as BlockchainNetworks, proposalProvider);
 
   const [proposalBlockInfo] = await ProposalParseBlock.findOrCreate({
@@ -49,7 +53,7 @@ export async function init() {
 
   console.log('Start proposal listener');
 
-  proposalProvider.startListener();
+  await proposalProvider.startListener();
 }
 
 init().catch(e => {

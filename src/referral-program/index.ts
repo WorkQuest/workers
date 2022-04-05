@@ -7,7 +7,8 @@ import { ReferralController } from "./src/controllers/ReferralController";
 import { ReferralMessageBroker } from "./src/controllers/BrokerController";
 import { BlockchainNetworks, ReferralProgramParseBlock, initDatabase } from '@workquest/database-models/lib/models';
 import {Clients} from "./src/providers/types";
-import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import { ReferralBrokerProvider } from "./src/providers/ReferralBrokerProvider";
+import { TransactionBroker } from "../brokers/src/TransactionBroker";
 
 const abiFilePath = path.join(__dirname, '/abi/WQReferral.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -28,10 +29,15 @@ export async function init() {
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
   const web3 = new Web3(rpcProvider);
-  const referralContract = new web3.eth.Contract(abi, contractAddress);
-  const clients: Clients = { web3 };
 
-  const referralProvider = new ChildProcessProvider(clients, referralContract);
+  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'referral-program');
+  await transactionsBroker.init();
+
+  const clients: Clients = { web3, transactionsBroker };
+
+  const referralContract = new web3.eth.Contract(abi, contractAddress);
+
+  const referralProvider = new ReferralBrokerProvider(clients, referralContract);
   const referralController = new ReferralController(clients, network, referralProvider);
 
   const [referralBlockInfo, _] = await ReferralProgramParseBlock.findOrCreate({
@@ -43,7 +49,7 @@ export async function init() {
 
   console.log('Start referral-program program listener');
 
-  referralProvider.startListener();
+  await referralProvider.startListener();
 }
 
 init().catch(e => {

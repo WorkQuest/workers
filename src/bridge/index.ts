@@ -10,7 +10,8 @@ import { Clients } from "./src/providers/types";
 import Web3 from "web3";
 import path from "path";
 import fs from "fs";
-import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import { BridgeBrokerProvider } from "./src/providers/BridgeBrokerProvider";
+import { TransactionBroker } from "../brokers/src/TransactionBroker";
 
 const abiFilePath = path.join(__dirname, '../../src/bridge/abi/WQBridge.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -55,15 +56,18 @@ export async function init() {
   const web3Bsc = new Web3(bscWsProvider);
   const web3Eth = new Web3(ethWsProvider);
 
+  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'bridge');
+  await transactionsBroker.init();
+
   const bridgeWqContract = new web3Wq.eth.Contract(abi, wqDefaultConfig.contractAddress);
   const bridgeBscContract = new web3Bsc.eth.Contract(abi, bscDefaultConfig.contractAddress);
   const bridgeEthContract = new web3Eth.eth.Contract(abi, ethDefaultConfig.contractAddress);
 
-  const wqClients: Clients = { web3: web3Wq };
+  const wqClients: Clients = { web3: web3Wq, transactionsBroker };
   const bscClients: Clients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
   const ethClients: Clients = { web3: web3Eth, webSocketProvider: ethWsProvider };
 
-  const wqBridgeProvider = new ChildProcessProvider(wqClients, bridgeWqContract);
+  const wqBridgeProvider = new BridgeBrokerProvider(wqClients, bridgeWqContract);
   const bscBridgeProvider = new BridgeProvider(bscClients, bridgeBscContract);
   const ethBridgeProvider = new BridgeProvider(ethClients, bridgeEthContract);
 
@@ -108,7 +112,7 @@ export async function init() {
 
   console.log('Start bridge listener');
 
-  wqBridgeProvider.startListener();
+  await wqBridgeProvider.startListener();
   bscBridgeProvider.startListener();
   ethBridgeProvider.startListener();
 }

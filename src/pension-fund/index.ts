@@ -5,9 +5,9 @@ import configDatabase from './config/config.database';
 import configPensionFund from './config/config.pensionFund';
 import { BlockchainNetworks, initDatabase, PensionFundBlockInfo } from '@workquest/database-models/lib/models';
 import { PensionFundController } from "./src/controllers/pensionFundController";
-import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc";
 import { Clients } from "./src/providers/types";
-import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import { PensionFundBrokerProvider } from "./src/providers/PensionFundBrokerProvider";
+import { TransactionBroker } from "../brokers/src/TransactionBroker";
 
 const abiFilePath = path.join(__dirname, '/abi/WQPensionFund.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -25,11 +25,14 @@ export async function init() {
 
   const web3 = new Web3(rpcProvider);
 
-  const clients: Clients = { web3 };
+  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'pension-fund');
+  await transactionsBroker.init();
+
+  const clients: Clients = { web3, transactionsBroker };
 
   const pensionFundContract = new web3.eth.Contract(abi, contractAddress);
 
-  const pensionFundProvider = new ChildProcessProvider(clients, pensionFundContract);
+  const pensionFundProvider = new PensionFundBrokerProvider(clients, pensionFundContract);
   const pensionFundController = new PensionFundController(clients, configPensionFund.network as BlockchainNetworks, pensionFundProvider);
 
   const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
