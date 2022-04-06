@@ -10,6 +10,7 @@ import { QuestChatModelController } from "./models/QuestChatModelController";
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
 import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
 import {
+  UserRole,
   QuestStatus,
   QuestBlockInfo,
   QuestJobDoneEvent,
@@ -18,9 +19,11 @@ import {
   QuestJobDoneStatus,
   QuestJobStartedEvent,
   QuestJobFinishedEvent,
+  QuestJobCancelledEvent,
   QuestAssignedEventStatus,
   QuestJobStartedEventStatus,
-  QuestJobFinishedEventStatus, UserRole,
+  QuestJobFinishedEventStatus,
+  QuestJobCancelledEventStatus,
 } from "@workquest/database-models/lib/models";
 
 export class QuestController implements IController {
@@ -49,6 +52,8 @@ export class QuestController implements IController {
       await this.jobDoneEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobFinished) {
       await this.jobFinishedEventHandler(eventsData);
+    } else if (eventsData.event === QuestEvent.JobCancelled) {
+      await this.jobCancelledEventHandler(eventsData);
     }
   }
 
@@ -61,6 +66,58 @@ export class QuestController implements IController {
         lastParsedBlock: { [Op.lt]: blockHeight },
       }
     });
+  }
+
+  protected async jobCancelledEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
+
+    const [questJobCancelledEvent, isCreated] = await QuestJobCancelledEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      }, defaults: {
+        timestamp,
+        contractAddress,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+        status: QuestJobCancelledEventStatus.Successfully,
+      },
+    });
+
+    if (!isCreated) {
+      Logger.warn('Job cancelled event handler: event "%s" handling is skipped because it has already been created',
+        eventsData.event,
+      );
+
+      return;
+    }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questModelController) {
+      Logger.warn('Job cancelled event handler: event "%s" handling is skipped because quest entity not found',
+        eventsData.event,
+      );
+
+      return questJobCancelledEvent.update({ status: QuestJobCancelledEventStatus.QuestEntityNotFound });
+    }
+    if (!questModelController.statusDoesMatch(
+      QuestStatus.Recruitment,
+    )) {
+      Logger.warn('Job cancelled event handler: event "%s" handling is skipped because quest status does not match',
+        eventsData.event,
+      );
+
+      return questJobCancelledEvent.update({ status: QuestJobCancelledEventStatus.QuestStatusDoesNotMatch });
+    }
+
+    await questModelController.closeQuest();
   }
 
   protected async assignedEventHandler(eventsData: EventData) {
@@ -92,7 +149,7 @@ export class QuestController implements IController {
 
     if (!isCreated) {
       Logger.warn('Assigned event handler: event "%s" handling is skipped because it has already been created',
-        eventsData.event
+        eventsData.event,
       );
 
       return;
@@ -161,16 +218,16 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      // Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
-      //   eventsData.event,
-      // );
+      Logger.warn('Job started event handler: event "%s" handling is skipped because quest entity not found',
+        eventsData.event,
+      );
 
       return questJobStartedEvent.update({ status: QuestJobStartedEventStatus.QuestEntityNotFound });
     }
     if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     )) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
+      Logger.warn('Job started event handler: event "%s" handling is skipped because quest status does not match',
         eventsData.event,
       );
 
@@ -220,7 +277,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
+      Logger.warn('Job done event handler: event "%s" handling is skipped because quest entity not found',
         eventsData.event,
       );
 
@@ -229,9 +286,9 @@ export class QuestController implements IController {
     if (!questModelController.statusDoesMatch(
       QuestStatus.ExecutionOfWork,
     )) {
-      // Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
-      //   eventsData.event,
-      // );
+      Logger.warn('Job done event handler: event "%s" handling is skipped because quest status does not match',
+        eventsData.event,
+      );
 
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestStatusDoesNotMatch });
     }
@@ -275,7 +332,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest entity not found',
+      Logger.warn('Job finished event handler: event "%s" handling is skipped because quest entity not found',
         eventsData.event,
       );
 
@@ -284,9 +341,9 @@ export class QuestController implements IController {
     if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForEmployerConfirmationWork,
     )) {
-      // Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
-      //   eventsData.event,
-      // );
+      Logger.warn('Job finished event handler: event "%s" handling is skipped because quest status does not match',
+        eventsData.event,
+      );
 
       return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestStatusDoesNotMatch });
     }

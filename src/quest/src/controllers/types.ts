@@ -6,7 +6,7 @@ export enum QuestEvent {
 
   JobCancelled = 'JobCancelled',              /** Employer canceled quest. QuestStatus. */
   JobEdited = 'JobEdited',                    /** Employer edited quest */
-  JobDeclined = 'JobDeclined',                /** DELETE */
+  JobDeclined = 'JobDeclined',                /** DELETE (old) */
 
   Assigned = 'Assigned',                      /** Employer assigned worker. QuestStatus.Recruitment -> QuestStatus.WaitingForConfirmFromWorkerOnAssign.                                         */
   JobStarted = 'JobStarted',                  /** After confirming the worker - the quest start. QuestStatus.WorkerAcceptedQuestAssignment -> QuestStatus.ExecutionOfWork.                      */
