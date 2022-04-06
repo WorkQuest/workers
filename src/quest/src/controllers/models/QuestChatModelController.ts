@@ -8,6 +8,12 @@ export class QuestChatModelController {
   ) {
   }
 
+  public closeAllChats(): Promise<void> {
+    return void QuestChat.update({ status: QuestChatStatuses.Close }, {
+      where: { questId: this.questController.quest.id },
+    });
+  }
+
   public closeAllWorkChatsExceptAssignedWorker(): Promise<void> {
     return void QuestChat.update({ status: QuestChatStatuses.Close }, {
       where: {
