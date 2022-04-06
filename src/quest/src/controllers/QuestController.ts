@@ -75,6 +75,8 @@ export class QuestController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
+    const questResponsesModelController = new QuestResponsesModelController(questModelController);
+    const questChatModelController = new QuestChatModelController(questModelController);
 
     const [questJobCancelledEvent, isCreated] = await QuestJobCancelledEvent.findOrCreate({
       where: {
@@ -117,7 +119,11 @@ export class QuestController implements IController {
       return questJobCancelledEvent.update({ status: QuestJobCancelledEventStatus.QuestStatusDoesNotMatch });
     }
 
-    await questModelController.closeQuest();
+    await Promise.all([
+      questModelController.closeQuest(),
+      questChatModelController.closeAllChats(),
+      questResponsesModelController.closeAllResponses(),
+    ]);
   }
 
   protected async assignedEventHandler(eventsData: EventData) {
