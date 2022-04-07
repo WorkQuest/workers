@@ -1,5 +1,6 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
+import { Logger } from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {BridgeEvents, IController} from "./types";
 import configBridge from "../../config/config.bridge";
@@ -10,7 +11,6 @@ import {
   BridgeSwapTokenEvent,
   BridgeParserBlockInfo,
 } from "@workquest/database-models/lib/models";
-import { Logger } from "../../logger/pino";
 
 export class BridgeController implements IController {
   constructor(
@@ -24,7 +24,7 @@ export class BridgeController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name %s, block number %s, address %s',
+    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -55,7 +55,8 @@ export class BridgeController implements IController {
 
     Logger.debug(
       'Swap redeemed event handler: timestamp "%s", event data o%',
-      eventsData.returnValues.timestamp, eventsData
+      eventsData.returnValues.timestamp,
+      eventsData,
     );
 
     /** Не трогать последовательность */
@@ -89,9 +90,9 @@ export class BridgeController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Swap redeemed event handler (swap timestamp "%s"): event "%s" handling is skipped because it has already been created',
-        eventsData.returnValues.timestamp,
-        eventsData.event
+      Logger.warn('Swap redeemed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
       );
 
       return;
@@ -147,9 +148,9 @@ export class BridgeController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Swap initialized event handler (swap timestamp "%s"): event "%s" handling is skipped because it has already been created',
-        eventsData.returnValues.timestamp,
-        eventsData.event
+      Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
       );
 
       return;

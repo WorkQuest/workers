@@ -61,7 +61,8 @@ export class ReferralController implements IController {
 
     Logger.debug(
       'Registered affiliate event handler: timestamp "%s", event data o%',
-      timestamp, eventsData
+      timestamp,
+      eventsData,
     );
 
     const [, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
@@ -77,9 +78,9 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Registered affiliate event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
-        timestamp,
-        eventsData.event
+      Logger.warn('Registered affiliate event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
       );
 
       return;
@@ -95,13 +96,13 @@ export class ReferralController implements IController {
       Wallet.findOne({
         where: { address: referralAddress },
       }),
-      this.updateBlockViewHeight(eventsData.blockNumber)
+      this.updateBlockViewHeight(eventsData.blockNumber),
     ]);
 
     if (!referralWallet) {
-      Logger.warn('Registered Affiliate event handler (event timestamp "%s"): referral wallet not found',
-        timestamp,
-        eventsData.event
+      Logger.warn('Registered Affiliate event handler: event "%s" (tx hash "%s") handling is skipped because referral wallet not found',
+        eventsData.event,
+        transactionHash,
       );
 
       return;
@@ -120,9 +121,9 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
-    Logger.debug(
-      'Paid referral event handler: timestamp "%s", event data o%',
-      timestamp, eventsData
+    Logger.debug('Paid referral event handler: timestamp "%s", event data o%',
+      timestamp,
+      eventsData,
     );
 
     const [_, isCreated] = await ReferralProgramEventPaidReferral.findOrCreate({
@@ -139,9 +140,9 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Paid referral event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
-        timestamp,
-        eventsData.event
+      Logger.warn('Paid referral event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
       );
 
       return;
@@ -161,9 +162,9 @@ export class ReferralController implements IController {
     ]);
 
     if (!referralWallet) {
-      Logger.warn('Paid referral event handler (event timestamp "%s"): referral wallet not found',
-        timestamp,
-        eventsData.event
+      Logger.warn('Paid referral event handler: event "%s" (tx hash "%s") handling is skipped because referral wallet not found',
+        eventsData.event,
+        transactionHash,
       );
 
       return;
@@ -199,9 +200,9 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Reward claimed event handler (event timestamp "%s"): event "%s" handling is skipped because it has already been created',
-        timestamp,
-        eventsData.event
+      Logger.warn('Reward claimed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
       );
 
       return;
@@ -221,9 +222,9 @@ export class ReferralController implements IController {
     ]);
 
     if (!affiliateWallet) {
-      Logger.warn('Reward claimed event handler (event timestamp "%s"): affiliate wallet not found',
-        timestamp,
-        eventsData.event
+      Logger.warn('Reward claimed event handler: event "%s" (tx hash "%s") handling is skipped because affiliate wallet not found',
+        eventsData.event,
+        transactionHash,
       );
 
       return;

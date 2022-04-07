@@ -22,8 +22,8 @@ export async function init() {
   } = configProposal.defaultConfigNetwork();
 
   Logger.debug('Proposal starts on "%s" network', configProposal.network);
-  Logger.debug('WorkQuest Network RPC URL: "%s"', linkRpcProvider);
-  Logger.debug('WorkQuest Network contract address: "%s"', contractAddress);
+  Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
+  Logger.debug('WorkQuest network contract address: "%s"', contractAddress);
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
@@ -51,8 +51,6 @@ export async function init() {
   }
 
   await proposalController.collectAllUncollectedEvents(proposalBlockInfo.lastParsedBlock);
-
-  Logger.info('Start proposal listener');
 
   proposalProvider.startListener();
 }

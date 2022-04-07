@@ -23,7 +23,7 @@ export class PensionFundController {
   }
 
   private async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name %s, block number %s, address %s',
+    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -41,10 +41,10 @@ export class PensionFundController {
   protected updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return PensionFundBlockInfo.update(
-      { lastParsedBlock: blockHeight }, {
+    return PensionFundBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
+        lastParsedBlock: { [Op.lt]: blockHeight },
       }
     });
   }
@@ -52,18 +52,21 @@ export class PensionFundController {
   protected async receivedEventHandler(eventsData: EventData) {
     const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+    const user = eventsData.returnValues.user.toLowerCase();
+
     Logger.debug(
       'Received event handler: timestamp "%s", event data o%',
       block.timestamp, eventsData
     );
 
     const [, isCreated] = await PensionFundReceivedEvent.findOrCreate({
-      where: { transactionHash: eventsData.transactionHash },
+      where: { transactionHash, network: this.network },
       defaults: {
+        user,
+        transactionHash,
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash.toLowerCase(),
-        user: eventsData.returnValues.user.toLowerCase(),
         amount: eventsData.returnValues.amount,
         event: PensionFundEvent.Received,
         network: this.network,
@@ -71,9 +74,9 @@ export class PensionFundController {
     });
 
     if (!isCreated) {
-      Logger.warn('Received event handler (timestamp "%s"): event "%s" handling is skipped because it has already been created',
-        block.timestamp,
-        eventsData.event
+      Logger.warn('Received event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
       );
 
       return;
@@ -85,18 +88,22 @@ export class PensionFundController {
   protected async withdrewEventHandler(eventsData: EventData) {
     const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+    const user = eventsData.returnValues.user.toLowerCase();
+
     Logger.debug(
       'Withdrew event handler: timestamp "%s", event data o%',
-      block.timestamp, eventsData
+      block.timestamp,
+      eventsData,
     );
 
     const [, isCreated] = await PensionFundWithdrewEvent.findOrCreate({
-      where: { transactionHash: eventsData.transactionHash },
+      where: { transactionHash, network: this.network },
       defaults: {
+        user,
+        transactionHash,
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash.toLowerCase(),
-        user: eventsData.returnValues.user.toLowerCase(),
         amount: eventsData.returnValues.amount,
         event: PensionFundEvent.Withdrew,
         network: this.network,
@@ -104,9 +111,9 @@ export class PensionFundController {
     });
 
     if (!isCreated) {
-      Logger.warn('Withdrew event handler (timestamp "%s"): event "%s" handling is skipped because it has already been created',
-        block.timestamp,
-        eventsData.event
+      Logger.warn('Withdrew event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
       );
 
       return;
@@ -116,20 +123,24 @@ export class PensionFundController {
   }
 
   protected async walletUpdatedEventHandler(eventsData: EventData) {
-    const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+    const user = eventsData.returnValues.user.toLowerCase();
 
     Logger.debug(
       'Wallet updated event handler: timestamp "%s", event data o%',
-      block.timestamp, eventsData
+      timestamp,
+      eventsData,
     );
 
     const [, isCreated] = await PensionFundWalletUpdatedEvent.findOrCreate({
-      where: { transactionHash: eventsData.transactionHash },
+      where: { transactionHash, network: this.network },
       defaults: {
-        timestamp: block.timestamp,
+        user,
+        timestamp,
+        transactionHash,
         blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash.toLowerCase(),
-        user: eventsData.returnValues.user.toLowerCase(),
         newFee: eventsData.returnValues.newFee,
         unlockDate: eventsData.returnValues.unlockDate,
         event: PensionFundEvent.WalletUpdated,
@@ -138,9 +149,9 @@ export class PensionFundController {
     });
 
     if (!isCreated) {
-      Logger.warn('Wallet updated event handler (timestamp "%s"): event "%s" handling is skipped because it has already been created',
-        block.timestamp,
-        eventsData.event
+      Logger.warn('Wallet updated event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
       );
 
       return;

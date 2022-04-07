@@ -54,7 +54,7 @@ export class ChildProcessProvider implements IContractProvider {
   public startListener() {
     this.initFatherProcessListener();
 
-    Logger.info('Start Pension Fund listener on contract: "%s"', this.contract.options.address);
+    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
