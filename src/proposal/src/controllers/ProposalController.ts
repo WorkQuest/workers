@@ -64,7 +64,7 @@ export class ProposalController implements IController {
       where: { nonce: eventsData.returnValues.nonce },
     });
 
-    const [_, isCreated] = await ProposalCreatedEvent.findOrCreate({
+    const [, isCreated] = await ProposalCreatedEvent.findOrCreate({
       where: {
         transactionHash,
         network: this.network,
@@ -105,6 +105,11 @@ export class ProposalController implements IController {
       title: proposal.title,
       description: proposal.description,
     });
+
+    Logger.debug('Proposal created event handler (event timestamp "%s"): Discussion was created for Proposal (title: "%s")',
+      timestamp,
+      proposal.title
+    )
 
     return Promise.all([
       discussion.$set('medias', proposal.medias), /** Duplicate medias  */
@@ -235,10 +240,7 @@ export class ProposalController implements IController {
       }
     }
 
-    await ProposalParseBlock.update(
-      { lastParsedBlock: lastBlockNumber },
-      { where: { network: this.network } }
-    );
+    await this.updateLastParseBlock(lastBlockNumber);
 
     if (!isGotAllEvents) {
       throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);

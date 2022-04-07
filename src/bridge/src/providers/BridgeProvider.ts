@@ -31,6 +31,8 @@ export class BridgeProvider implements IContractProvider {
 
   public startListener() {
     this.contractEventsListenerInit();
+
+    Logger.info('Start bridge listener on contract: "%s"', this.contract.options.address);
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {

@@ -43,6 +43,15 @@ export class ReferralController implements IController {
     }
   }
 
+  protected updateBlockViewHeight(blockHeight: number) {
+    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+
+    return ReferralProgramParseBlock.update(
+      { lastParsedBlock: blockHeight },
+      { where: { network: this.network } }
+    );
+  }
+
   protected async registeredAffiliateEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
@@ -55,7 +64,7 @@ export class ReferralController implements IController {
       timestamp, eventsData
     );
 
-    const [_, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
+    const [, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         timestamp,
@@ -86,10 +95,7 @@ export class ReferralController implements IController {
       Wallet.findOne({
         where: { address: referralAddress },
       }),
-      ReferralProgramParseBlock.update(
-        { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network } },
-      ),
+      this.updateBlockViewHeight(eventsData.blockNumber)
     ]);
 
     if (!referralWallet) {
@@ -151,10 +157,7 @@ export class ReferralController implements IController {
       Wallet.findOne({
         where: { address: referralAddress },
       }),
-      ReferralProgramParseBlock.update(
-        { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network } },
-      ),
+      this.updateBlockViewHeight(eventsData.blockNumber)
     ]);
 
     if (!referralWallet) {
@@ -214,10 +217,7 @@ export class ReferralController implements IController {
       Wallet.findOne({
         where: { address: affiliateAddress },
       }),
-      ReferralProgramParseBlock.update(
-        { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network } },
-      ),
+      this.updateBlockViewHeight(eventsData.blockNumber)
     ]);
 
     if (!affiliateWallet) {
@@ -250,10 +250,7 @@ export class ReferralController implements IController {
       }
     }
 
-    await ReferralProgramParseBlock.update(
-      { lastParsedBlock: lastBlockNumber },
-      { where: {network: this.network} },
-    );
+    await this.updateBlockViewHeight(lastBlockNumber);
 
     if (!isGotAllEvents) {
       throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);

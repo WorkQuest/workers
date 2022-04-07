@@ -2,6 +2,7 @@ import { Clients, IContractProvider } from "../providers/types";
 import { PensionFundEvent } from './types';
 import { EventData } from 'web3-eth-contract';
 import { Logger } from "../../logger/pino";
+import { Op } from "sequelize";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
@@ -37,10 +38,26 @@ export class PensionFundController {
     }
   }
 
+  protected updateBlockViewHeight(blockHeight: number) {
+    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+
+    return PensionFundBlockInfo.update(
+      { lastParsedBlock: blockHeight }, {
+      where: {
+        network: this.network,
+      }
+    });
+  }
+
   protected async receivedEventHandler(eventsData: EventData) {
     const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
-    await PensionFundReceivedEvent.findOrCreate({
+    Logger.debug(
+      'Received event handler: timestamp "%s", event data o%',
+      block.timestamp, eventsData
+    );
+
+    const [, isCreated] = await PensionFundReceivedEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
         timestamp: block.timestamp,
@@ -53,12 +70,16 @@ export class PensionFundController {
       },
     });
 
-    await PensionFundBlockInfo.update(
-      { lastParsedBlock: eventsData.blockNumber },
-      {
-        where: { network: this.network },
-      },
-    );
+    if (!isCreated) {
+      Logger.warn('Received event handler (timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        block.timestamp,
+        eventsData.event
+      );
+
+      return;
+    }
+
+    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   protected async withdrewEventHandler(eventsData: EventData) {
@@ -69,7 +90,7 @@ export class PensionFundController {
       block.timestamp, eventsData
     );
 
-    await PensionFundWithdrewEvent.findOrCreate({
+    const [, isCreated] = await PensionFundWithdrewEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
         timestamp: block.timestamp,
@@ -82,12 +103,16 @@ export class PensionFundController {
       },
     });
 
-    await PensionFundBlockInfo.update(
-      { lastParsedBlock: eventsData.blockNumber },
-      {
-        where: { network: this.network },
-      },
-    );
+    if (!isCreated) {
+      Logger.warn('Withdrew event handler (timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        block.timestamp,
+        eventsData.event
+      );
+
+      return;
+    }
+
+    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   protected async walletUpdatedEventHandler(eventsData: EventData) {
@@ -98,7 +123,7 @@ export class PensionFundController {
       block.timestamp, eventsData
     );
 
-    await PensionFundWalletUpdatedEvent.findOrCreate({
+    const [, isCreated] = await PensionFundWalletUpdatedEvent.findOrCreate({
       where: { transactionHash: eventsData.transactionHash },
       defaults: {
         timestamp: block.timestamp,
@@ -112,12 +137,16 @@ export class PensionFundController {
       },
     });
 
-    await PensionFundBlockInfo.update(
-      { lastParsedBlock: eventsData.blockNumber },
-      {
-        where: { network: this.network },
-      },
-    );
+    if (!isCreated) {
+      Logger.warn('Wallet updated event handler (timestamp "%s"): event "%s" handling is skipped because it has already been created',
+        block.timestamp,
+        eventsData.event
+      );
+
+      return;
+    }
+
+    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
@@ -135,12 +164,7 @@ export class PensionFundController {
       }
     }
 
-    await PensionFundBlockInfo.update(
-      { lastParsedBlock: lastBlockNumber },
-      {
-        where: { network: this.network },
-      },
-    );
+    await this.updateBlockViewHeight(lastBlockNumber);
 
     if (!isGotAllEvents) {
       throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);

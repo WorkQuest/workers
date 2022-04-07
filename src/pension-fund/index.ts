@@ -22,6 +22,10 @@ export async function init() {
     parseEventsFromHeight,
   } = configPensionFund.defaultConfigNetwork();
 
+  Logger.debug('Pension Fund starts on "%s" network', configPensionFund.network);
+  Logger.debug('WorkQuest Network RPC URL: "%s"', linkRpcProvider);
+  Logger.debug('WorkQuest Network contract address: "%s"', contractAddress);
+
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
   const web3 = new Web3(rpcProvider);
@@ -42,8 +46,6 @@ export async function init() {
   });
 
   await pensionFundController.collectAllUncollectedEvents(pensionFundBlockInfo.lastParsedBlock);
-
-  Logger.info('Start pension fund listener');
 
   await pensionFundProvider.startListener();
 }

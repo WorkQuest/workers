@@ -22,9 +22,13 @@ export async function init() {
 
   const networks = [configBridge.bscNetwork, configBridge.ethereumNetwork, configBridge.workQuestNetwork];
 
+  Logger.debug('Bridge starts on 3 networks: "%s", "%s", "%s"', ...networks);
+
   const wqDefaultConfig = configBridge.defaultWqConfigNetwork();
   const bscDefaultConfig = configBridge.defaultBscConfigNetwork();
   const ethDefaultConfig = configBridge.defaultEthConfigNetwork();
+
+  Logger.debug('WorkQuest Network RPC URL: "%s"', wqDefaultConfig.linkRpcProvider);
 
   const wqRpcProvider = new Web3.providers.HttpProvider(wqDefaultConfig.linkRpcProvider);
 
@@ -59,6 +63,10 @@ export async function init() {
   const bridgeWqContract = new web3Wq.eth.Contract(abi, wqDefaultConfig.contractAddress);
   const bridgeBscContract = new web3Bsc.eth.Contract(abi, bscDefaultConfig.contractAddress);
   const bridgeEthContract = new web3Eth.eth.Contract(abi, ethDefaultConfig.contractAddress);
+
+  Logger.debug('WorkQuest Network contract address: "%s"', wqDefaultConfig.contractAddress);
+  Logger.debug('Binance Smart Chain contract address: "%s"', bscDefaultConfig.contractAddress);
+  Logger.debug('Ethereum Network contract address: "%s"', ethDefaultConfig.contractAddress);
 
   const wqClients: Clients = { web3: web3Wq };
   const bscClients: Clients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
@@ -106,8 +114,6 @@ export async function init() {
     bscBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridge.bscNetwork)),
     ethBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridge.ethereumNetwork)),
   ]);
-
-  Logger.info('Start bridge listener');
 
   wqBridgeProvider.startListener();
   bscBridgeProvider.startListener();
