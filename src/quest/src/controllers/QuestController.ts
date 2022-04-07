@@ -17,6 +17,8 @@ import {
   BlockchainNetworks,
   QuestAssignedEvent,
   QuestJobDoneStatus,
+  QuestJobEditedEvent,
+  QuestJobEditedStatus,
   QuestJobStartedEvent,
   QuestJobFinishedEvent,
   QuestJobCancelledEvent,
@@ -54,6 +56,8 @@ export class QuestController implements IController {
       await this.jobFinishedEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobCancelled) {
       await this.jobCancelledEventHandler(eventsData);
+    } else if (eventsData.event === QuestEvent.JobEdited) {
+      await this.jobEditedEventHandler(eventsData);
     }
   }
 
@@ -65,6 +69,61 @@ export class QuestController implements IController {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
       }
+    });
+  }
+
+  protected async jobEditedEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
+
+    const [questJobEditedEvent, isCreated] = await QuestJobEditedEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      }, defaults: {
+        timestamp,
+        contractAddress,
+        transactionHash,
+        cost: eventsData.returnValues.cost,
+        blockNumber: eventsData.blockNumber,
+        status: QuestJobCancelledEventStatus.Successfully,
+        network: this.network,
+      },
+    });
+
+    if (!isCreated) {
+      Logger.warn('Job edited event handler: event "%s" handling is skipped because it has already been created',
+        eventsData.event,
+      );
+
+      return;
+    }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questModelController) {
+      Logger.warn('Job edited event handler: event "%s" handling is skipped because quest entity not found',
+        eventsData.event,
+      );
+
+      return questJobEditedEvent.update({ status: QuestJobEditedStatus.QuestEntityNotFound });
+    }
+    if (!questModelController.statusDoesMatch(
+      QuestStatus.Recruitment,
+    )) {
+      Logger.warn('Job edited event handler: event "%s" handling is skipped because quest status does not match',
+        eventsData.event,
+      );
+
+      return questJobEditedEvent.update({ status: QuestJobEditedStatus.QuestStatusDoesNotMatch });
+    }
+
+    await questModelController.editQuest({
+      price: eventsData.returnValues.cost,
     });
   }
 
