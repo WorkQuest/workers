@@ -23,7 +23,7 @@ export class RaiseViewProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    // Logger.info('Parent process listener: message "onEvents", payload %o', payload);
+    Logger.info('Raise-view listener: message "onEventFromBroker", payload %o', payload);
 
     const factoryAddress = configRaiseView
       .defaultConfigNetwork()
@@ -35,6 +35,10 @@ export class RaiseViewProvider implements IContractProvider {
       .filter(tx => tx.to && tx.to.toLowerCase() === factoryAddress)
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
+    Logger.info('Raise-view listener provider: number of contract transactions "%s"', tracedTxs.length);
+    Logger.debug('Raise-view listener provider: contract transactions %o', tracedTxs);
+
+
     if (tracedTxs.length === 0) {
       return;
     }
@@ -44,9 +48,13 @@ export class RaiseViewProvider implements IContractProvider {
       fromBlock: tracedTxs[0].blockNumber,
     });
 
-    Logger.info('Received events from contract. Range: from block "%s", to block "%s". Events: "%s"',
-      '',
-      '',
+    const fromBlock = tracedTxs[0].blockNumber;
+    const toBlock = tracedTxs[tracedTxs.length - 1].blockNumber;
+
+    Logger.debug('Raise-view listener provider: contract events %o', eventsData);
+    Logger.info('Raise-view listener provider: range from block "%s", to block "%s". Events number: "%s"',
+      fromBlock,
+      toBlock,
       eventsData.length,
     );
 

@@ -65,17 +65,45 @@ export class RaiseViewController implements IController {
 
     const quest = await Quest.findOne({ where: { contractAddress: questContractAddress } });
 
-    /** TODO тут нужно вначале делать findeOrCreate RaiseViewPromotedQuestEvent,
-     * потом проверять isCreated (если уже создано кидать warn),
-     * потом проверять quest (если не нашел кидать warn и обновлять блоки updateBlockViewHeight)
-     * QuestRaiseView findeOrCreate на всякий
-    **/
-    if (!quest) {
-      Logger.warn('Quest contract address is invalid', questContractAddress, eventsData);
+    const [raiseViewEvent, isCreatedRaiseViewEvent] = await RaiseViewPromotedQuestEvent.findOrCreate({
+      where: {
+        blockNumber: eventsData.blockNumber,
+        transactionHash: eventsData.transactionHash,
+        network: this.network,
+        quest: questContractAddress,
+        tariff,
+        period,
+        timestamp,
+        promotedAt,
+      },
+      defaults: {
+        blockNumber: eventsData.blockNumber,
+        transactionHash: eventsData.transactionHash,
+        network: this.network,
+        quest: questContractAddress,
+        tariff,
+        period,
+        timestamp,
+        promotedAt,
+      }
+    });
+
+    if (!isCreatedRaiseViewEvent) {
+      Logger.warn('Raise-view Quest Promoted event already exists', questContractAddress, eventsData);
+      await this.updateBlockViewHeight(eventsData.blockNumber);
       return;
     }
 
-    const questRaiseView = await QuestRaiseView.findOne({ where: { questId: quest.id } });
+    if (!quest) {
+      Logger.warn('Quest contract address is invalid', questContractAddress, eventsData);
+      await this.updateBlockViewHeight(eventsData.blockNumber);
+      return;
+    }
+
+    const [questRaiseView, isCreated] = await QuestRaiseView.findOrCreate({
+      where: { questId: quest.id },
+      defaults: { questId: quest.id },
+    });
 
     if (questRaiseView.status === QuestRaiseStatus.Paid) {
       Logger.warn('Quest raise view is still active', questContractAddress, eventsData);
@@ -88,17 +116,6 @@ export class RaiseViewController implements IController {
       duration: period,
       type: tariff,
       endedAt,
-    });
-
-    await RaiseViewPromotedQuestEvent.create({
-      blockNumber: eventsData.blockNumber,
-      transactionHash: eventsData.transactionHash,
-      network: this.network,
-      quest: questContractAddress,
-      tariff,
-      period,
-      timestamp,
-      promotedAt,
     });
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
