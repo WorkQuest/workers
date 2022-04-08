@@ -61,6 +61,7 @@ jobs:
           ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
 
           DB_LINK=${{ secrets.PROD_DB_LINK }} \
+          RABBIT_LINK=${{ secrets.PROD_RABBIT_LINK }} \
 
           BLOCKCHAIN_NETWORK=${{ secrets.PROD_BLOCKCHAIN_NETWORK }} \
           BSC_BLOCKCHAIN_NETWORK=${{ secrets.PROD_BSC_BLOCKCHAIN_NETWORK }} \
@@ -147,6 +148,7 @@ jobs:
           ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
 
           DB_LINK=${{ secrets.DEV_DB_LINK }} \
+          RABBIT_LINK=${{ secrets.DEV_RABBIT_LINK }} \
 
           NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.DEV_NOTIFICATION_MESSAGE_BROKER_LINK }} \
 
@@ -189,7 +191,13 @@ jobs:
           WORK_QUEST_DEV_NETWORK_REFERRAL_CONTRACT_ADDRESS=${{ secrets.DEV_WORK_QUEST_DEV_NETWORK_REFERRAL_CONTRACT_ADDRESS }} \
           WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT=${{ secrets.DEV_WORK_QUEST_DEV_NETWORK_REFERRAL_PARSE_EVENTS_FROM_HEIGHT }} \
 
-          PM2_INIT_WORKER_NAME=${{ secrets.DEV_PM2_INIT_WORKER_NAME }} \          
+          PM2_FETCHER_WORKER_NAME=${{ secrets.DEV_PM2_FETCHER_WORKER_NAME }} \   
+          PM2_BRIDGE_WORKER_NAME=${{ secrets.DEV_PM2_BRIDGE_WORKER_NAME }} \
+          PM2_LIQUIDITY_WORKER_NAME=${{ secrets.DEV_PM2_LIQUIDITY_WORKER_NAME }} \
+          PM2_PROPOSAL_WORKER_NAME=${{ secrets.DEV_PM2_PROPOSAL_WORKER_NAME }} \
+          PM2_WQT_WBNB_WORKER_NAME=${{ secrets.DEV_PM2_WQT_WBNB_WORKER_NAME }} \
+          PM2_PENSION_FUND_WORKER_NAME=${{ secrets.DEV_PM2_PENSION_FUND_WORKER_NAME }} \
+          PM2_REFERRAL_WORKER_NAME=${{ secrets.DEV_PM2_REFERRAL_WORKER_NAME }} \
           
           WORKERS_BIN=${{ secrets.DEV_WORKERS_BIN }} \
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;
@@ -223,6 +231,7 @@ jobs:
           ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
 
           DB_LINK=${{ secrets.DB_LINK }} \
+          RABBIT_LINK=${{ secrets.RABBIT_LINK }} \
 
           NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.NOTIFICATION_MESSAGE_BROKER_LINK }} \
 

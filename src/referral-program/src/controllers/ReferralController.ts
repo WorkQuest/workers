@@ -2,6 +2,7 @@ import {IController, ReferralEvent} from './types';
 import {EventData} from 'web3-eth-contract';
 import {Clients, IContractProvider} from "../providers/types";
 import {ReferralMessageBroker} from "./BrokerController";
+import { Logger } from "../../logger/pino";
 import {
   Wallet,
   RewardStatus,
@@ -27,6 +28,12 @@ export class ReferralController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
+    Logger.info('Event handler: name %s, block number %s, address %s',
+      eventsData.event,
+      eventsData.blockNumber,
+      eventsData.address,
+    );
+
     if (eventsData.event === ReferralEvent.PaidReferral) {
       return this.paidReferralEventHandler(eventsData);
     } else if (eventsData.event === ReferralEvent.RegisteredAffiliate) {
@@ -36,6 +43,15 @@ export class ReferralController implements IController {
     }
   }
 
+  protected updateBlockViewHeight(blockHeight: number) {
+    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+
+    return ReferralProgramParseBlock.update(
+      { lastParsedBlock: blockHeight },
+      { where: { network: this.network } }
+    );
+  }
+
   protected async registeredAffiliateEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
@@ -43,7 +59,13 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
-    const [_, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
+    Logger.debug(
+      'Registered affiliate event handler: timestamp "%s", event data o%',
+      timestamp,
+      eventsData,
+    );
+
+    const [, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         timestamp,
@@ -56,6 +78,11 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Registered affiliate event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
       return;
     }
 
@@ -69,14 +96,16 @@ export class ReferralController implements IController {
       Wallet.findOne({
         where: { address: referralAddress },
       }),
-      ReferralProgramParseBlock.update(
-        { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network } },
-      ),
+      this.updateBlockViewHeight(eventsData.blockNumber),
     ]);
 
     if (!referralWallet) {
-      return; // TODO add pino
+      Logger.warn('Registered Affiliate event handler: event "%s" (tx hash "%s") handling is skipped because referral wallet not found',
+        eventsData.event,
+        transactionHash,
+      );
+
+      return;
     }
 
     return ReferralProgramReferral.update(
@@ -92,6 +121,11 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
+    Logger.debug('Paid referral event handler: timestamp "%s", event data o%',
+      timestamp,
+      eventsData,
+    );
+
     const [_, isCreated] = await ReferralProgramEventPaidReferral.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
@@ -106,6 +140,11 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Paid referral event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
       return;
     }
 
@@ -119,14 +158,16 @@ export class ReferralController implements IController {
       Wallet.findOne({
         where: { address: referralAddress },
       }),
-      ReferralProgramParseBlock.update(
-        { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network } },
-      ),
+      this.updateBlockViewHeight(eventsData.blockNumber)
     ]);
 
     if (!referralWallet) {
-      return; // TODO add pino
+      Logger.warn('Paid referral event handler: event "%s" (tx hash "%s") handling is skipped because referral wallet not found',
+        eventsData.event,
+        transactionHash,
+      );
+
+      return;
     }
 
     await ReferralProgramReferral.update(
@@ -141,6 +182,11 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
+    Logger.debug(
+      'Reward claimed event handler: timestamp "%s", event data o%',
+      timestamp, eventsData
+    );
+
     const [_, isCreated] = await ReferralProgramEventRewardClaimed.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
@@ -154,6 +200,11 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Reward claimed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
       return;
     }
 
@@ -167,14 +218,16 @@ export class ReferralController implements IController {
       Wallet.findOne({
         where: { address: affiliateAddress },
       }),
-      ReferralProgramParseBlock.update(
-        { lastParsedBlock: eventsData.blockNumber },
-        { where: { network: this.network } },
-      ),
+      this.updateBlockViewHeight(eventsData.blockNumber)
     ]);
 
     if (!affiliateWallet) {
-      return; // TODO add pino
+      Logger.warn('Reward claimed event handler: event "%s" (tx hash "%s") handling is skipped because affiliate wallet not found',
+        eventsData.event,
+        transactionHash,
+      );
+
+      return;
     }
 
     await ReferralProgramAffiliate.update(
@@ -184,24 +237,24 @@ export class ReferralController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+
+    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
         await this.onEvent(event);
       } catch (e) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
+        Logger.error(e, 'Event processing ended with error');
+
         throw e;
       }
     }
 
-    await ReferralProgramParseBlock.update(
-      { lastParsedBlock: lastBlockNumber },
-      { where: {network: this.network} },
-    );
+    await this.updateBlockViewHeight(lastBlockNumber);
 
-    if (!isGotAllEvents) {
-      throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);
+    if (error) {
+      throw error;
     }
   }
 }

@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 config({ path: __dirname + '/../../../.env.bridge' });
 
 export default {
+  logLevel: 'debug',
   workQuestNetwork: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
   ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork

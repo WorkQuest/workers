@@ -16,8 +16,8 @@
     "PensionFund:compile": "tsc && node ./build/pension-fund/index.js",
     "Referral:start": "nodemon -e ts --exec \"npm run Referral:compile\"",
     "Referral:compile": "tsc && node ./build/referral-program/index.js",
-    "init:start": "nodemon -e ts --exec \"npm run init:compile\"",
-    "init:compile": "tsc && node ./build/index.js"
+    "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
+    "fetcher:compile": "tsc && node ./build/fetchers/index.js"
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
@@ -31,6 +31,8 @@
     "nodemon": "^2.0.15",
     "pg": "^8.7.1",
     "pg-hstore": "^2.3.4",
+    "pino": "^7.9.2",
+    "pino-pretty": "^7.6.0",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^6.6.2",
     "web3": "^1.7.0"

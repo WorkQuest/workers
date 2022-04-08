@@ -1,10 +1,11 @@
-import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, IContractProvider, Clients } from "./types";
 import { Logger } from "../../logger/pino";
+import { Contract, EventData } from "web3-eth-contract";
+import { onEventCallBack, IContractProvider } from "./types";
+import { Clients } from "../../src/providers/types";
 import { Transaction } from "web3-eth";
-import configReferral from "../../config/config.referral";
+import configPensionFund from "../../config/config.pensionFund";
 
-export class ReferralProvider implements IContractProvider {
+export class PensionFundProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
@@ -19,14 +20,14 @@ export class ReferralProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const referralProgramAddress = configReferral
+    const pensionFundAddress = configPensionFund
       .defaultConfigNetwork()
       .contractAddress
       .toLowerCase();
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === referralProgramAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === pensionFundAddress)
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {
@@ -79,13 +80,11 @@ export class ReferralProvider implements IContractProvider {
           Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
 
           break;
-
         }
 
         Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
-
 
         collectedEvents.push(...eventsData);
 

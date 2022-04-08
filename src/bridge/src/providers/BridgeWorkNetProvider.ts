@@ -1,55 +1,58 @@
-import {onEventCallBack} from "./types";
-import {Clients, IContractProvider} from "./types";
-import {Contract, EventData} from "web3-eth-contract";
+import { Contract, EventData } from "web3-eth-contract";
+import { onEventCallBack, IContractProvider, Clients } from "./types";
+import { Logger } from "../../logger/pino";
+import { Transaction } from "web3-eth";
+import configBridge from "../../config/config.bridge";
 
 export class BridgeWorkNetProvider implements IContractProvider {
-
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
 
-  constructor(
+  constructor (
     public readonly clients: Clients,
     public readonly contract: Contract,
-  ) {
+  ) {};
+
+  private async initBrokerListener() {
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this))
   }
 
-  private contractTransactionsListenerInit() {
-    // TODO WHYYYYY????  NOT WORKING!!!!!
-    const query = `tm.event='Tx' AND ethereum_tx.recipient='0x841e6d5991F67D8c9F88a6F9726246774a4ab376'`;
+  private async onEventFromBroker(payload: { transactions: Transaction[] }) {
+    const bridgeAddress = configBridge
+      .defaultWqConfigNetwork()
+      .contractAddress
+      .toLowerCase();
 
-    const stream = this.clients.tendermintWsClient.listen({
-      id: 0,
-      jsonrpc: '2.0',
-      method: 'subscribe',
-      params: { query },
+    const tracedTxs = payload
+      .transactions
+      .filter(tx => tx.to && tx.to.toLowerCase() === bridgeAddress)
+      .sort((a, b) => a.blockNumber = b.blockNumber);
+
+    if (tracedTxs.length === 0) {
+      return;
+    }
+
+    const eventsData = await this.contract.getPastEvents('allEvents', {
+      toBlock: tracedTxs[tracedTxs.length - 1].blockNumber,
+      fromBlock: tracedTxs[0].blockNumber,
     });
 
-    stream.addListener({
-      next: data => this.onEventTendermintData(data),
-      error: err => console.error(err),
-      complete: () => console.log('completed'),
-    });
-  }
-
-  private async onEventTendermintData(txData) {
-    console.log(txData);
-    const blockTxHeight = txData["data"]["value"]['TxResult']["height"] as string;
-    const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock: blockTxHeight, toBlock: blockTxHeight });
-
-    await this.onEventData(eventsData[0]);
+    return Promise.all(
+      eventsData.map(async data => this.onEventData(data))
+    );
   }
 
   private onEventData(eventData) {
     return Promise.all(
-      this.onEventCallBacks.map(async (callBack) => {
-        return callBack(eventData);
-      }),
+      this.onEventCallBacks.map(async callBack => callBack(eventData))
     );
   }
 
-  public startListener() {
-    this.contractTransactionsListenerInit();
+  public async startListener() {
+    await this.initBrokerListener();
+
+    Logger.info('Start bridge listener on contract: "%s"', this.contract.options.address);
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
@@ -66,29 +69,38 @@ export class BridgeWorkNetProvider implements IContractProvider {
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
-          console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
-          collectedEvents.push(...eventsData); break;
+          collectedEvents.push(...eventsData);
+
+          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+          Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
+
+          break;
         }
 
-        console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+        Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
         collectedEvents.push(...eventsData);
 
+        Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;
       }
     } catch (error) {
-      console.error(error);
-      console.error('GetAllEvents: Last block: ', fromBlock);
+      Logger.error(error, 'Collection of all events ended with an error.' +
+        ' Collected events to block number: "%s". Total collected events',
+        fromBlock, collectedEvents.length,
+      );
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
+      return { collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
+    return { collectedEvents, lastBlockNumber };
   }
 }
