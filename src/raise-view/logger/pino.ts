@@ -11,4 +11,4 @@ export const Logger = pino({
       translateTime: "dd-mm-yyyy HH:MM:ss",
     },
   },
-}).child({ workerName: 'Quest-factory' });
+}).child({ workerName: 'Raise-view' });

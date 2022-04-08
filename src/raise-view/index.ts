@@ -16,33 +16,23 @@ import configDatabase from "./config/configDatabase";
 import { RaiseViewProvider } from "./src/providers/RaiseViewProvider";
 import { RaiseViewController } from "./src/controllers/RaiseViewController";
 
-const abiFilePath = path.join(__dirname, '../../src/quest-factory/abi/QuestFactory.json');
+const abiFilePath = path.join(__dirname, '../../src/raise-view/abi/WQPromotion.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  Logger.info('Start worker "Quest factory". Network: "%s"', configRaiseView.network);
+  Logger.info('Start worker "Raise view". Network: "%s"', configRaiseView.network);
 
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const { number, url } = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider, contractAddress, parseEventsFromHeight } = configRaiseView.defaultConfigNetwork();
 
   Logger.info('Listening on contract address: "%s"', contractAddress);
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
 
-  const redisClient = createClient({ url, database: number });
-
-  redisClient.on('error', (e) => {
-    Logger.error(e, 'Redis is stopped with error');
-    process.exit(-1);
-  });
-
-  await redisClient.connect();
-
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-  const questFactoryContract = new web3.eth.Contract(abi, contractAddress);
+  const raiseViewContract = new web3.eth.Contract(abi, contractAddress);
 
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
+  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'raise-view');
   await transactionsBroker.init()
 
   const clients: RaiseViewClients = { web3, transactionsBroker };
@@ -61,15 +51,15 @@ export async function init() {
     await raiseViewBlockInfo.save();
   }
 
-  const questFactoryProvider = new RaiseViewProvider(clients, questFactoryContract);
-  const questFactoryController = new RaiseViewController(clients, questFactoryProvider, configRaiseView.network as BlockchainNetworks);
+  const raiseViewProvider = new RaiseViewProvider(clients, raiseViewContract);
+  const raiseViewController = new RaiseViewController(clients, raiseViewProvider, configRaiseView.network as BlockchainNetworks);
 
-  await questFactoryController.collectAllUncollectedEvents(raiseViewBlockInfo.lastParsedBlock);
+  await raiseViewController.collectAllUncollectedEvents(raiseViewBlockInfo.lastParsedBlock);
 
-  await questFactoryProvider.startListener();
+  await raiseViewProvider.startListener();
 }
 
 init().catch(e => {
-  Logger.error(e, 'Worker "Quest factory" is stopped with error');
+  Logger.error(e, 'Worker "Raise view" is stopped with error');
   process.exit(-1);
 });

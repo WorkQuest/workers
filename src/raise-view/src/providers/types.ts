@@ -1,4 +1,4 @@
-import { IContractProvider, onEventCallBack, Clients, IContractCacheProvider } from '../../../types';
+import { IContractProvider, onEventCallBack, Clients } from '../../../types';
 import {WebsocketClient as TendermintWebsocketClient} from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
 import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 
