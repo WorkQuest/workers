@@ -54,7 +54,7 @@ export class BridgeController implements IController {
     const recipient = eventsData.returnValues.recipient.toLowerCase();
 
     Logger.debug(
-      'Swap redeemed event handler: timestamp "%s", event data o%',
+      'Swap redeemed event handler: timestamp "%s", event data %o',
       eventsData.returnValues.timestamp,
       eventsData,
     );
@@ -113,7 +113,7 @@ export class BridgeController implements IController {
     const recipient = eventsData.returnValues.recipient.toLowerCase();
 
     Logger.debug(
-      'Swap initialized event handler: timestamp "%s", event data o%',
+      'Swap initialized event handler: timestamp "%s", event data %o',
       eventsData.returnValues.timestamp, eventsData
     );
 
