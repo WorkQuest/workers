@@ -1,15 +1,16 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
+import { Logger } from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {BridgeEvents, IController} from "./types";
 import configBridge from "../../config/config.bridge";
 import {Clients, IContractProvider} from "../providers/types";
+import { BridgeMessageBroker } from "./BrokerController";
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,
   BridgeParserBlockInfo,
 } from "@workquest/database-models/lib/models";
-import { BridgeMessageBroker } from "./BrokerController";
 
 export class BridgeController implements IController {
   constructor(
@@ -23,6 +24,12 @@ export class BridgeController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
+    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+      eventsData.event,
+      eventsData.blockNumber,
+      eventsData.address,
+    );
+
     if (eventsData.event === BridgeEvents.swapRedeemed) {
       return this.swapRedeemedEventHandler(eventsData);
     } else if (eventsData.event === BridgeEvents.swapInitialized) {
@@ -30,8 +37,9 @@ export class BridgeController implements IController {
     }
   }
 
-  //TODO Проверь тут плиз условие Op.lt
   protected updateBlockViewHeight(blockHeight: number) {
+    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+
     return BridgeParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
@@ -44,6 +52,12 @@ export class BridgeController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const initiator = eventsData.returnValues.sender.toLowerCase();
     const recipient = eventsData.returnValues.recipient.toLowerCase();
+
+    Logger.debug(
+      'Swap redeemed event handler: timestamp "%s", event data o%',
+      eventsData.returnValues.timestamp,
+      eventsData,
+    );
 
     /** Не трогать последовательность */
     const messageHash = this.clients.web3.eth.accounts.sign(Web3.utils.soliditySha3(
@@ -76,6 +90,11 @@ export class BridgeController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Swap redeemed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
       return;
     }
 
@@ -92,6 +111,11 @@ export class BridgeController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const initiator = eventsData.returnValues.sender.toLowerCase();
     const recipient = eventsData.returnValues.recipient.toLowerCase();
+
+    Logger.debug(
+      'Swap initialized event handler: timestamp "%s", event data o%',
+      eventsData.returnValues.timestamp, eventsData
+    );
 
     /** Не трогать последовательность */
     const messageHash = this.clients.web3.eth.accounts.sign(Web3.utils.soliditySha3(
@@ -124,6 +148,11 @@ export class BridgeController implements IController {
     });
 
     if (!isCreated) {
+      Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
       return;
     }
 
@@ -137,13 +166,16 @@ export class BridgeController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+
     const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
         await this.onEvent(event);
       } catch (e) {
-        console.error('Failed to process all events. Last processed block: ' + event.blockNumber);
+        Logger.error(e, 'Event processing ended with error');
+
         throw e;
       }
     }

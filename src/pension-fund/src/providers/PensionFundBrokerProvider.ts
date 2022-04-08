@@ -1,3 +1,4 @@
+import { Logger } from "../../logger/pino";
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider } from "./types";
 import { Clients } from "../../src/providers/types";
@@ -51,6 +52,8 @@ export class PensionFundBrokerProvider implements IContractProvider {
 
   public async startListener() {
     await this.initBrokerListener();
+
+    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
@@ -67,25 +70,34 @@ export class PensionFundBrokerProvider implements IContractProvider {
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
-          console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
-          collectedEvents.push(...eventsData); break;
+          collectedEvents.push(...eventsData);
+
+          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+          Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
+
+          break;
         }
 
-        console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+        Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
         collectedEvents.push(...eventsData);
 
+        Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;
       }
     } catch (error) {
-      console.error(error);
-      console.error('GetAllEvents: Last block: ', fromBlock);
+      Logger.error(error, 'Collection of all events ended with an error.' +
+        ' Collected events to block number: "%s". Total collected events',
+        fromBlock, collectedEvents.length,
+      );
 
       return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
     }

@@ -7,6 +7,7 @@ import { ReferralController } from "./src/controllers/ReferralController";
 import { ReferralMessageBroker } from "./src/controllers/BrokerController";
 import { BlockchainNetworks, ReferralProgramParseBlock, initDatabase } from '@workquest/database-models/lib/models';
 import {Clients} from "./src/providers/types";
+import { Logger } from "./logger/pino";
 import { ReferralBrokerProvider } from "./src/providers/ReferralBrokerProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 
@@ -25,6 +26,10 @@ export async function init() {
     contractAddress,
     parseEventsFromHeight,
   } = configReferral.defaultConfigNetwork();
+
+  Logger.debug('Referral Program starts on "%s" network', configReferral.network);
+  Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
+  Logger.debug('WorkQuest network contract address: "%s"', contractAddress);
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
@@ -47,13 +52,11 @@ export async function init() {
 
   await referralController.collectAllUncollectedEvents(referralBlockInfo.lastParsedBlock);
 
-  console.log('Start referral-program program listener');
-
   await referralProvider.startListener();
 }
 
 init().catch(e => {
-  console.error(e);
-  process.exit(e);
+  Logger.error(e, 'Worker "Referral Program" is stopped with error');
+  process.exit(-1);
 });
 
