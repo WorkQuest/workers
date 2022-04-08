@@ -20,5 +20,5 @@ export interface IContractProvider {
 
   startListener();
   subscribeOnEvents(onEventCallBack: onEventCallBack): void;
-  getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[]; isGotAllEvents: boolean, lastBlockNumber: number }>;
+  getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[]; error?: any, lastBlockNumber: number }>;
 }

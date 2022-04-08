@@ -187,7 +187,7 @@ export class WqtWbnbController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
+    const { collectedEvents, error, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
@@ -201,8 +201,8 @@ export class WqtWbnbController {
 
     await this.updateBlockViewHeight(lastBlockNumber);
 
-    if (!isGotAllEvents) {
-      throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);
+    if (error) {
+      throw error;
     }
   }
 }

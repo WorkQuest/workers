@@ -4,7 +4,7 @@ import Web3 from 'web3';
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
 import { ProposalController } from "./src/controllers/ProposalController";
-import { ProposalBrokerProvider } from './src/providers/ProposalBrokerProvider';
+import { ProposalProvider } from './src/providers/ProposalProvider';
 import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
 import { Clients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
@@ -37,7 +37,7 @@ export async function init() {
 
   const proposalContract = new web3.eth.Contract(abi, contractAddress);
 
-  const proposalProvider = new ProposalBrokerProvider(clients, proposalContract);
+  const proposalProvider = new ProposalProvider(clients, proposalContract);
   const proposalController = new ProposalController(clients, configProposal.network as BlockchainNetworks, proposalProvider);
 
   const [proposalBlockInfo] = await ProposalParseBlock.findOrCreate({

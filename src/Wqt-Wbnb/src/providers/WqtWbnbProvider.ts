@@ -73,9 +73,9 @@ export class WqtWbnbProvider implements Web3Provider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
+      return { collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
+    return { collectedEvents, lastBlockNumber };
   }
 }

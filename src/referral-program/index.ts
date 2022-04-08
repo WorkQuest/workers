@@ -8,7 +8,7 @@ import { ReferralMessageBroker } from "./src/controllers/BrokerController";
 import { BlockchainNetworks, ReferralProgramParseBlock, initDatabase } from '@workquest/database-models/lib/models';
 import {Clients} from "./src/providers/types";
 import { Logger } from "./logger/pino";
-import { ReferralBrokerProvider } from "./src/providers/ReferralBrokerProvider";
+import { ReferralProvider } from "./src/providers/ReferralProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 
 const abiFilePath = path.join(__dirname, '/abi/WQReferral.json');
@@ -42,7 +42,7 @@ export async function init() {
 
   const referralContract = new web3.eth.Contract(abi, contractAddress);
 
-  const referralProvider = new ReferralBrokerProvider(clients, referralContract);
+  const referralProvider = new ReferralProvider(clients, referralContract);
   const referralController = new ReferralController(clients, network, referralProvider);
 
   const [referralBlockInfo, _] = await ReferralProgramParseBlock.findOrCreate({

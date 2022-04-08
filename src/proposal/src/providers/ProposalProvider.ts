@@ -1,5 +1,8 @@
 import { Contract, EventData } from "web3-eth-contract";
-import { IContractProvider, onEventCallBack, Clients } from "./types";
+import { onEventCallBack, IContractProvider, Clients } from "./types";
+import { Logger } from "../../logger/pino";
+import { Transaction } from "web3-eth";
+import configProposal from "../../config/config.proposal";
 
 export class ProposalProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -11,29 +14,33 @@ export class ProposalProvider implements IContractProvider {
     public readonly contract: Contract,
   ) {};
 
-  private contractTransactionsListenerInit() {
-    const query = `tm.event='Tx' AND ethereum_tx.recipient='0x29cb0DfED19f0e6Eb53bdDd14732fAd8EaFbca19'`;
-
-    const stream = this.clients.tendermintWsClient.listen({
-      id: 0,
-      jsonrpc: '2.0',
-      method: 'subscribe',
-      params: { query },
-    });
-
-    stream.addListener({
-      next: data => this.onEventTendermintData(data),
-      error: err => console.error(err),
-      complete: () => console.log('completed'),
-    });
+  private async initBrokerListener() {
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
   }
 
-  private async onEventTendermintData(txData) {
-    const blockTxHeight = txData["data"]["value"]['TxResult']["height"] as string;
-    const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock: blockTxHeight, toBlock: blockTxHeight });
+  private async onEventFromBroker(payload: { transactions: Transaction[] }) {
+    const proposalAddress = configProposal
+      .defaultConfigNetwork()
+      .contractAddress
+      .toLowerCase();
 
-    /** See range (fromBlock: blockTxHeight, toBlock: blockTxHeight) */
-    await this.onEventData(eventsData[0]);
+    const tracedTxs = payload
+      .transactions
+      .filter(tx => tx.to && tx.to.toLowerCase() === proposalAddress)
+      .sort((a, b) => a.blockNumber = b.blockNumber);
+
+    if (tracedTxs.length === 0) {
+      return;
+    }
+
+    const eventsData = await this.contract.getPastEvents('allEvents', {
+      toBlock: tracedTxs[tracedTxs.length - 1].blockNumber,
+      fromBlock: tracedTxs[0].blockNumber,
+    });
+
+    return Promise.all(
+      eventsData.map(async data => this.onEventData(data))
+    );
   }
 
   private onEventData(eventData) {
@@ -42,8 +49,10 @@ export class ProposalProvider implements IContractProvider {
     );
   }
 
-  public startListener() {
-    this.contractTransactionsListenerInit();
+  public async startListener() {
+    await this.initBrokerListener();
+
+    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
@@ -60,29 +69,39 @@ export class ProposalProvider implements IContractProvider {
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
-          console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
-          collectedEvents.push(...eventsData); break;
+          collectedEvents.push(...eventsData);
+
+          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+          Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
+
+          break;
         }
 
-        console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+        Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
+
         collectedEvents.push(...eventsData);
+
+        Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
 
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;
       }
     } catch (error) {
-      console.error(error);
-      console.error('GetAllEvents: Last block: ', fromBlock);
+      Logger.error(error, 'Collection of all events ended with an error.' +
+        ' Collected events to block number: "%s". Total collected events',
+        fromBlock, collectedEvents.length,
+      );
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
+      return { collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
+    return { collectedEvents, lastBlockNumber };
   }
 }

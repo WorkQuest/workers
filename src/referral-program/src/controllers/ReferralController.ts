@@ -239,7 +239,7 @@ export class ReferralController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, isGotAllEvents, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
@@ -253,8 +253,8 @@ export class ReferralController implements IController {
 
     await this.updateBlockViewHeight(lastBlockNumber);
 
-    if (!isGotAllEvents) {
-      throw new Error('Failed to process all events. Last processed block: ' + lastBlockNumber);
+    if (error) {
+      throw error;
     }
   }
 }

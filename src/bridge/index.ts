@@ -8,7 +8,7 @@ import configDatabase from "../bridge/config/config.common";
 import { BridgeProvider } from "./src/providers/BridgeProvider";
 import { BridgeController } from "./src/controllers/BridgeController";
 import { BridgeMessageBroker } from "./src/controllers/BrokerController";
-import { BridgeBrokerProvider } from "./src/providers/BridgeBrokerProvider";
+import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import {
   initDatabase,
@@ -81,7 +81,7 @@ export async function init() {
   const bscClients: Clients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
   const ethClients: Clients = { web3: web3Eth, webSocketProvider: ethWsProvider };
 
-  const wqBridgeProvider = new BridgeBrokerProvider(wqClients, bridgeWqContract);
+  const wqBridgeProvider = new BridgeWorkNetProvider(wqClients, bridgeWqContract);
   const bscBridgeProvider = new BridgeProvider(bscClients, bridgeBscContract);
   const ethBridgeProvider = new BridgeProvider(ethClients, bridgeEthContract);
 

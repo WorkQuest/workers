@@ -1,10 +1,11 @@
-import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, IContractProvider, Clients } from "./types";
 import { Logger } from "../../logger/pino";
+import { Contract, EventData } from "web3-eth-contract";
+import { onEventCallBack, IContractProvider } from "./types";
+import { Clients } from "../../src/providers/types";
 import { Transaction } from "web3-eth";
-import configProposal from "../../config/config.proposal";
+import configPensionFund from "../../config/config.pensionFund";
 
-export class ProposalBrokerProvider implements IContractProvider {
+export class PensionFundProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
@@ -19,14 +20,14 @@ export class ProposalBrokerProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const proposalAddress = configProposal
+    const pensionFundAddress = configPensionFund
       .defaultConfigNetwork()
       .contractAddress
       .toLowerCase();
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === proposalAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === pensionFundAddress)
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {
@@ -85,7 +86,6 @@ export class ProposalBrokerProvider implements IContractProvider {
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
-
         collectedEvents.push(...eventsData);
 
         Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
@@ -99,9 +99,9 @@ export class ProposalBrokerProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, isGotAllEvents: false, lastBlockNumber: fromBlock };
+      return { collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, isGotAllEvents: true, lastBlockNumber };
+    return { collectedEvents, lastBlockNumber };
   }
 }

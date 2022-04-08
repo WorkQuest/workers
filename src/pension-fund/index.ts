@@ -6,7 +6,7 @@ import { Clients } from "./src/providers/types";
 import configDatabase from './config/config.database';
 import configPensionFund from './config/config.pensionFund';
 import { PensionFundController } from "./src/controllers/pensionFundController";
-import { PensionFundBrokerProvider } from "./src/providers/PensionFundBrokerProvider";
+import { PensionFundProvider } from "./src/providers/PensionFundProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import {
   initDatabase,
@@ -41,7 +41,7 @@ export async function init() {
 
   const pensionFundContract = new web3.eth.Contract(abi, contractAddress);
 
-  const pensionFundProvider = new PensionFundBrokerProvider(clients, pensionFundContract);
+  const pensionFundProvider = new PensionFundProvider(clients, pensionFundContract);
   const pensionFundController = new PensionFundController(clients, configPensionFund.network as BlockchainNetworks, pensionFundProvider);
 
   const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
