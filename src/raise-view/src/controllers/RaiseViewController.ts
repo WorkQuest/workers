@@ -6,11 +6,11 @@ import { RaiseViewClients, IContractProvider } from '../providers/types';
 import { updateUserRaiseViewStatusJob } from "../../jobs/updateUserRaiseViewStatus";
 import {
   Quest,
-  BlockchainNetworks,
   QuestRaiseView,
-  RaiseViewPromotedQuestEvent,
   QuestRaiseStatus,
-  RaiseViewBlockInfo
+  RaiseViewBlockInfo,
+  BlockchainNetworks,
+  RaiseViewPromotedQuestEvent,
 } from '@workquest/database-models/lib/models';
 
 export class RaiseViewController implements IController {
@@ -44,9 +44,7 @@ export class RaiseViewController implements IController {
 
     if (eventsData.event === RaiseViewEvent.Profile) {
       //await this.promotedUserEventHandler(eventsData);
-    }
-
-    if (eventsData.event === RaiseViewEvent.Quest) {
+    } else if (eventsData.event === RaiseViewEvent.Quest) {
       await this.promotedQuestEventHandler(eventsData);
     }
   }
@@ -55,14 +53,23 @@ export class RaiseViewController implements IController {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const questContractAddress = eventsData.returnValues.quest.toLowerCase();
+
     const tariff = eventsData.returnValues.tariff;
     const period = eventsData.returnValues.period;
     const promotedAt = eventsData.returnValues.promotedAt;
 
-    Logger.debug('Created event handler: timestamp "%s", event data o%', timestamp, eventsData);
+    Logger.debug('Created event handler: timestamp "%s", event data o%',
+      timestamp,
+      eventsData,
+    );
 
     const quest = await Quest.findOne({ where: { contractAddress: questContractAddress } });
 
+    /** TODO тут нужно вначале делать findeOrCreate RaiseViewPromotedQuestEvent,
+     * потом проверять isCreated (если уже создано кидать warn),
+     * потом проверять quest (если не нашел кидать warn и обновлять блоки updateBlockViewHeight)
+     * QuestRaiseView findeOrCreate на всякий
+    **/
     if (!quest) {
       Logger.warn('Quest contract address is invalid', questContractAddress, eventsData);
       return;
@@ -100,8 +107,6 @@ export class RaiseViewController implements IController {
       userId: quest.userId,
       runAt: endedAt,
     });
-
-    Logger.debug('Promoted quest event handler: set into redis key "%s", value %o', quest.contractAddress, { transactionHash: eventsData.transactionHash });
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

@@ -1,20 +1,18 @@
 import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
-import { createClient } from 'redis';
 import { Logger } from "./logger/pino";
+import configDatabase from "./config/configDatabase";
+import configRaiseView from "./config/config.raiseView";
 import { RaiseViewClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
-
+import { RaiseViewProvider } from "./src/providers/RaiseViewProvider";
+import { RaiseViewController } from "./src/controllers/RaiseViewController";
 import {
   initDatabase,
   BlockchainNetworks,
   RaiseViewBlockInfo,
 } from '@workquest/database-models/lib/models';
-import configRaiseView from "./config/config.raiseView";
-import configDatabase from "./config/configDatabase";
-import { RaiseViewProvider } from "./src/providers/RaiseViewProvider";
-import { RaiseViewController } from "./src/controllers/RaiseViewController";
 
 const abiFilePath = path.join(__dirname, '../../src/raise-view/abi/WQPromotion.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -33,7 +31,7 @@ export async function init() {
   const raiseViewContract = new web3.eth.Contract(abi, contractAddress);
 
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'raise-view');
-  await transactionsBroker.init()
+  await transactionsBroker.init();
 
   const clients: RaiseViewClients = { web3, transactionsBroker };
 
