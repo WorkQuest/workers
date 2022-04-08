@@ -14,7 +14,7 @@ const asyncFilter = async (arr, predicate) => {
   return arr.filter((_v, index) => results[index]);
 }
 
-export class ChildProcessProvider implements IContractProvider {
+export class QuestProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 100;
@@ -28,13 +28,30 @@ export class ChildProcessProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
+    Logger.info('Quest queue listener provider: received messages from the queue');
+    Logger.debug('Quest queue listener provider: received messages from the queue with payload %o', payload);
+
     const tracedTxs: Transaction[] = await asyncFilter(payload.transactions, async tx =>
       tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase())
     );
 
+    Logger.info('Quest queue listener provider: number of contract transactions "%s"', tracedTxs.length);
+    Logger.debug('Quest queue listener provider: contract transactions %o', tracedTxs);
+
    for (const tx of tracedTxs) {
-     const contract = new this.clients.web3.eth.Contract(abi, tx.to);
-     const eventsData = await contract.getPastEvents('allEvents', { fromBlock: tx.blockNumber, toBlock: tx.blockNumber });
+     const questAddress = tx.to;
+     const fromBlock = tx.blockNumber;
+     const toBlock = tx.blockNumber;
+
+     const contract = new this.clients.web3.eth.Contract(abi, questAddress);
+     const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
+
+     Logger.debug('Quest queue listener provider (address "%s"): contract events %o', questAddress, eventsData);
+     Logger.info('Quest queue listener provider (address "%s"): range from block "%s", to block "%s". Events number: "%s"',
+       fromBlock,
+       toBlock,
+       eventsData.length,
+     );
 
      await Promise.all(
        eventsData.map(async data => this.onEventData(data))

@@ -7,8 +7,14 @@ export class QuestResponsesModelController {
   ) {
   }
 
-  public async closeAllWorkingResponses() {
-    await QuestsResponse.update({ status: QuestsResponseStatus.Closed }, {
+  public closeAllResponses(): Promise<any> {
+    return QuestsResponse.update({ status: QuestsResponseStatus.Closed }, {
+      where: { questId: this.questController.quest.id },
+    });
+  }
+
+  public closeAllWorkingResponses(): Promise<any> {
+    return QuestsResponse.update({ status: QuestsResponseStatus.Closed }, {
       where: {
         questId: this.questController.quest.id,
         status: [QuestsResponseStatus.Accepted, QuestsResponseStatus.Open],

@@ -57,7 +57,7 @@ export class QuestFactoryController implements IController {
     const employerAddress = eventsData.returnValues.employer.toLowerCase();
     const contractAddress = eventsData.returnValues.workquest.toLowerCase();
 
-    Logger.debug('Created event handler: timestamp "%s", event data o%', nonce, timestamp, eventsData);
+    Logger.debug('Created event handler (quest nonce "%s"): timestamp "%s", event data o%', nonce, timestamp, eventsData);
 
     const quest = await Quest.findOne({ where: { nonce } });
 
@@ -65,7 +65,7 @@ export class QuestFactoryController implements IController {
       ? QuestFactoryStatus.Successfully
       : QuestFactoryStatus.QuestEntityNotFound
 
-    Logger.debug('Created event handler: quest factory status "%s"', questFactoryStatus);
+    Logger.debug('Created event handler (quest nonce "%s"): quest factory status "%s"', nonce, questFactoryStatus);
 
     const [, isCreated] = await QuestFactoryCreatedEvent.findOrCreate({
       where: {

@@ -13,6 +13,14 @@ export class QuestModelController {
     });
   }
 
+  public editQuest(payload: { price: any }) {
+    return this.quest.update({ price: payload.price });
+  }
+
+  public closeQuest(): Promise<any> {
+    return this.quest.update({ status: QuestStatus.Closed });
+  }
+
   public startQuest(): Promise<any> {
     return this.quest.update({ status: QuestStatus.ExecutionOfWork });
   }

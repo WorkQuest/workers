@@ -23,7 +23,8 @@ export class QuestFactoryProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    // Logger.info('Parent process listener: message "onEvents", payload %o', payload);
+    Logger.info('Quest-factory queue listener provider: received messages from the queue');
+    Logger.debug('Quest-factory queue listener provider: received messages from the queue with payload %o', payload);
 
     const factoryAddress = configQuestFactory
       .defaultConfigNetwork()
@@ -35,18 +36,22 @@ export class QuestFactoryProvider implements IContractProvider {
       .filter(tx => tx.to && tx.to.toLowerCase() === factoryAddress)
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
+    Logger.info('Quest-factory queue listener provider: number of contract transactions "%s"', tracedTxs.length);
+    Logger.debug('Quest-factory queue listener provider: contract transactions %o', tracedTxs);
+
     if (tracedTxs.length === 0) {
       return;
     }
 
-    const eventsData = await this.contract.getPastEvents('allEvents', {
-      toBlock: tracedTxs[tracedTxs.length - 1].blockNumber,
-      fromBlock: tracedTxs[0].blockNumber,
-    });
+    const fromBlock = tracedTxs[0].blockNumber;
+    const toBlock = tracedTxs[tracedTxs.length - 1].blockNumber;
 
-    Logger.info('Received events from contract. Range: from block "%s", to block "%s". Events: "%s"',
-      '',
-      '',
+    const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
+
+    Logger.debug('Quest-factory queue listener provider: contract events %o', eventsData);
+    Logger.info('Quest-factory queue listener provider: range from block "%s", to block "%s". Events number: "%s"',
+      fromBlock,
+      toBlock,
       eventsData.length,
     );
 

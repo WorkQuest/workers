@@ -7,7 +7,7 @@ import configDatabase from "./config/config.database";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { QuestController } from "./src/controllers/QuestController";
 import { QuestCacheProvider } from "./src/providers/QuestCacheProvider";
-import { ChildProcessProvider } from "./src/providers/ChildProcessProvider";
+import { QuestProvider } from "./src/providers/QuestProvider";
 import {
   initDatabase,
   QuestBlockInfo,
@@ -23,6 +23,7 @@ export async function init() {
   const { linkRpcProvider, parseEventsFromHeight  } = configQuest.defaultConfigNetwork();
 
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
+  Logger.debug('Redis number database: "%s"', redisConfig.number);
 
   const redisClient = createClient(redisConfig);
 
@@ -54,7 +55,7 @@ export async function init() {
     await questBlockInfo.save();
   }
 
-  const questProvider = new ChildProcessProvider(clients);
+  const questProvider = new QuestProvider(clients);
   const questController = new QuestController(clients, questProvider, configQuest.network as BlockchainNetworks);
 
   await questController.collectAllUncollectedEvents(questBlockInfo.lastParsedBlock);
