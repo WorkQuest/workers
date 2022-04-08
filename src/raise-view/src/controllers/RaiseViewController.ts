@@ -4,13 +4,14 @@ import { EventData } from 'web3-eth-contract';
 import { IController, RaiseViewEvent } from './types';
 import { RaiseViewClients, IContractProvider } from '../providers/types';
 import { updateUserRaiseViewStatusJob } from "../../jobs/updateUserRaiseViewStatus";
+import { updateQuestRaiseViewStatusJob } from "../../jobs/updateQuestRaiseViewStatus";
 import {
   Quest,
   QuestRaiseView,
   QuestRaiseStatus,
   RaiseViewBlockInfo,
   BlockchainNetworks,
-  RaiseViewPromotedQuestEvent,
+  RaiseViewPromotedQuestEvent, User, Wallet, RaiseViewPromotedUserEvent, UserRaiseView, UserRaiseStatus,
 } from '@workquest/database-models/lib/models';
 
 export class RaiseViewController implements IController {
@@ -43,7 +44,7 @@ export class RaiseViewController implements IController {
     );
 
     if (eventsData.event === RaiseViewEvent.Profile) {
-      //await this.promotedUserEventHandler(eventsData);
+      await this.promotedUserEventHandler(eventsData);
     } else if (eventsData.event === RaiseViewEvent.Quest) {
       await this.promotedQuestEventHandler(eventsData);
     }
@@ -89,7 +90,7 @@ export class RaiseViewController implements IController {
     });
 
     if (!isCreatedRaiseViewEvent) {
-      Logger.warn('Raise-view Quest Promoted event already exists', questContractAddress, eventsData);
+      Logger.warn('Raise-view Promoted Quest event already exists', questContractAddress, eventsData);
       await this.updateBlockViewHeight(eventsData.blockNumber);
       return;
     }
@@ -120,8 +121,93 @@ export class RaiseViewController implements IController {
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
-    await updateUserRaiseViewStatusJob({
+    await updateQuestRaiseViewStatusJob({
       userId: quest.userId,
+      runAt: endedAt,
+    });
+  }
+
+  protected async promotedUserEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const userWalletAddress = eventsData.returnValues.user.toLowerCase();
+
+    const tariff = eventsData.returnValues.tariff;
+    const period = eventsData.returnValues.period;
+    const promotedAt = eventsData.returnValues.promotedAt;
+
+    Logger.debug('Created event handler: timestamp "%s", event data o%',
+      timestamp,
+      eventsData,
+    );
+
+    const user = await User.findOne({
+      include: {
+        model: Wallet,
+        as: 'wallet',
+        where: {
+          address: userWalletAddress
+        },
+      },
+    });
+
+    const [raiseViewEvent, isCreatedRaiseViewEvent] = await RaiseViewPromotedUserEvent.findOrCreate({
+      where: {
+        blockNumber: eventsData.blockNumber,
+        transactionHash: eventsData.transactionHash,
+        network: this.network,
+        user: userWalletAddress,
+        tariff,
+        period,
+        timestamp,
+        promotedAt,
+      },
+      defaults: {
+        blockNumber: eventsData.blockNumber,
+        transactionHash: eventsData.transactionHash,
+        network: this.network,
+        user: userWalletAddress,
+        tariff,
+        period,
+        timestamp,
+        promotedAt,
+      }
+    });
+
+    if (!isCreatedRaiseViewEvent) {
+      Logger.warn('Raise-view Promoted User event already exists', userWalletAddress, eventsData);
+      await this.updateBlockViewHeight(eventsData.blockNumber);
+      return;
+    }
+
+    if (!user) {
+      Logger.warn('User wallet address is invalid', userWalletAddress, eventsData);
+      await this.updateBlockViewHeight(eventsData.blockNumber);
+      return;
+    }
+
+    const [userRaiseView, isCreated] = await UserRaiseView.findOrCreate({
+      where: { userId: user.id },
+      defaults: { userId: user.id },
+    });
+
+    if (userRaiseView.status === UserRaiseStatus.Paid) {
+      Logger.warn('User raise view is still active', userWalletAddress, eventsData);
+    }
+
+    const endedAt: Date = new Date(Date.now() + 86400000 * period);
+
+    await userRaiseView.update({
+      status: QuestRaiseStatus.Paid,
+      duration: period,
+      type: tariff,
+      endedAt,
+    });
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    await updateUserRaiseViewStatusJob({
+      userId: user.id,
       runAt: endedAt,
     });
   }
