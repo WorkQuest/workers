@@ -6,12 +6,17 @@ import { RaiseViewClients, IContractProvider } from '../providers/types';
 import { updateUserRaiseViewStatusJob } from "../../jobs/updateUserRaiseViewStatus";
 import { updateQuestRaiseViewStatusJob } from "../../jobs/updateQuestRaiseViewStatus";
 import {
+  User,
   Quest,
+  Wallet,
+  UserRaiseView,
   QuestRaiseView,
+  UserRaiseStatus,
   QuestRaiseStatus,
   RaiseViewBlockInfo,
   BlockchainNetworks,
-  RaiseViewPromotedQuestEvent, User, Wallet, RaiseViewPromotedUserEvent, UserRaiseView, UserRaiseStatus,
+  RaiseViewPromotedUserEvent,
+  RaiseViewPromotedQuestEvent,
 } from '@workquest/database-models/lib/models';
 
 export class RaiseViewController implements IController {
@@ -23,6 +28,10 @@ export class RaiseViewController implements IController {
     this.contractProvider.subscribeOnEvents(async (eventData) => {
       return this.onEvent(eventData);
     });
+  }
+
+  public static toEndedAt(period: number): Date {
+    return new Date(Date.now() + 86400000 * period);
   }
 
   protected updateBlockViewHeight(blockHeight: number): Promise<any> {
@@ -37,7 +46,7 @@ export class RaiseViewController implements IController {
   }
 
   private async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name %s, block number %s, address %s',
+    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -53,163 +62,183 @@ export class RaiseViewController implements IController {
   protected async promotedQuestEventHandler(eventsData: EventData) {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
-    const questContractAddress = eventsData.returnValues.quest.toLowerCase();
-
     const tariff = eventsData.returnValues.tariff;
     const period = eventsData.returnValues.period;
     const promotedAt = eventsData.returnValues.promotedAt;
 
-    Logger.debug('Created event handler: timestamp "%s", event data o%',
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+    const questContractAddress = eventsData.returnValues.quest.toLowerCase();
+
+    Logger.debug('Promoted quest event handler: timestamp "%s", event data o%',
       timestamp,
       eventsData,
     );
 
     const quest = await Quest.findOne({ where: { contractAddress: questContractAddress } });
 
-    const [raiseViewEvent, isCreatedRaiseViewEvent] = await RaiseViewPromotedQuestEvent.findOrCreate({
-      where: {
-        blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        network: this.network,
-        quest: questContractAddress,
-        tariff,
-        period,
-        timestamp,
-        promotedAt,
-      },
+    const [, isCreated] = await RaiseViewPromotedQuestEvent.findOrCreate({
+      where: { transactionHash, network: this.network },
       defaults: {
-        blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        network: this.network,
-        quest: questContractAddress,
         tariff,
         period,
         timestamp,
         promotedAt,
+        transactionHash,
+        quest: questContractAddress,
+        blockNumber: eventsData.blockNumber,
+        network: this.network,
       }
     });
 
-    if (!isCreatedRaiseViewEvent) {
-      Logger.warn('Raise-view Promoted Quest event already exists', questContractAddress, eventsData);
-      await this.updateBlockViewHeight(eventsData.blockNumber);
+    if (!isCreated) {
+      Logger.warn('Promoted quest event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
       return;
     }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!quest) {
-      Logger.warn('Quest contract address is invalid', questContractAddress, eventsData);
-      await this.updateBlockViewHeight(eventsData.blockNumber);
+      Logger.warn('Promoted quest event handler: event "%s" handling is skipped because quest entity not found',
+        eventsData.event,
+      );
+
       return;
     }
 
-    const [questRaiseView, isCreated] = await QuestRaiseView.findOrCreate({
+    Logger.debug('Promoted quest event handler: event "%s" (tx hash "%s") quest data %o',
+      eventsData.event,
+      transactionHash,
+      { questId: quest.id, role: quest.status },
+    );
+
+    const [questRaiseView, ] = await QuestRaiseView.findOrCreate({
       where: { questId: quest.id },
       defaults: { questId: quest.id },
     });
 
+    Logger.debug('Promoted quest event handler: event "%s" (tx hash "%s") quest raise view data %o',
+      eventsData.event,
+      transactionHash,
+      questRaiseView,
+    );
+
     if (questRaiseView.status === QuestRaiseStatus.Paid) {
-      Logger.warn('Quest raise view is still active', questContractAddress, eventsData);
+      Logger.warn('Promoted quest event handler: quest (quest address "%s", tx hash "%s") promotion already activated, data will be overwritten',
+        questContractAddress,
+        transactionHash,
+      );
     }
 
-    const endedAt: Date = new Date(Date.now() + 86400000 * period);
-
-    await questRaiseView.update({
-      status: QuestRaiseStatus.Paid,
-      duration: period,
-      type: tariff,
-      endedAt,
-    });
-
-    await this.updateBlockViewHeight(eventsData.blockNumber);
-
-    await updateQuestRaiseViewStatusJob({
-      userId: quest.userId,
-      runAt: endedAt,
-    });
+    await Promise.all([
+      updateQuestRaiseViewStatusJob({
+        userId: quest.userId,
+        runAt: RaiseViewController.toEndedAt(period),
+      }),
+      questRaiseView.update({
+        type: tariff,
+        duration: period,
+        status: QuestRaiseStatus.Paid,
+        endedAt: RaiseViewController.toEndedAt(period),
+      }),
+    ]);
   }
 
   protected async promotedUserEventHandler(eventsData: EventData) {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
-    const userWalletAddress = eventsData.returnValues.user.toLowerCase();
-
     const tariff = eventsData.returnValues.tariff;
     const period = eventsData.returnValues.period;
     const promotedAt = eventsData.returnValues.promotedAt;
 
-    Logger.debug('Created event handler: timestamp "%s", event data o%',
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+    const userWalletAddress = eventsData.returnValues.user.toLowerCase();
+
+    Logger.debug('Promoted user event handler: timestamp "%s", event data o%',
       timestamp,
       eventsData,
     );
 
-    const user = await User.findOne({
+    const user = await User.unscoped().findOne({
       include: {
         model: Wallet,
         as: 'wallet',
-        where: {
-          address: userWalletAddress
-        },
+        where: { address: userWalletAddress },
       },
     });
 
-    const [raiseViewEvent, isCreatedRaiseViewEvent] = await RaiseViewPromotedUserEvent.findOrCreate({
-      where: {
-        blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        network: this.network,
-        user: userWalletAddress,
-        tariff,
-        period,
-        timestamp,
-        promotedAt,
-      },
+    const [, isCreated] = await RaiseViewPromotedUserEvent.findOrCreate({
+      where: { transactionHash, network: this.network },
       defaults: {
-        blockNumber: eventsData.blockNumber,
-        transactionHash: eventsData.transactionHash,
-        network: this.network,
-        user: userWalletAddress,
         tariff,
         period,
         timestamp,
         promotedAt,
+        transactionHash,
+        user: userWalletAddress,
+        blockNumber: eventsData.blockNumber,
+        network: this.network,
       }
     });
 
-    if (!isCreatedRaiseViewEvent) {
-      Logger.warn('Raise-view Promoted User event already exists', userWalletAddress, eventsData);
-      await this.updateBlockViewHeight(eventsData.blockNumber);
+    if (!isCreated) {
+      Logger.warn('Promoted user event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
       return;
     }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!user) {
-      Logger.warn('User wallet address is invalid', userWalletAddress, eventsData);
-      await this.updateBlockViewHeight(eventsData.blockNumber);
+      Logger.warn('Promoted user event handler: event "%s" handling is skipped because user entity not found',
+        eventsData.event,
+      );
+
       return;
     }
 
-    const [userRaiseView, isCreated] = await UserRaiseView.findOrCreate({
+    Logger.debug('Promoted user event handler: event "%s" (tx hash "%s") user data %o',
+      eventsData.event,
+      transactionHash,
+      { userId: user.id, role: user.role },
+    );
+
+    const [userRaiseView, ] = await UserRaiseView.findOrCreate({
       where: { userId: user.id },
       defaults: { userId: user.id },
     });
 
+    Logger.debug('Promoted user event handler: event "%s" (tx hash "%s") user raise view data %o',
+      eventsData.event,
+      transactionHash,
+      userRaiseView,
+    );
+
     if (userRaiseView.status === UserRaiseStatus.Paid) {
-      Logger.warn('User raise view is still active', userWalletAddress, eventsData);
+      Logger.warn('Promoted user event handler: user (address "%s", tx hash "%s") promotion already activated, data will be overwritten',
+        userWalletAddress,
+        transactionHash,
+      );
     }
 
-    const endedAt: Date = new Date(Date.now() + 86400000 * period);
-
-    await userRaiseView.update({
-      status: QuestRaiseStatus.Paid,
-      duration: period,
-      type: tariff,
-      endedAt,
-    });
-
-    await this.updateBlockViewHeight(eventsData.blockNumber);
-
-    await updateUserRaiseViewStatusJob({
-      userId: user.id,
-      runAt: endedAt,
-    });
+    await Promise.all([
+      userRaiseView.update({
+        type: tariff,
+        duration: period,
+        status: QuestRaiseStatus.Paid,
+        endedAt: RaiseViewController.toEndedAt(period),
+      }),
+      updateUserRaiseViewStatusJob({
+        userId: user.id,
+        runAt: RaiseViewController.toEndedAt(period),
+      }),
+    ]);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
