@@ -12,3 +12,4 @@ quest_env: .env.quest
 quest_factory_env: .env.questFactory
 fetcher_env: .env.fetcher
 broker_env: .env.broker
+raise_view_env: .env.raiseView

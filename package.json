@@ -21,7 +21,9 @@
     "quest:start": "nodemon -e ts --exec \"npm run quest:compile\"",
     "quest:compile": "tsc && node ./build/quest/index.js",
     "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
-    "fetcher:compile": "tsc && node ./build/fetchers"
+    "fetcher:compile": "tsc && node ./build/fetchers",
+    "raiseView:start": "nodemon -e ts --exec \"npm run raise-view:compile\"",
+    "raiseView:compile": "tsc && node ./build/raise-view"
   },
   "jest": {
     "transform": {
@@ -42,7 +44,7 @@
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
     "@sentry/node": "^6.19.2",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#53dd1731b40f57d0f6704609ce623c69d8f34706",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#e1de314ed1dac39bae4dfd6cf2a56187e74aa9aa",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",

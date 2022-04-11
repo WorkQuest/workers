@@ -182,6 +182,7 @@ export class QuestController implements IController {
       questModelController.closeQuest(),
       questChatModelController.closeAllChats(),
       questResponsesModelController.closeAllResponses(),
+      this.clients.questCacheProvider.remove(contractAddress),
     ]);
   }
 

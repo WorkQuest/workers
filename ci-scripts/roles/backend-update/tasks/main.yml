@@ -67,3 +67,8 @@
   shell: pm2 save
   args:
    chdir: '{{ WORKERS_BIN }}'
+
+- name: Copy or generate raiseView env file
+  template:
+    src: ./{{ raise_view_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ raise_view_env }}'

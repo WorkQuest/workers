@@ -22,7 +22,7 @@ export class QuestModelController {
   }
 
   public startQuest(): Promise<any> {
-    return this.quest.update({ status: QuestStatus.ExecutionOfWork });
+    return this.quest.update({ status: QuestStatus.ExecutionOfWork, startedAt: Date.now() });
   }
 
   public finishWork(): Promise<any> {
