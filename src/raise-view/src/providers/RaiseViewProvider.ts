@@ -26,14 +26,14 @@ export class RaiseViewProvider implements IContractProvider {
     Logger.info('Raise-view listener: message "onEventFromBroker"');
     Logger.debug('Raise-view listener: message "onEventFromBroker" with payload %o', payload);
 
-    const factoryAddress = configRaiseView
+    const raiseViewAddress = configRaiseView
       .defaultConfigNetwork()
       .contractAddress
       .toLowerCase()
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === factoryAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === raiseViewAddress)
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
     Logger.info('Raise-view listener provider: number of contract transactions "%s"', tracedTxs.length);

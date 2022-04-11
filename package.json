@@ -21,7 +21,9 @@
     "quest:start": "nodemon -e ts --exec \"npm run quest:compile\"",
     "quest:compile": "tsc && node ./build/quest/index.js",
     "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
-    "fetcher:compile": "tsc && node ./build/fetchers"
+    "fetcher:compile": "tsc && node ./build/fetchers",
+    "raiseView:start": "nodemon -e ts --exec \"npm run raise-view:compile\"",
+    "raiseView:compile": "tsc && node ./build/raise-view"
   },
   "jest": {
     "transform": {

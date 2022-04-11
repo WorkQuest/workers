@@ -69,7 +69,7 @@ export class RaiseViewController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const questContractAddress = eventsData.returnValues.quest.toLowerCase();
 
-    Logger.debug('Promoted quest event handler: timestamp "%s", event data o%',
+    Logger.debug('Promoted quest event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -161,7 +161,7 @@ export class RaiseViewController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const userWalletAddress = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug('Promoted user event handler: timestamp "%s", event data o%',
+    Logger.debug('Promoted user event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );

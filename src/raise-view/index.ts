@@ -2,7 +2,7 @@ import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from "./logger/pino";
-import configDatabase from "./config/configDatabase";
+import configDatabase from "./config/config.database";
 import configRaiseView from "./config/config.raiseView";
 import { RaiseViewClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
