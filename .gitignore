@@ -23,6 +23,10 @@ npm-debug.log
 # local env variables
 .env
 .env.bridge
+.env.borrowing
+.env.brokers
+.env.raiseView
+.env.wqt
 .env.liquidity
 .env.proposal
 .env.quest

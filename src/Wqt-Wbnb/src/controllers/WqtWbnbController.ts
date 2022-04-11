@@ -13,7 +13,7 @@ import {
   WqtWbnbSwapEvent,
   WqtWbnbMintEvent,
   WqtWbnbBurnEvent,
-  BlockchainNetworks,
+  BlockchainNetworks, DailyLiquidity,
 } from '@workquest/database-models/lib/models';
 
 export class WqtWbnbController {
@@ -51,7 +51,57 @@ export class WqtWbnbController {
       return this.mintEventHandler(eventsData);
     } else if (eventsData.event === WqtWbnbEvent.Burn) {
       return this.burnEventHandler(eventsData);
+    } else if (eventsData.event === WqtWbnbEvent.Sync) {
+      return this.syncEventHandler(eventsData);
     }
+  }
+
+  protected async syncEventHandler(eventsData: EventData) {
+    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    const priceInfoBNBStartDay = await this.getTokensPriceInUsd(block.timestamp as string, Coin.BNB, parseInt(eventsData.returnValues.amount0Out))
+    const priceInfoWQTStartDay = await this.getTokensPriceInUsd(block.timestamp as string, Coin.WQT, parseInt(eventsData.returnValues.amount1Out));
+
+    const bnbPool = new BigNumber(eventsData.returnValues.reserve0).shiftedBy(-18);
+    const wqtPool = new BigNumber(eventsData.returnValues.reserve1).shiftedBy(-18);
+
+    const usdOfBnb = bnbPool.multipliedBy(priceInfoBNBStartDay);
+    const usdOfWqt = wqtPool.multipliedBy(priceInfoWQTStartDay);
+
+    const poolToken = usdOfBnb.plus(usdOfWqt).toString();
+
+    const lastDailyLiquidity = await DailyLiquidity.findOne({ order: [['date', 'DESC']] });
+    const lastDailyLiquidityDate = new Date(parseInt(lastDailyLiquidity.date) * 1000).toISOString().split('T')[0];
+    const currentDailyLiquidityDate = new Date(parseInt(block.timestamp.toString()) * 1000).toISOString().split('T')[0];
+
+    if (lastDailyLiquidityDate === currentDailyLiquidityDate) {
+      await lastDailyLiquidity.update({
+        date: block.timestamp,
+        blockNumber: eventsData.blockNumber,
+        bnbPool: bnbPool.toString(),
+        wqtPool: wqtPool.toString(),
+        usdPriceBNB: priceInfoBNBStartDay.toString(),
+        usdPriceWQT: priceInfoWQTStartDay.toString(),
+        reserveUSD: poolToken,
+      })
+    } else {
+      await DailyLiquidity.create({
+        date: block.timestamp,
+        blockNumber: eventsData.blockNumber,
+        bnbPool: bnbPool.toString(),
+        wqtPool: wqtPool.toString(),
+        usdPriceBNB: priceInfoBNBStartDay.toString(),
+        usdPriceWQT: priceInfoWQTStartDay.toString(),
+        reserveUSD: poolToken,
+      });
+    }
+
+    await WqtWbnbBlockInfo.update(
+      { lastParsedBlock: eventsData.blockNumber },
+      {
+        where: { network: this.network, },
+      },
+    );
   }
 
   protected async swapEventHandler(eventsData: EventData) {
