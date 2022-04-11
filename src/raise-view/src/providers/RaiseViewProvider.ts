@@ -23,7 +23,8 @@ export class RaiseViewProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    Logger.info('Raise-view listener: message "onEventFromBroker", payload %o', payload);
+    Logger.info('Raise-view listener: message "onEventFromBroker"');
+    Logger.debug('Raise-view listener: message "onEventFromBroker" with payload %o', payload);
 
     const factoryAddress = configRaiseView
       .defaultConfigNetwork()

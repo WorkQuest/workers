@@ -76,7 +76,9 @@ export class RaiseViewController implements IController {
 
     const quest = await Quest.findOne({ where: { contractAddress: questContractAddress } });
 
-    const [, isCreated] = await RaiseViewPromotedQuestEvent.findOrCreate({
+    Logger.debug('Promoted quest event handler: quest data %o', quest);
+
+    const [,isCreated] = await RaiseViewPromotedQuestEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         tariff,
@@ -145,6 +147,8 @@ export class RaiseViewController implements IController {
         endedAt: RaiseViewController.toEndedAt(period),
       }),
     ]);
+
+    Logger.debug('Promoted quest event handler: create "%s"', transactionHash);
   }
 
   protected async promotedUserEventHandler(eventsData: EventData) {
@@ -169,6 +173,8 @@ export class RaiseViewController implements IController {
         where: { address: userWalletAddress },
       },
     });
+
+    Logger.debug('Promoted user event handler: quest data %o', user);
 
     const [, isCreated] = await RaiseViewPromotedUserEvent.findOrCreate({
       where: { transactionHash, network: this.network },
@@ -239,6 +245,8 @@ export class RaiseViewController implements IController {
         runAt: RaiseViewController.toEndedAt(period),
       }),
     ]);
+
+    Logger.debug('Promoted user event handler: create "%s"', transactionHash);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
