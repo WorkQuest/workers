@@ -1,6 +1,6 @@
 import {config} from "dotenv";
 
-config({ path: __dirname +  '/../../../.env.raise-view'});
+config({ path: __dirname +  '/../../../.env.raiseView'});
 
 export default {
   logLevel: 'debug',
