@@ -35,6 +35,18 @@
       "env": {
         "ENV": "prod"
       }
-    }
+    },
+    {
+      "name": "{{ PM2_RAISE_VIEW_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/raise-view/index.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+
   ]
 }
