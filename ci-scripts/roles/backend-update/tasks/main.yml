@@ -48,6 +48,11 @@
     src: ./{{ quest_factory_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ quest_factory_env }}'
 
+- name: Copy or generate raise-view env file
+  template:
+    src: ./{{ raise_view_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ raise_view_env }}'
+
 - name: Copy or generate fetcher env file
   template:
     src: ./{{ fetcher_env }}.j2
@@ -67,8 +72,3 @@
   shell: pm2 save
   args:
    chdir: '{{ WORKERS_BIN }}'
-
-- name: Copy or generate raiseView env file
-  template:
-    src: ./{{ raise_view_env }}.j2
-    dest: '{{ WORKERS_BIN }}/{{ raise_view_env }}'
