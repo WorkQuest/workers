@@ -116,10 +116,6 @@ export class WqtWbnbController {
       .toNumber()
       .toFixed()
 
-    const castDateLiteral = literal(
-      `date::int8 > ${ timestamp }`
-    )
-
     const [, isAlreadyCreated] = await DailyLiquidity.findOrCreate({
       where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
       defaults: {
@@ -144,7 +140,8 @@ export class WqtWbnbController {
         reserveUSD: poolToken,
       }, {
         where: {
-          [Op.and]: [{ daySinceEpochBeginning: currentEventDaySinceEpochBeginning }, { castDateLiteral }],
+          daySinceEpochBeginning: currentEventDaySinceEpochBeginning,
+          date: { [Op.lt]: timestamp}
         }
       });
     }
