@@ -9,3 +9,4 @@ proposal_env: .env.proposal
 wqt_wbnb_env: .env.WqtWbnb
 referral_env: .env.referral
 fetcher_env: .env.fetcher
+saving_product_env: .env.savingProduct

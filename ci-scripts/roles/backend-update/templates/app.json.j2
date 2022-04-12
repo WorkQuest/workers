@@ -82,6 +82,17 @@
       "env": {
         "ENV": "prod"
       }
+    }, {
+      "name": "{{ PM2_SAVING_PRODUCT_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/saving-product/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
     }
   ]
 }

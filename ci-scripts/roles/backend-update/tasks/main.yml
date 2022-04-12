@@ -68,6 +68,11 @@
     src: ./{{ referral_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ referral_env }}'
 
+- name: Copy or generate saving-product env file
+  template:
+    src: ./{{ saving_product_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ saving_product_env }}'
+
 - name: Copy or generate fetcher env file
   template:
     src: ./{{ fetcher_env }}.j2
