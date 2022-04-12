@@ -109,14 +109,16 @@ export class WqtWbnbController {
       .plus(wqtPoolInUsd)
       .toString()
 
-    Logger.debug('Sync event handler: tokens pool in usd "%s"', poolToken);
+    Logger.debug('Sync event handler: tokens pool in usd "%s"',
+      poolToken,
+    );
 
     const currentEventDaySinceEpochBeginning = new BigNumber(timestamp)
       .dividedBy(86400)
       .toNumber()
       .toFixed()
 
-    const [, isAlreadyCreated] = await DailyLiquidity.findOrCreate({
+    const [, isDailyLiquidityCreated] = await DailyLiquidity.findOrCreate({
       where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
       defaults: {
         date: timestamp,
@@ -129,7 +131,7 @@ export class WqtWbnbController {
       }
     });
 
-    if (!isAlreadyCreated) {
+    if (!isDailyLiquidityCreated) {
       await DailyLiquidity.update({
         date: timestamp,
         blockNumber: eventsData.blockNumber,
@@ -140,8 +142,8 @@ export class WqtWbnbController {
         reserveUSD: poolToken,
       }, {
         where: {
+          date: { [Op.lt]: timestamp },
           daySinceEpochBeginning: currentEventDaySinceEpochBeginning,
-          date: { [Op.lt]: timestamp}
         }
       });
     }

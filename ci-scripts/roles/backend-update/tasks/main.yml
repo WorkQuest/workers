@@ -43,11 +43,6 @@
     src: ./{{ bridge_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ bridge_env }}'
 
-- name: Copy or generate liquidity env file
-  template:
-    src: ./{{ liquidity_env }}.j2
-    dest: '{{ WORKERS_BIN }}/{{ liquidity_env }}'
-
 - name: Copy or generate pension-fund env file
   template:
     src: ./{{ pension_env }}.j2
