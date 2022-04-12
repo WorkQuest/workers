@@ -80,7 +80,7 @@ export class WqtWbnbController {
     }
 
     Logger.debug(
-      'Sync event handler: timestamp "%s", event data o%',
+      'Sync event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -88,15 +88,19 @@ export class WqtWbnbController {
     const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
     const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
 
-    Logger.debug('Swap event handler: tokens price in usd bnb: "%s", wqt: "%s"', tokenBNBPriceInUsd, tokenWQTPriceInUsd);
+    Logger.debug('Sync event handler: tokens price in usd: bnb "%s", wqt "%s"', tokenBNBPriceInUsd, tokenWQTPriceInUsd);
 
     const bnbPool = new BigNumber(eventsData.returnValues.reserve0).shiftedBy(-18);
     const wqtPool = new BigNumber(eventsData.returnValues.reserve1).shiftedBy(-18);
+
+    Logger.debug('Sync event handler: tokens pool in usd: bnb "%s", wqt "%s"', bnbPool, wqtPool);
 
     const bnbPoolInUsd = bnbPool.multipliedBy(tokenBNBPriceInUsd);
     const wqtPoolInUsd = wqtPool.multipliedBy(tokenWQTPriceInUsd);
 
     const poolToken = bnbPoolInUsd.plus(wqtPoolInUsd).toString();
+
+    Logger.debug('Sync event handler: tokens pool in usd "%s"', poolToken);
 
     const currentDaySinceEpochBeginning = new BigNumber(timestamp.toString()).dividedBy(86400).toString().split('.')[0];
 
@@ -140,7 +144,7 @@ export class WqtWbnbController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Swap event handler: timestamp "%s", event data o%',
+      'Swap event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -188,7 +192,7 @@ export class WqtWbnbController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Mint event handler: timestamp "%s", event data o%',
+      'Mint event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -225,7 +229,7 @@ export class WqtWbnbController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Burn event handler: timestamp "%s", event data o%',
+      'Burn event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
