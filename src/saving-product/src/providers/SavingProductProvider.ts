@@ -4,7 +4,7 @@ import { Logger } from "../../logger/pino";
 import { Transaction } from "web3-eth";
 import configSavings from "../../config/config.savings";
 
-export class SavingsProvider implements IContractProvider {
+export class SavingProductProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;

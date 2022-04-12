@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.savings' });
+config({ path: __dirname + '/../../../.env.savingProduct' });
 
 export default {
   logLevel: 'debug',
