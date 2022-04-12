@@ -105,7 +105,9 @@ export class WqtWbnbController {
     const bnbPoolInUsd = bnbPool.multipliedBy(tokenBNBPriceInUsd);
     const wqtPoolInUsd = wqtPool.multipliedBy(tokenWQTPriceInUsd);
 
-    const poolToken = bnbPoolInUsd.plus(wqtPoolInUsd).toString();
+    const poolToken = bnbPoolInUsd
+      .plus(wqtPoolInUsd)
+      .toString()
 
     Logger.debug('Sync event handler: tokens pool in usd "%s"', poolToken);
 
@@ -139,12 +141,10 @@ export class WqtWbnbController {
       })
     }
 
-    await wqtWbnbSyncEvent.update({
-      reserve0: bnbPool,
-      reserve1: wqtPool,
-    });
-
-    await this.updateBlockViewHeight(eventsData.blockNumber);
+    await Promise.all([
+      this.updateBlockViewHeight(eventsData.blockNumber),
+      wqtWbnbSyncEvent.update({ reserve0: bnbPool, reserve1: wqtPool }),
+    ]);
   }
 
   protected async swapEventHandler(eventsData: EventData) {
