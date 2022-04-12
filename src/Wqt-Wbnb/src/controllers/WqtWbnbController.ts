@@ -61,14 +61,14 @@ export class WqtWbnbController {
   protected async syncEventHandler(eventsData: EventData) {
     const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    const priceInfoBNBStartDay = await this.getTokenPriceInUsd(block.timestamp as string, Coin.BNB);
-    const priceInfoWQTStartDay = await this.getTokenPriceInUsd(block.timestamp as string, Coin.WQT);
+    const priceInfoBNB = await this.getTokenPriceInUsd(block.timestamp as string, Coin.BNB);
+    const priceInfoWQT = await this.getTokenPriceInUsd(block.timestamp as string, Coin.WQT);
 
     const bnbPool = new BigNumber(eventsData.returnValues.reserve0).shiftedBy(-18);
     const wqtPool = new BigNumber(eventsData.returnValues.reserve1).shiftedBy(-18);
 
-    const usdOfBnb = bnbPool.multipliedBy(priceInfoBNBStartDay);
-    const usdOfWqt = wqtPool.multipliedBy(priceInfoWQTStartDay);
+    const usdOfBnb = bnbPool.multipliedBy(priceInfoBNB);
+    const usdOfWqt = wqtPool.multipliedBy(priceInfoWQT);
 
     const poolToken = usdOfBnb.plus(usdOfWqt).toString();
 
@@ -82,8 +82,8 @@ export class WqtWbnbController {
         blockNumber: eventsData.blockNumber,
         bnbPool: bnbPool.toString(),
         wqtPool: wqtPool.toString(),
-        usdPriceBNB: priceInfoBNBStartDay.toString(),
-        usdPriceWQT: priceInfoWQTStartDay.toString(),
+        usdPriceBNB: priceInfoBNB.toString(),
+        usdPriceWQT: priceInfoWQT.toString(),
         reserveUSD: poolToken,
       })
     } else {
@@ -92,8 +92,8 @@ export class WqtWbnbController {
         blockNumber: eventsData.blockNumber,
         bnbPool: bnbPool.toString(),
         wqtPool: wqtPool.toString(),
-        usdPriceBNB: priceInfoBNBStartDay.toString(),
-        usdPriceWQT: priceInfoWQTStartDay.toString(),
+        usdPriceBNB: priceInfoBNB.toString(),
+        usdPriceWQT: priceInfoWQT.toString(),
         reserveUSD: poolToken,
       });
     }
