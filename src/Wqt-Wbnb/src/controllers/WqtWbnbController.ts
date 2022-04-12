@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { literal, Op } from "sequelize";
 import BigNumber from 'bignumber.js';
 import { WqtWbnbEvent } from './types';
 import { Logger } from "../../logger/pino";
@@ -111,16 +111,18 @@ export class WqtWbnbController {
 
     Logger.debug('Sync event handler: tokens pool in usd "%s"', poolToken);
 
-    const currentDaySinceEpochBeginning = new BigNumber(timestamp)
+    const currentEventDaySinceEpochBeginning = new BigNumber(timestamp)
       .dividedBy(86400)
       .toNumber()
       .toFixed()
 
-    const lastDailyLiquidity = await DailyLiquidity.findOne({ where: { daySinceEpochBeginning: currentDaySinceEpochBeginning } });
+    const castDateLiteral = literal(
+      `date::int8 > ${ timestamp }`
+    )
 
-    if (!lastDailyLiquidity) {
-      await DailyLiquidity.create({
-        daySinceEpochBeginning: currentDaySinceEpochBeginning,
+    const [, isAlreadyCreated] = await DailyLiquidity.findOrCreate({
+      where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
+      defaults: {
         date: timestamp,
         blockNumber: eventsData.blockNumber,
         bnbPool: bnbPool.toString(),
@@ -128,17 +130,23 @@ export class WqtWbnbController {
         usdPriceBNB: tokenBNBPriceInUsd.toString(),
         usdPriceWQT: tokenWQTPriceInUsd.toString(),
         reserveUSD: poolToken,
+      }
+    });
+
+    if (!isAlreadyCreated) {
+      await DailyLiquidity.update({
+        date: timestamp,
+        blockNumber: eventsData.blockNumber,
+        bnbPool: bnbPool.toString(),
+        wqtPool: wqtPool.toString(),
+        usdPriceBNB: tokenBNBPriceInUsd.toString(),
+        usdPriceWQT: tokenWQTPriceInUsd.toString(),
+        reserveUSD: poolToken,
+      }, {
+        where: {
+          [Op.and]: [{ daySinceEpochBeginning: currentEventDaySinceEpochBeginning }, { castDateLiteral }],
+        }
       });
-    } else {
-      await lastDailyLiquidity.update({
-        date: timestamp,
-        blockNumber: eventsData.blockNumber,
-        bnbPool: bnbPool.toString(),
-        wqtPool: wqtPool.toString(),
-        usdPriceBNB: tokenBNBPriceInUsd.toString(),
-        usdPriceWQT: tokenWQTPriceInUsd.toString(),
-        reserveUSD: poolToken,
-      })
     }
 
     await Promise.all([
