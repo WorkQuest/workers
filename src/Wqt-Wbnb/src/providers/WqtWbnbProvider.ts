@@ -35,7 +35,7 @@ export class WqtWbnbProvider implements Web3Provider {
 
   public async getAllEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.web3.eth.getBlockNumber();
+    const lastBlockNumber = 14035062 + 4;
 
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
