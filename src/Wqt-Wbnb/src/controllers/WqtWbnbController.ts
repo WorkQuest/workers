@@ -60,17 +60,24 @@ export class WqtWbnbController {
 
   protected async syncEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    const wqtWbnbSyncEvent = await WqtWbnbSyncEvent.findOne({ where: { transactionHash } });
-    if (wqtWbnbSyncEvent) {
+    const [wqtWbnbSyncEvent, isCreated] = await WqtWbnbSyncEvent.findOrCreate({
+      where: { transactionHash },
+      defaults: {
+        transactionHash,
+        blockNumber: eventsData.blockNumber,
+        timestamp: timestamp,
+      }
+    });
+
+    if (!isCreated) {
       Logger.warn('Sync event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
       return;
     }
-
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
     Logger.debug(
       'Sync event handler: timestamp "%s", event data o%',
@@ -80,6 +87,8 @@ export class WqtWbnbController {
 
     const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
     const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
+
+    Logger.debug('Swap event handler: tokens price in usd bnb: "%s", wqt: "%s"', tokenBNBPriceInUsd, tokenWQTPriceInUsd);
 
     const bnbPool = new BigNumber(eventsData.returnValues.reserve0).shiftedBy(-18);
     const wqtPool = new BigNumber(eventsData.returnValues.reserve1).shiftedBy(-18);
@@ -116,12 +125,9 @@ export class WqtWbnbController {
       })
     }
 
-    await WqtWbnbSyncEvent.create({
-      blockNumber: eventsData.blockNumber,
+    await wqtWbnbSyncEvent.update({
       reserve0: bnbPool,
       reserve1: wqtPool,
-      timestamp: timestamp,
-      transactionHash,
     });
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
