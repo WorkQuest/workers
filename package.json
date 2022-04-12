@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#64ebb11bfaa1020f9ac6078877c5738eab3b1dd0",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#f86c167a309e57f9e09d92d254b7a8efc556f299",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
