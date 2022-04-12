@@ -21,7 +21,7 @@ import {
 export class WqtWbnbController {
   constructor(
     private readonly web3Provider: Web3Provider,
-    private readonly tokenPriceProvider: TokenPriceProvider,Bus.Job
+    private readonly tokenPriceProvider: TokenPriceProvider,
     private readonly network: BlockchainNetworks,
   ) {
     this.web3Provider.subscribeOnEvents(async (eventData) => {
@@ -59,7 +59,24 @@ export class WqtWbnbController {
   }
 
   protected async syncEventHandler(eventsData: EventData) {
+    const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
+
+    const wqtWbnbSyncEvent = await WqtWbnbSyncEvent.findOne({ where: { transactionHash } });
+    if (wqtWbnbSyncEvent) {
+      Logger.warn('Sync event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+      return;
+    }
+
     const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    Logger.debug(
+      'Sync event handler: timestamp "%s", event data o%',
+      timestamp,
+      eventsData,
+    );
 
     const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
     const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
@@ -67,15 +84,27 @@ export class WqtWbnbController {
     const bnbPool = new BigNumber(eventsData.returnValues.reserve0).shiftedBy(-18);
     const wqtPool = new BigNumber(eventsData.returnValues.reserve1).shiftedBy(-18);
 
-    const usdOfBnb = bnbPool.multipliedBy(tokenBNBPriceInUsd);
-    const usdOfWqt = wqtPool.multipliedBy(tokenWQTPriceInUsd);
+    const bnbPoolInUsd = bnbPool.multipliedBy(tokenBNBPriceInUsd);
+    const wqtPoolInUsd = wqtPool.multipliedBy(tokenWQTPriceInUsd);
 
-    const poolToken = usdOfBnb.plus(usdOfWqt).toString();
+    const poolToken = bnbPoolInUsd.plus(wqtPoolInUsd).toString();
 
-    const lastDailyLiquidity = await DailyLiquidity.findOne({ order: [['date', 'DESC']] });
-    const currentDaySinceEpochBeginning = new BigNumber(timestamp).dividedBy(86400).toString().split('.')[0];
+    const currentDaySinceEpochBeginning = new BigNumber(timestamp.toString()).dividedBy(86400).toString().split('.')[0];
 
-    if (lastDailyLiquidity.date === currentDaySinceEpochBeginning) {
+    const lastDailyLiquidity = await DailyLiquidity.findOne({ where: { daySinceEpochBeginning: currentDaySinceEpochBeginning } });
+
+    if (!lastDailyLiquidity) {
+      await DailyLiquidity.create({
+        daySinceEpochBeginning: currentDaySinceEpochBeginning,
+        date: timestamp,
+        blockNumber: eventsData.blockNumber,
+        bnbPool: bnbPool.toString(),
+        wqtPool: wqtPool.toString(),
+        usdPriceBNB: tokenBNBPriceInUsd.toString(),
+        usdPriceWQT: tokenWQTPriceInUsd.toString(),
+        reserveUSD: poolToken,
+      });
+    } else {
       await lastDailyLiquidity.update({
         date: timestamp,
         blockNumber: eventsData.blockNumber,
@@ -85,17 +114,6 @@ export class WqtWbnbController {
         usdPriceWQT: tokenWQTPriceInUsd.toString(),
         reserveUSD: poolToken,
       })
-    } else {
-      await DailyLiquidity.create({
-        date: timestamp,
-        daySinceEpochBeginning: timestamp,
-        blockNumber: eventsData.blockNumber,
-        bnbPool: bnbPool.toString(),
-        wqtPool: wqtPool.toString(),
-        usdPriceBNB: tokenBNBPriceInUsd.toString(),
-        usdPriceWQT: tokenWQTPriceInUsd.toString(),
-        reserveUSD: poolToken,
-      });
     }
 
     await WqtWbnbSyncEvent.create({
@@ -103,8 +121,7 @@ export class WqtWbnbController {
       reserve0: bnbPool,
       reserve1: wqtPool,
       timestamp: timestamp,
-      transactionHash: eventsData.transactionHash,
-      network: this.network,
+      transactionHash,
     });
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
@@ -143,7 +160,6 @@ export class WqtWbnbController {
         amount1In: eventsData.returnValues.amount1In,
         amount0Out: eventsData.returnValues.amount0Out,
         amount1Out: eventsData.returnValues.amount1Out,
-        network: this.network,
       },
     });
 
@@ -180,7 +196,6 @@ export class WqtWbnbController {
         blockNumber: eventsData.blockNumber,
         amount0: eventsData.returnValues.amount0,
         amount1: eventsData.returnValues.amount1,
-        network: this.network,
       }
     });
 
@@ -215,7 +230,6 @@ export class WqtWbnbController {
         to,
         sender,
         timestamp,
-        network: this.network,
         blockNumber: eventsData.blockNumber,
         amount0: eventsData.returnValues.amount0,
         amount1: eventsData.returnValues.amount1,
