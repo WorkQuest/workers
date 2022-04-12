@@ -94,16 +94,24 @@ export class WqtWbnbController {
       tokenWQTPriceInUsd,
     );
 
-    const bnbPool = new BigNumber(eventsData.returnValues.reserve0).shiftedBy(-18);
-    const wqtPool = new BigNumber(eventsData.returnValues.reserve1).shiftedBy(-18);
+    const bnbPool = new BigNumber(eventsData.returnValues.reserve0)
+      .shiftedBy(-18)
+      .toString()
+
+    const wqtPool = new BigNumber(eventsData.returnValues.reserve1)
+      .shiftedBy(-18)
+      .toString()
 
     Logger.debug('Sync event handler: tokens pool in usd: bnb "%s", wqt "%s"',
       bnbPool,
       wqtPool,
     );
 
-    const bnbPoolInUsd = bnbPool.multipliedBy(tokenBNBPriceInUsd);
-    const wqtPoolInUsd = wqtPool.multipliedBy(tokenWQTPriceInUsd);
+    const bnbPoolInUsd = new BigNumber(tokenBNBPriceInUsd)
+      .multipliedBy(bnbPool)
+
+    const wqtPoolInUsd = new BigNumber(tokenWQTPriceInUsd)
+      .multipliedBy(wqtPool)
 
     const poolToken = bnbPoolInUsd
       .plus(wqtPoolInUsd)
@@ -122,9 +130,9 @@ export class WqtWbnbController {
       where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
       defaults: {
         date: timestamp,
+        bnbPool: bnbPool,
+        wqtPool: wqtPool,
         blockNumber: eventsData.blockNumber,
-        bnbPool: bnbPool.toString(),
-        wqtPool: wqtPool.toString(),
         usdPriceBNB: tokenBNBPriceInUsd.toString(),
         usdPriceWQT: tokenWQTPriceInUsd.toString(),
         reserveUSD: poolToken,
@@ -134,9 +142,9 @@ export class WqtWbnbController {
     if (!isDailyLiquidityCreated) {
       await DailyLiquidity.update({
         date: timestamp,
+        bnbPool: bnbPool,
+        wqtPool: wqtPool,
         blockNumber: eventsData.blockNumber,
-        bnbPool: bnbPool.toString(),
-        wqtPool: wqtPool.toString(),
         usdPriceBNB: tokenBNBPriceInUsd.toString(),
         usdPriceWQT: tokenWQTPriceInUsd.toString(),
         reserveUSD: poolToken,
