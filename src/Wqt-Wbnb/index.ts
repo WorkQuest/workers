@@ -12,7 +12,7 @@ const abiFilePath = path.join(__dirname, '/abi/WqtWbnb.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  await initDatabase(configDatabase.dbLink, true, false);
+  await initDatabase(configDatabase.dbLink, true, true);
 
   const websocketProvider = new Web3.providers.WebsocketProvider(configWqtWbnb.wsProvider, {
     reconnect: {
@@ -25,7 +25,6 @@ export async function init() {
   const web3 = new Web3(websocketProvider);
   const wqtWbnbContract = new web3.eth.Contract(abi, configWqtWbnb.contractAddress);
 
-  // @ts-ignore
   const wqtWbnbProvider = new WqtWbnbProvider(web3, wqtWbnbContract);
   const wqtWbnbController = new WqtWbnbController(wqtWbnbProvider, new CoinGeckoProvider(), BlockchainNetworks.bscMainNetwork);
 

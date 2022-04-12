@@ -8,8 +8,6 @@
     "bridge:compile": "tsc && node ./build/bridge/index.js",
     "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",
     "proposal:compile": "tsc && node ./build/proposal/index.js",
-    "dailyLiquidity:start": "nodemon -e ts --exec \"npm run dailyLiquidity:compile\"",
-    "dailyLiquidity:compile": "tsc && node ./build/daily-liquidity/index.js",
     "WqtWbnb:start": "nodemon -e ts --exec \"npm run WqtWbnb:compile\"",
     "WqtWbnb:compile": "tsc && node ./build/Wqt-Wbnb/index.js",
     "PensionFund:start": "nodemon -e ts --exec \"npm run PensionFund:compile\"",
@@ -21,7 +19,7 @@
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#71f6950977ffaa786c0b317f2cf3f0b3a63f8457",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#f86c167a309e57f9e09d92d254b7a8efc556f299",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",

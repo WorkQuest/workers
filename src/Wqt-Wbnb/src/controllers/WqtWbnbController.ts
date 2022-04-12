@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { literal, Op } from "sequelize";
 import BigNumber from 'bignumber.js';
 import { WqtWbnbEvent } from './types';
 import { Logger } from "../../logger/pino";
@@ -9,9 +9,11 @@ import {
   TokenPriceProvider,
 } from '../providers/types';
 import {
+  DailyLiquidity,
   WqtWbnbBlockInfo,
   WqtWbnbSwapEvent,
   WqtWbnbMintEvent,
+  WqtWbnbSyncEvent,
   WqtWbnbBurnEvent,
   BlockchainNetworks,
 } from '@workquest/database-models/lib/models';
@@ -46,12 +48,110 @@ export class WqtWbnbController {
     );
 
     if (eventsData.event === WqtWbnbEvent.Swap) {
-      return this.swapEventHandler(eventsData);
+      await this.swapEventHandler(eventsData);
     } else if (eventsData.event === WqtWbnbEvent.Mint) {
-      return this.mintEventHandler(eventsData);
+      await this.mintEventHandler(eventsData);
     } else if (eventsData.event === WqtWbnbEvent.Burn) {
-      return this.burnEventHandler(eventsData);
+      await this.burnEventHandler(eventsData);
+    } else if (eventsData.event === WqtWbnbEvent.Sync) {
+      await this.syncEventHandler(eventsData);
     }
+  }
+
+  protected async syncEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+
+    const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
+
+    const [wqtWbnbSyncEvent, isCreated] = await WqtWbnbSyncEvent.findOrCreate({
+      where: { transactionHash },
+      defaults: {
+        transactionHash,
+        timestamp: timestamp,
+        blockNumber: eventsData.blockNumber,
+      }
+    });
+
+    if (!isCreated) {
+      Logger.warn('Sync event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
+      return;
+    }
+
+    Logger.debug('Sync event handler: timestamp "%s", event data %o',
+      timestamp,
+      eventsData,
+    );
+
+    const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
+    const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
+
+    Logger.debug('Sync event handler: tokens price in usd: bnb "%s", wqt "%s"',
+      tokenBNBPriceInUsd,
+      tokenWQTPriceInUsd,
+    );
+
+    const bnbPool = new BigNumber(eventsData.returnValues.reserve0).shiftedBy(-18);
+    const wqtPool = new BigNumber(eventsData.returnValues.reserve1).shiftedBy(-18);
+
+    Logger.debug('Sync event handler: tokens pool in usd: bnb "%s", wqt "%s"',
+      bnbPool,
+      wqtPool,
+    );
+
+    const bnbPoolInUsd = bnbPool.multipliedBy(tokenBNBPriceInUsd);
+    const wqtPoolInUsd = wqtPool.multipliedBy(tokenWQTPriceInUsd);
+
+    const poolToken = bnbPoolInUsd
+      .plus(wqtPoolInUsd)
+      .toString()
+
+    Logger.debug('Sync event handler: tokens pool in usd "%s"',
+      poolToken,
+    );
+
+    const currentEventDaySinceEpochBeginning = new BigNumber(timestamp)
+      .dividedBy(86400)
+      .toNumber()
+      .toFixed()
+
+    const [, isDailyLiquidityCreated] = await DailyLiquidity.findOrCreate({
+      where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
+      defaults: {
+        date: timestamp,
+        blockNumber: eventsData.blockNumber,
+        bnbPool: bnbPool.toString(),
+        wqtPool: wqtPool.toString(),
+        usdPriceBNB: tokenBNBPriceInUsd.toString(),
+        usdPriceWQT: tokenWQTPriceInUsd.toString(),
+        reserveUSD: poolToken,
+      }
+    });
+
+    if (!isDailyLiquidityCreated) {
+      await DailyLiquidity.update({
+        date: timestamp,
+        blockNumber: eventsData.blockNumber,
+        bnbPool: bnbPool.toString(),
+        wqtPool: wqtPool.toString(),
+        usdPriceBNB: tokenBNBPriceInUsd.toString(),
+        usdPriceWQT: tokenWQTPriceInUsd.toString(),
+        reserveUSD: poolToken,
+      }, {
+        where: {
+          date: { [Op.lt]: timestamp },
+          daySinceEpochBeginning: currentEventDaySinceEpochBeginning,
+        }
+      });
+    }
+
+    await Promise.all([
+      this.updateBlockViewHeight(eventsData.blockNumber),
+      wqtWbnbSyncEvent.update({ reserve0: bnbPool, reserve1: wqtPool }),
+    ]);
   }
 
   protected async swapEventHandler(eventsData: EventData) {
@@ -61,7 +161,7 @@ export class WqtWbnbController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Swap event handler: timestamp "%s", event data o%',
+      'Swap event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -87,7 +187,6 @@ export class WqtWbnbController {
         amount1In: eventsData.returnValues.amount1In,
         amount0Out: eventsData.returnValues.amount0Out,
         amount1Out: eventsData.returnValues.amount1Out,
-        network: this.network,
       },
     });
 
@@ -110,7 +209,7 @@ export class WqtWbnbController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Mint event handler: timestamp "%s", event data o%',
+      'Mint event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -124,7 +223,6 @@ export class WqtWbnbController {
         blockNumber: eventsData.blockNumber,
         amount0: eventsData.returnValues.amount0,
         amount1: eventsData.returnValues.amount1,
-        network: this.network,
       }
     });
 
@@ -148,7 +246,7 @@ export class WqtWbnbController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Burn event handler: timestamp "%s", event data o%',
+      'Burn event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -159,7 +257,6 @@ export class WqtWbnbController {
         to,
         sender,
         timestamp,
-        network: this.network,
         blockNumber: eventsData.blockNumber,
         amount0: eventsData.returnValues.amount0,
         amount1: eventsData.returnValues.amount1,
@@ -182,6 +279,10 @@ export class WqtWbnbController {
     const coinPriceInUsd = await this.tokenPriceProvider.coinPriceInUSD(timestamp, coin);
 
     return coinPriceInUsd * coinAmount;
+  }
+
+  private getTokenPriceInUsd(timestamp: string | number, coin: Coin): Promise<number> {
+    return this.tokenPriceProvider.coinPriceInUSD(timestamp, coin);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
