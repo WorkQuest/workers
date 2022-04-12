@@ -9,19 +9,19 @@ import {
   TokenPriceProvider,
 } from '../providers/types';
 import {
+  DailyLiquidity,
   WqtWbnbBlockInfo,
   WqtWbnbSwapEvent,
   WqtWbnbMintEvent,
+  WqtWbnbSyncEvent,
   WqtWbnbBurnEvent,
   BlockchainNetworks,
-  DailyLiquidity,
-  WqtWbnbSyncEvent,
 } from '@workquest/database-models/lib/models';
 
 export class WqtWbnbController {
   constructor(
     private readonly web3Provider: Web3Provider,
-    private readonly tokenPriceProvider: TokenPriceProvider,
+    private readonly tokenPriceProvider: TokenPriceProvider,Bus.Job
     private readonly network: BlockchainNetworks,
   ) {
     this.web3Provider.subscribeOnEvents(async (eventData) => {
@@ -48,52 +48,52 @@ export class WqtWbnbController {
     );
 
     if (eventsData.event === WqtWbnbEvent.Swap) {
-      return this.swapEventHandler(eventsData);
+      await this.swapEventHandler(eventsData);
     } else if (eventsData.event === WqtWbnbEvent.Mint) {
-      return this.mintEventHandler(eventsData);
+      await this.mintEventHandler(eventsData);
     } else if (eventsData.event === WqtWbnbEvent.Burn) {
-      return this.burnEventHandler(eventsData);
+      await this.burnEventHandler(eventsData);
     } else if (eventsData.event === WqtWbnbEvent.Sync) {
-      return this.syncEventHandler(eventsData);
+      await this.syncEventHandler(eventsData);
     }
   }
 
   protected async syncEventHandler(eventsData: EventData) {
-    const block = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
 
-    const priceInfoBNB = await this.getTokenPriceInUsd(block.timestamp as string, Coin.BNB);
-    const priceInfoWQT = await this.getTokenPriceInUsd(block.timestamp as string, Coin.WQT);
+    const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
+    const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
 
     const bnbPool = new BigNumber(eventsData.returnValues.reserve0).shiftedBy(-18);
     const wqtPool = new BigNumber(eventsData.returnValues.reserve1).shiftedBy(-18);
 
-    const usdOfBnb = bnbPool.multipliedBy(priceInfoBNB);
-    const usdOfWqt = wqtPool.multipliedBy(priceInfoWQT);
+    const usdOfBnb = bnbPool.multipliedBy(tokenBNBPriceInUsd);
+    const usdOfWqt = wqtPool.multipliedBy(tokenWQTPriceInUsd);
 
     const poolToken = usdOfBnb.plus(usdOfWqt).toString();
 
-
     const lastDailyLiquidity = await DailyLiquidity.findOne({ order: [['date', 'DESC']] });
-    const currentDaySinceEpochBeginning = new BigNumber(block.timestamp.toString()).dividedBy(86400).toString().split('.')[0];
+    const currentDaySinceEpochBeginning = new BigNumber(timestamp).dividedBy(86400).toString().split('.')[0];
 
     if (lastDailyLiquidity.date === currentDaySinceEpochBeginning) {
       await lastDailyLiquidity.update({
-        date: block.timestamp,
+        date: timestamp,
         blockNumber: eventsData.blockNumber,
         bnbPool: bnbPool.toString(),
         wqtPool: wqtPool.toString(),
-        usdPriceBNB: priceInfoBNB.toString(),
-        usdPriceWQT: priceInfoWQT.toString(),
+        usdPriceBNB: tokenBNBPriceInUsd.toString(),
+        usdPriceWQT: tokenWQTPriceInUsd.toString(),
         reserveUSD: poolToken,
       })
     } else {
       await DailyLiquidity.create({
-        daySinceEpochBeginning: block.timestamp,
+        date: timestamp,
+        daySinceEpochBeginning: timestamp,
         blockNumber: eventsData.blockNumber,
         bnbPool: bnbPool.toString(),
         wqtPool: wqtPool.toString(),
-        usdPriceBNB: priceInfoBNB.toString(),
-        usdPriceWQT: priceInfoWQT.toString(),
+        usdPriceBNB: tokenBNBPriceInUsd.toString(),
+        usdPriceWQT: tokenWQTPriceInUsd.toString(),
         reserveUSD: poolToken,
       });
     }
@@ -102,17 +102,12 @@ export class WqtWbnbController {
       blockNumber: eventsData.blockNumber,
       reserve0: bnbPool,
       reserve1: wqtPool,
-      timestamp: block.timestamp,
+      timestamp: timestamp,
       transactionHash: eventsData.transactionHash,
       network: this.network,
     });
 
-    await WqtWbnbBlockInfo.update(
-      { lastParsedBlock: eventsData.blockNumber },
-      {
-        where: { network: this.network, },
-      },
-    );
+    await this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   protected async swapEventHandler(eventsData: EventData) {
