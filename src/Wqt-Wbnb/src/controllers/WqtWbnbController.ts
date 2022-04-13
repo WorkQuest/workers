@@ -103,8 +103,10 @@ export class WqtWbnbController {
       eventsData,
     );
 
-    const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
-    const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
+    const timestampForOracle = parseInt(timestamp.toString()) * 1000
+
+    const tokenBNBPriceInUsd = new BigNumber(await this.getTokenPriceInUsd(timestampForOracle.toString(), Coin.BNB)).shiftedBy(-18);
+    const tokenWQTPriceInUsd = new BigNumber(await this.getTokenPriceInUsd(timestampForOracle.toString(), Coin.WQT)).shiftedBy(-18);
 
     if (!tokenBNBPriceInUsd || !tokenWQTPriceInUsd) {
       Logger.warn('Sync event handler: tokens price in usd at this moment is not found "%s" %o',
@@ -118,10 +120,6 @@ export class WqtWbnbController {
       tokenBNBPriceInUsd,
       tokenWQTPriceInUsd,
     );
-
-    if (!tokenBNBPriceInUsd || !tokenWQTPriceInUsd) {
-      return;
-    }
 
     const bnbPoolInUsd = new BigNumber(tokenBNBPriceInUsd)
       .multipliedBy(bnbPool)

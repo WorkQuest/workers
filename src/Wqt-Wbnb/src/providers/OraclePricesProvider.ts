@@ -11,7 +11,7 @@ export class OraclePricesProvider implements TokenPriceProvider {
 
   public async coinPriceInUSD(timestamp: number | string, coin: Coin): Promise<number> {
     const result = await this.api.get(`/v1/oracle/${coin}/price?timestamp=${timestamp}`, {
-        timeout: 10000,
+      timeout: 10000,
       },
     );
 
