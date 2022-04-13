@@ -106,6 +106,14 @@ export class WqtWbnbController {
     const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
     const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
 
+    if (!tokenBNBPriceInUsd || !tokenWQTPriceInUsd) {
+      Logger.warn('Sync event handler: tokens price in usd at this moment is not found "%s" %o',
+        timestamp,
+        eventsData,
+      );
+      return;
+    }
+
     Logger.debug('Sync event handler: tokens price in usd: bnb "%s", wqt "%s"',
       tokenBNBPriceInUsd,
       tokenWQTPriceInUsd,
@@ -180,6 +188,14 @@ export class WqtWbnbController {
       eventsData.returnValues.amount0Out !== '0'
         ? await this.getTokensPriceInUsd(timestamp as string, Coin.BNB, parseInt(eventsData.returnValues.amount0Out))
         : await this.getTokensPriceInUsd(timestamp as string, Coin.WQT, parseInt(eventsData.returnValues.amount1Out));
+
+    if (!tokensPriceInUsd) {
+      Logger.warn('Swap event handler: tokens price in usd at this moment is not found "%s" %o',
+        timestamp,
+        eventsData,
+      );
+      return;
+    }
 
     Logger.debug('Swap event handler: tokens price in usd "%s"', tokensPriceInUsd);
 
