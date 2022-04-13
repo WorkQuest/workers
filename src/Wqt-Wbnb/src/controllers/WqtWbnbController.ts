@@ -63,10 +63,25 @@ export class WqtWbnbController {
 
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
 
-    const [wqtWbnbSyncEvent, isCreated] = await WqtWbnbSyncEvent.findOrCreate({
+    const bnbPool = new BigNumber(eventsData.returnValues.reserve0)
+      .shiftedBy(-18)
+      .toString()
+
+    const wqtPool = new BigNumber(eventsData.returnValues.reserve1)
+      .shiftedBy(-18)
+      .toString()
+
+    Logger.debug('Sync event handler: tokens pool in usd: bnb "%s", wqt "%s"',
+      bnbPool,
+      wqtPool,
+    );
+
+    const [, isCreated] = await WqtWbnbSyncEvent.findOrCreate({
       where: { transactionHash },
       defaults: {
         transactionHash,
+        reserve1: wqtPool,
+        reserve0: bnbPool,
         timestamp: timestamp,
         blockNumber: eventsData.blockNumber,
       }
@@ -81,6 +96,8 @@ export class WqtWbnbController {
       return;
     }
 
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
     Logger.debug('Sync event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
@@ -94,18 +111,9 @@ export class WqtWbnbController {
       tokenWQTPriceInUsd,
     );
 
-    const bnbPool = new BigNumber(eventsData.returnValues.reserve0)
-      .shiftedBy(-18)
-      .toString()
-
-    const wqtPool = new BigNumber(eventsData.returnValues.reserve1)
-      .shiftedBy(-18)
-      .toString()
-
-    Logger.debug('Sync event handler: tokens pool in usd: bnb "%s", wqt "%s"',
-      bnbPool,
-      wqtPool,
-    );
+    if (!tokenBNBPriceInUsd || !tokenWQTPriceInUsd) {
+      return;
+    }
 
     const bnbPoolInUsd = new BigNumber(tokenBNBPriceInUsd)
       .multipliedBy(bnbPool)
@@ -122,9 +130,8 @@ export class WqtWbnbController {
     );
 
     const currentEventDaySinceEpochBeginning = new BigNumber(timestamp)
-      .dividedBy(86400)
+      .dividedToIntegerBy(86400)
       .toNumber()
-      .toFixed()
 
     const [, isDailyLiquidityCreated] = await DailyLiquidity.findOrCreate({
       where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
@@ -155,11 +162,6 @@ export class WqtWbnbController {
         }
       });
     }
-
-    await Promise.all([
-      this.updateBlockViewHeight(eventsData.blockNumber),
-      wqtWbnbSyncEvent.update({ reserve0: bnbPool, reserve1: wqtPool }),
-    ]);
   }
 
   protected async swapEventHandler(eventsData: EventData) {

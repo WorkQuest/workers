@@ -62,6 +62,7 @@ jobs:
 
           DB_LINK=${{ secrets.PROD_DB_LINK }} \
           RABBIT_LINK=${{ secrets.PROD_RABBIT_LINK }} \
+          ORACLE_LINK=${{ secrets.PROD_ORACLE_LINK }} \
 
           BLOCKCHAIN_NETWORK=${{ secrets.PROD_BLOCKCHAIN_NETWORK }} \
           BSC_BLOCKCHAIN_NETWORK=${{ secrets.PROD_BSC_BLOCKCHAIN_NETWORK }} \
@@ -145,6 +146,7 @@ jobs:
 
           DB_LINK=${{ secrets.DEV_DB_LINK }} \
           RABBIT_LINK=${{ secrets.DEV_RABBIT_LINK }} \
+          ORACLE_LINK=${{ secrets.DEV_ORACLE_LINK }} \
 
           NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.DEV_NOTIFICATION_MESSAGE_BROKER_LINK }} \
 
@@ -224,6 +226,7 @@ jobs:
 
           DB_LINK=${{ secrets.DB_LINK }} \
           RABBIT_LINK=${{ secrets.RABBIT_LINK }} \
+          ORACLE_LINK=${{ secrets.ORACLE_LINK }} \
 
           NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.NOTIFICATION_MESSAGE_BROKER_LINK }} \
 
