@@ -122,9 +122,8 @@ export class WqtWbnbController {
     );
 
     const currentEventDaySinceEpochBeginning = new BigNumber(timestamp)
-      .dividedBy(86400)
+      .dividedToIntegerBy(86400)
       .toNumber()
-      .toFixed()
 
     const [, isDailyLiquidityCreated] = await DailyLiquidity.findOrCreate({
       where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
