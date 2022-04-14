@@ -48,8 +48,11 @@ export class WqtWbnbProvider implements Web3Provider {
 
         collectedEvents.push(...eventsData);
 
-        Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
-        Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
+        Logger.info('Collected events per range: "%s". Collected events: "%s". Left to collect blocks "%s"',
+          eventsData.length,
+          collectedEvents.length,
+          lastBlockNumber - toBlock,
+        );
 
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;
@@ -62,7 +65,6 @@ export class WqtWbnbProvider implements Web3Provider {
           collectedEvents.push(...eventsData);
 
           Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
-          Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
 
           break;
         }

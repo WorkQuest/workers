@@ -63,8 +63,7 @@ export class WqtWbnbController {
 
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
 
-    Logger.debug(
-      'Sync event handler: timestamp "%s", event data o%',
+    Logger.debug('Sync event handler: timestamp "%s", event data o%',
       timestamp,
       eventsData,
     );
@@ -188,36 +187,17 @@ export class WqtWbnbController {
     const to = eventsData.returnValues.to.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug(
-      'Swap event handler: timestamp "%s", event data %o',
+    Logger.debug('Swap event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
 
-    const tokensPriceInUsd =
-      eventsData.returnValues.amount0Out !== '0'
-        ? await this.getTokensPriceInUsd(timestamp as string, Coin.BNB, parseInt(eventsData.returnValues.amount0Out))
-        : await this.getTokensPriceInUsd(timestamp as string, Coin.WQT, parseInt(eventsData.returnValues.amount1Out));
-
-    if (!tokensPriceInUsd) {
-      Logger.warn('Swap event handler: tokens price in usd at this moment is not found "%s" %o',
-        timestamp,
-        eventsData,
-      );
-      return;
-    }
-
-    Logger.debug('Swap event handler: tokens price in usd "%s"', tokensPriceInUsd);
-
-    const usdAmount = new BigNumber(tokensPriceInUsd).shiftedBy(-18);
-
-    const [, isCreated] = await WqtWbnbSwapEvent.findOrCreate({
+    const [wqtWbnbSwapEvent, isCreated] = await WqtWbnbSwapEvent.findOrCreate({
       where: { transactionHash },
       defaults: {
         to,
         transactionHash,
         timestamp: timestamp,
-        amountUSD: usdAmount.toString(),
         blockNumber: eventsData.blockNumber,
         amount0In: eventsData.returnValues.amount0In,
         amount1In: eventsData.returnValues.amount1In,
@@ -236,6 +216,32 @@ export class WqtWbnbController {
     }
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    const trackedToken = eventsData.returnValues.amount0Out !== '0'
+      ? { symbol: Coin.BNB, value: eventsData.returnValues.amount0Out }
+      : { symbol: Coin.WQT, value: eventsData.returnValues.amount1Out }
+
+    const tokensPriceInUsd = await this.getTokensPriceInUsd(timestamp as string, trackedToken.symbol, parseInt(trackedToken.value))
+
+    if (!tokensPriceInUsd) {
+      Logger.warn('Swap event handler: (tx hash "%s") token price (%s) in usd at timestamp "%s" is not found',
+        transactionHash,
+        trackedToken.symbol.toLowerCase(),
+        timestamp,
+      );
+
+      return;
+    }
+
+    Logger.debug('Swap event handler: (tx hash "%s") tokens price (%s) in usd "%s"',
+      transactionHash,
+      trackedToken.symbol.toLowerCase(),
+      tokensPriceInUsd
+    );
+
+    const usdAmount = new BigNumber(tokensPriceInUsd).shiftedBy(-18);
+
+    await wqtWbnbSwapEvent.update({ amountUSD: usdAmount });
   }
 
   protected async mintEventHandler(eventsData: EventData) {
@@ -244,8 +250,7 @@ export class WqtWbnbController {
     const sender = eventsData.returnValues.sender.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug(
-      'Mint event handler: timestamp "%s", event data %o',
+    Logger.debug('Mint event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -281,8 +286,7 @@ export class WqtWbnbController {
     const sender = eventsData.returnValues.sender.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug(
-      'Burn event handler: timestamp "%s", event data %o',
+    Logger.debug('Burn event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
