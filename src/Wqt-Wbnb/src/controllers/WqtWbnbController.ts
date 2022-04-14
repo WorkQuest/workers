@@ -326,8 +326,6 @@ export class WqtWbnbController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
-
     const { collectedEvents, error, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {

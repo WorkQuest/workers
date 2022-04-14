@@ -37,6 +37,11 @@ export class WqtWbnbProvider implements Web3Provider {
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
+    Logger.info('Start collecting all uncollected events from block number: "%s", last block number "%s"',
+      fromBlockNumber,
+      lastBlockNumber,
+    );
+
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
