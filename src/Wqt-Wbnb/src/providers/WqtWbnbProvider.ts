@@ -47,6 +47,18 @@ export class WqtWbnbProvider implements Web3Provider {
 
     try {
       while (true) {
+        if (toBlock >= lastBlockNumber) {
+          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
+
+          const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
+
+          collectedEvents.push(...eventsData);
+
+          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+
+          break;
+        }
+
         Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
@@ -61,18 +73,6 @@ export class WqtWbnbProvider implements Web3Provider {
 
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;
-
-        if (toBlock >= lastBlockNumber) {
-          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
-
-          const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
-
-          collectedEvents.push(...eventsData);
-
-          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
-
-          break;
-        }
       }
     } catch (error) {
       Logger.error(error, 'Collection of all events ended with an error.' +
