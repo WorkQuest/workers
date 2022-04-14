@@ -41,7 +41,7 @@ export class WqtWbnbController {
   }
 
   private async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name %s, block number %s, address %s',
+    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -63,6 +63,12 @@ export class WqtWbnbController {
 
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
 
+    Logger.debug(
+      'Sync event handler: timestamp "%s", event data o%',
+      timestamp,
+      eventsData,
+    );
+
     const bnbPool = new BigNumber(eventsData.returnValues.reserve0)
       .shiftedBy(-18)
       .toString()
@@ -71,7 +77,8 @@ export class WqtWbnbController {
       .shiftedBy(-18)
       .toString()
 
-    Logger.debug('Sync event handler: tokens pool in usd: bnb "%s", wqt "%s"',
+    Logger.debug('Sync event handler: (tx hash "%s") tokens pool (shifted by -18): bnb "%s", wqt "%s"',
+      transactionHash,
       bnbPool,
       wqtPool,
     );
@@ -98,23 +105,22 @@ export class WqtWbnbController {
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
-    Logger.debug('Sync event handler: timestamp "%s", event data %o',
-      timestamp,
-      eventsData,
-    );
-
     const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
     const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
 
     if (!tokenBNBPriceInUsd || !tokenWQTPriceInUsd) {
-      Logger.warn('Sync event handler: tokens price in usd at this moment is not found "%s" %o',
+      Logger.warn('Sync event handler: (tx hash "%s") tokens price (bnb "%s", wqt "%s") in usd at timestamp "%s" moment is not found',
+        transactionHash,
+        tokenBNBPriceInUsd,
+        tokenWQTPriceInUsd,
         timestamp,
-        eventsData,
       );
+
       return;
     }
 
-    Logger.debug('Sync event handler: tokens price in usd: bnb "%s", wqt "%s"',
+    Logger.debug('Sync event handler: (tx hash "%s") tokens price in usd: bnb "%s", wqt "%s"',
+      transactionHash,
       tokenBNBPriceInUsd,
       tokenWQTPriceInUsd,
     );
@@ -131,13 +137,19 @@ export class WqtWbnbController {
       .plus(wqtPoolInUsd)
       .toString()
 
-    Logger.debug('Sync event handler: tokens pool in usd "%s"',
+    Logger.debug('Sync event handler: (tx hash "%s") tokens pool in usd "%s"',
+      transactionHash,
       poolToken,
     );
 
     const currentEventDaySinceEpochBeginning = new BigNumber(timestamp)
       .dividedToIntegerBy(86400)
       .toNumber()
+
+    Logger.debug('Sync event handler: (tx hash "%s") day since unix epoch "%s"',
+      transactionHash,
+      currentEventDaySinceEpochBeginning,
+    );
 
     const [, isDailyLiquidityCreated] = await DailyLiquidity.findOrCreate({
       where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
