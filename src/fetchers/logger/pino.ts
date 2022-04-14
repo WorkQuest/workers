@@ -1,8 +1,8 @@
 import pino from 'pino';
-import configFetcher from "../config/config.fetcher";
+import configFetchers from "../config/config.fetcher";
 
 export const Logger = pino({
-  level: configFetcher.logLevel,
+  level: configFetchers.logLevel,
   transport: {
     target: 'pino-pretty',
     options: {

@@ -1,6 +1,7 @@
 import {onEventCallBack} from "./types";
+import {Clients, IContractProvider} from "./types";
 import {Contract, EventData} from "web3-eth-contract";
-import {BridgeClients, IContractProvider} from "./types";
+import { Logger } from "../../logger/pino";
 
 export class BridgeProvider implements IContractProvider {
 
@@ -9,7 +10,7 @@ export class BridgeProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
 
   constructor(
-    public readonly clients: BridgeClients,
+    public readonly clients: Clients,
     public readonly contract: Contract,
   ) {}
 
@@ -30,6 +31,8 @@ export class BridgeProvider implements IContractProvider {
 
   public startListener() {
     this.contractEventsListenerInit();
+
+    Logger.info('Start bridge listener on contract: "%s"', this.contract.options.address);
   }
 
   public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
@@ -46,16 +49,20 @@ export class BridgeProvider implements IContractProvider {
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
-          console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
           if (eventsData !== undefined) {
-            collectedEvents.push(...eventsData); break;
+            collectedEvents.push(...eventsData);
+
+            Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+
+            break;
           }
         }
 
-        console.info('Block from: ', fromBlock, ' block to: ', toBlock);
+        Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
@@ -63,12 +70,20 @@ export class BridgeProvider implements IContractProvider {
           collectedEvents.push(...eventsData);
         }
 
+        Logger.info('Collected events per range: "%s". Collected events: "%s". Left to collect blocks "%s"',
+          eventsData.length,
+          collectedEvents.length,
+          lastBlockNumber - toBlock,
+        );
+
         fromBlock += this.preParsingSteps;
         toBlock = fromBlock + this.preParsingSteps - 1;
       }
     } catch (error) {
-      console.error(error);
-      console.error('GetAllEvents: Last block: ', fromBlock);
+      Logger.error(error, 'Collection of all events ended with an error.' +
+        ' Collected events to block number: "%s". Total collected events',
+        fromBlock, collectedEvents.length,
+      );
 
       return { collectedEvents, error, lastBlockNumber: fromBlock };
     }

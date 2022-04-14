@@ -8,17 +8,18 @@ export class BaseBrokerClient {
   ) {}
 
   public async init() {
-    const conn = await amqp.connect(this.link, "heartbeat=60");
-    this.channel = await conn.createChannel();
+    const connection = await amqp.connect(this.link, 'heartbeat=60');
 
-    conn.on('error', (err) => {
+    connection.on('error', (err) => {
       console.error(err);
     });
 
-    conn.on('close', async() => {
+    connection.on('close', async () => {
       setTimeout(async () => {
         await this.init();
       }, 5000);
     });
+
+    this.channel = await connection.createChannel();
   }
 }

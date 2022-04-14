@@ -27,6 +27,10 @@ npm-debug.log
 .env.wqt
 .env.raiseView
 .env.bridge
+.env.borrowing
+.env.brokers
+.env.raiseView
+.env.wqt
 .env.liquidity
 .env.proposal
 .env.quest
@@ -35,6 +39,7 @@ npm-debug.log
 .env.referral
 .env.questFactory
 .env.fetcher
+.env.savingProduct
 
 # build directory
 build/

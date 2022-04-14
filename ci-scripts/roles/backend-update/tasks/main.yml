@@ -38,6 +38,41 @@
     src: ./app.json.j2
     dest: '{{ WORKERS_BIN }}/app.json'
 
+- name: Copy or generate bridge env file
+  template:
+    src: ./{{ bridge_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ bridge_env }}'
+
+- name: Copy or generate pension-fund env file
+  template:
+    src: ./{{ pension_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ pension_env }}'
+
+- name: Copy or generate proposal env file
+  template:
+    src: ./{{ proposal_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ proposal_env }}'
+
+- name: Copy or generate wqt-wbnb env file
+  template:
+    src: ./{{ wqt_wbnb_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ wqt_wbnb_env }}'
+
+- name: Copy or generate referral-program env file
+  template:
+    src: ./{{ referral_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ referral_env }}'
+
+- name: Copy or generate saving-product env file
+  template:
+    src: ./{{ saving_product_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ saving_product_env }}'
+
+- name: Copy or generate fetcher env file
+  template:
+    src: ./{{ fetcher_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ fetcher_env }}'
+
 - name: Copy or generate quest env file
   template:
     src: ./{{ quest_env }}.j2
@@ -52,16 +87,6 @@
   template:
     src: ./{{ raise_view_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ raise_view_env }}'
-
-- name: Copy or generate fetcher env file
-  template:
-    src: ./{{ fetcher_env }}.j2
-    dest: '{{ WORKERS_BIN }}/{{ fetcher_env }}'
-
-- name: Copy or generate broker env file
-  template:
-    src: ./{{ broker_env }}.j2
-    dest: '{{ WORKERS_BIN }}/{{ broker_env }}'
 
 - name: Start backend process
   shell: pm2 reload app.json

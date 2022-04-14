@@ -36,9 +36,9 @@ export class TransactionsFetcher {
 
     const txs = blocks
       .map(block => block.transactions)
-      .reduce((prev, current) => [...prev, ...current]);
+      .reduce((prev, current) => [...prev, ...current])
 
-    Logger.info('"%s" transactions found in current range', txs.length);
+    Logger.info('"%s" transactions found in current range ("%s" - "%s")', txs.length, this.fetchedUpToBlockNumber, currentBlockNumber);
 
     await this.brokerRouter.sendMessageToExchange({ transactions: txs });
 

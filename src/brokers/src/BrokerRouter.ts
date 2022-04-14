@@ -2,7 +2,7 @@ import { BaseBrokerClient } from "./BaseBrokerClient";
 
 export class BrokerRouter extends BaseBrokerClient {
   constructor(
-   link: string,
+    link: string,
     protected readonly exchangeName: string,
   ) {
     super(link);
@@ -17,15 +17,15 @@ export class BrokerRouter extends BaseBrokerClient {
     await this.channel.assertExchange(this.exchangeName);
   }
 
-  public async sendMessageToExchange(message: object): Promise<void> {
+  public async sendMessageToExchange(message: any) {
     await this.executeExchangeMessage(message);
   }
 
-  private async executeExchangeMessage(message: object): Promise<void> {
+  private async executeExchangeMessage(message: any) {
     try {
       const buffer = Buffer.from(JSON.stringify(message));
 
-      this.channel.publish(this.exchangeName, '', buffer, {
+      await this.channel.publish(this.exchangeName, '', buffer, {
         persistent: true
       });
     } catch (err) {
