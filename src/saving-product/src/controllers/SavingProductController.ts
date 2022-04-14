@@ -58,9 +58,9 @@ export class SavingProductController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug(
-      'Borrowed event handler: timestamp "%s", event data %o',
-      timestamp, eventsData
+    Logger.debug('Borrowed event handler: timestamp "%s", event data %o',
+      timestamp,
+      eventsData,
     );
 
     const [, isCreated] = await SavingProductBorrowedEvent.findOrCreate({
@@ -94,9 +94,9 @@ export class SavingProductController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug(
-      'Claimed event handler: timestamp "%s", event data %o',
-      timestamp, eventsData
+    Logger.debug('Claimed event handler: timestamp "%s", event data %o',
+      timestamp,
+      eventsData,
     );
 
     const [, isCreated] = await SavingProductClaimedEvent.findOrCreate({
@@ -130,9 +130,9 @@ export class SavingProductController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug(
-      'Received event handler: timestamp "%s", event data %o',
-      timestamp, eventsData
+    Logger.debug('Received event handler: timestamp "%s", event data %o',
+      timestamp,
+      eventsData,
     );
 
     const [, isCreated] = await SavingProductReceivedEvent.findOrCreate({
@@ -166,9 +166,9 @@ export class SavingProductController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug(
-      'Refunded event handler: timestamp "%s", event data %o',
-      timestamp, eventsData
+    Logger.debug('Refunded event handler: timestamp "%s", event data %o',
+      timestamp,
+      eventsData,
     );
 
     const [, isCreated] = await SavingProductRefundedEvent.findOrCreate({
@@ -197,8 +197,6 @@ export class SavingProductController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
-
     const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
