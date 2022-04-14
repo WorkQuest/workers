@@ -1,4 +1,4 @@
-import { literal, Op } from "sequelize";
+import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
 import { WqtWbnbEvent } from './types';
 import { Logger } from "../../logger/pino";
@@ -103,10 +103,8 @@ export class WqtWbnbController {
       eventsData,
     );
 
-    const timestampForOracle = parseInt(timestamp.toString()) * 1000
-
-    const tokenBNBPriceInUsd = new BigNumber(await this.getTokenPriceInUsd(timestampForOracle.toString(), Coin.BNB)).shiftedBy(-18);
-    const tokenWQTPriceInUsd = new BigNumber(await this.getTokenPriceInUsd(timestampForOracle.toString(), Coin.WQT)).shiftedBy(-18);
+    const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
+    const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
 
     if (!tokenBNBPriceInUsd || !tokenWQTPriceInUsd) {
       Logger.warn('Sync event handler: tokens price in usd at this moment is not found "%s" %o',
@@ -122,9 +120,11 @@ export class WqtWbnbController {
     );
 
     const bnbPoolInUsd = new BigNumber(tokenBNBPriceInUsd)
+      .shiftedBy(-18)
       .multipliedBy(bnbPool)
 
     const wqtPoolInUsd = new BigNumber(tokenWQTPriceInUsd)
+      .shiftedBy(-18)
       .multipliedBy(wqtPool)
 
     const poolToken = bnbPoolInUsd
