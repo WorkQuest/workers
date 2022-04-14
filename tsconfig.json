@@ -23,7 +23,7 @@
     "./src/Wqt-Wbnb/abi/*.json",
     "./src/pension-fund/abi/*.json",
     "./src/referral-program/abi/*.json",
-    "./src/saving-product/abi/*.json"
+    "./src/saving-product/abi/*.json",
     "./src/raise-view/abi/*.json",
   ],
   "rootDir":  ["src"]

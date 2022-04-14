@@ -144,7 +144,7 @@ describe('QuestController', () => {
     tendermintWsClient = null;
     questCacheProvider = new QuestCacheProvider(null);
 
-    clients = { web3, tendermintWsClient, questCacheProvider }
+    // clients = { web3, transactionsBroker: , questCacheProvider }
 
     // questProvider = new QuestProvider(clients, null);
 

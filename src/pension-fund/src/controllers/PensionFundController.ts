@@ -1,8 +1,8 @@
-import { Clients, IContractProvider } from "../providers/types";
-import { PensionFundEvent } from './types';
-import { EventData } from 'web3-eth-contract';
-import { Logger } from "../../logger/pino";
 import { Op } from "sequelize";
+import { Logger } from "../../logger/pino";
+import { PensionFundEvents } from './types';
+import { EventData } from 'web3-eth-contract';
+import { Clients, IContractProvider } from "../providers/types";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
@@ -29,11 +29,11 @@ export class PensionFundController {
       eventsData.address,
     );
 
-    if (eventsData.event === PensionFundEvent.Received) {
+    if (eventsData.event === PensionFundEvents.Received) {
       await this.receivedEventHandler(eventsData);
-    } else if (eventsData.event === PensionFundEvent.Withdrew) {
+    } else if (eventsData.event === PensionFundEvents.Withdrew) {
       await this.withdrewEventHandler(eventsData);
-    } else if (eventsData.event === PensionFundEvent.WalletUpdated) {
+    } else if (eventsData.event === PensionFundEvents.WalletUpdated) {
       await this.walletUpdatedEventHandler(eventsData);
     }
   }
@@ -68,7 +68,7 @@ export class PensionFundController {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
         amount: eventsData.returnValues.amount,
-        event: PensionFundEvent.Received,
+        event: PensionFundEvents.Received,
         network: this.network,
       },
     });
@@ -105,7 +105,7 @@ export class PensionFundController {
         timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
         amount: eventsData.returnValues.amount,
-        event: PensionFundEvent.Withdrew,
+        event: PensionFundEvents.Withdrew,
         network: this.network,
       },
     });
@@ -143,7 +143,7 @@ export class PensionFundController {
         blockNumber: eventsData.blockNumber,
         newFee: eventsData.returnValues.newFee,
         unlockDate: eventsData.returnValues.unlockDate,
-        event: PensionFundEvent.WalletUpdated,
+        event: PensionFundEvents.WalletUpdated,
         network: this.network,
       },
     });

@@ -1,5 +1,4 @@
-import { IContractProvider, onEventCallBack, Clients, IContractCacheProvider } from '../../../types';
-import {WebsocketClient as TendermintWebsocketClient} from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
+import { Clients, IContractCacheProvider } from '../../../types';
 import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 
 export type QuestPayload = {
@@ -12,14 +11,10 @@ export interface IQuestCacheProvider extends IContractCacheProvider<QuestPayload
 }
 
 export interface QuestClients extends Clients {
-  readonly tendermintWsClient?: TendermintWebsocketClient;
-  readonly questCacheProvider?: IQuestCacheProvider;
-  readonly transactionsBroker?: TransactionBroker;
+  readonly questCacheProvider: IQuestCacheProvider;
+  readonly transactionsBroker: TransactionBroker;
 }
 
-export {
-  onEventCallBack,
-  IContractProvider,
-}
+export * from '../../../types';
 
 

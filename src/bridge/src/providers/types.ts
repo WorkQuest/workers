@@ -1,12 +1,12 @@
+import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 import { IContractProvider, onEventCallBack, Clients } from '../../../types';
-import { WebsocketClient as TendermintWebsocketClient } from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
 
 export interface BridgeClients extends Clients {
-  readonly webSocketProvider?: any;
-  readonly tendermintWsClient?: TendermintWebsocketClient;
+  readonly webSocketProvider: any;
 }
 
-export {
-  onEventCallBack,
-  IContractProvider,
+export interface BridgeWorkNetClients extends Clients {
+  readonly transactionsBroker: TransactionBroker;
 }
+
+export * from  '../../../types';

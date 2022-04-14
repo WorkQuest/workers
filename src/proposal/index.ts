@@ -6,7 +6,7 @@ import configDatabase from './config/config.database';
 import { ProposalController } from "./src/controllers/ProposalController";
 import { ProposalProvider } from './src/providers/ProposalProvider';
 import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
-import { Clients } from "./src/providers/types";
+import { ProposalClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { Logger } from "./logger/pino";
 
@@ -33,7 +33,7 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'proposal');
   await transactionsBroker.init();
 
-  const clients: Clients = { web3, transactionsBroker };
+  const clients: ProposalClients = { web3, transactionsBroker };
 
   const proposalContract = new web3.eth.Contract(abi, contractAddress);
 

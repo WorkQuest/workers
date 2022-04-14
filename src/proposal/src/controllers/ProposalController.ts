@@ -1,7 +1,7 @@
 import {Op} from "sequelize";
 import { Logger } from "../../logger/pino";
-import {IController, TrackedEvents} from "./types";
 import { EventData } from "web3-eth-contract";
+import {IController, ProposalEvents} from "./types";
 import {Clients, IContractProvider} from "../providers/types";
 import {
   Proposal,
@@ -32,11 +32,11 @@ export class ProposalController implements IController {
       eventsData.address,
     );
 
-    if (eventsData.event === TrackedEvents.ProposalCreated) {
+    if (eventsData.event === ProposalEvents.ProposalCreated) {
       return this.proposalCreatedEventHandler(eventsData);
-    } else if (eventsData.event === TrackedEvents.VoteCast) {
+    } else if (eventsData.event === ProposalEvents.VoteCast) {
       return this.voteCastEventHandler(eventsData);
-    } else if (eventsData.event === TrackedEvents.ProposalExecuted) {
+    } else if (eventsData.event === ProposalEvents.ProposalExecuted) {
       return this.proposalExecutedEventHandler(eventsData);
     }
   }

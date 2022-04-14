@@ -5,9 +5,13 @@ import {WqtWbnbProvider} from './src/providers/WqtWbnbProvider';
 import {WqtWbnbController} from './src/controllers/WqtWbnbController';
 import configDatabase from './config/config.database';
 import configWqtWbnb from './config/config.WqtWbnb';
-import {BlockchainNetworks, initDatabase, WqtWbnbBlockInfo} from '@workquest/database-models/lib/models';
 import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
-import {Coin} from "./src/providers/types";
+import {
+  initDatabase,
+  WqtWbnbBlockInfo,
+  BlockchainNetworks,
+} from '@workquest/database-models/lib/models';
+import {Clients} from "../types";
 
 const abiFilePath = path.join(__dirname, '/abi/WqtWbnb.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -26,11 +30,13 @@ export async function init() {
   const web3 = new Web3(websocketProvider);
   const wqtWbnbContract = new web3.eth.Contract(abi, configWqtWbnb.contractAddress);
 
-  const wqtWbnbProvider = new WqtWbnbProvider(web3, wqtWbnbContract);
+  const clients: Clients = { web3 };
+  const wqtWbnbProvider = new WqtWbnbProvider(clients, wqtWbnbContract);
 
   const wqtWbnbController = new WqtWbnbController(
     wqtWbnbProvider,
     new OraclePricesProvider(configWqtWbnb.oracleLink),
+    clients,
     BlockchainNetworks.bscMainNetwork,
   );
 

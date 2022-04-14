@@ -1,8 +1,8 @@
+import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
+import { PensionFundClients } from "./types";
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider } from "./types";
-import { Clients } from "../../src/providers/types";
-import { Transaction } from "web3-eth";
 import configPensionFund from "../../config/config.pensionFund";
 
 export class PensionFundProvider implements IContractProvider {
@@ -11,7 +11,7 @@ export class PensionFundProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
 
   constructor (
-    public readonly clients: Clients,
+    public readonly clients: PensionFundClients,
     public readonly contract: Contract,
   ) {};
 

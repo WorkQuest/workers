@@ -1,11 +1,8 @@
-import { IContractProvider, onEventCallBack, Clients } from '../../../types';
-import {WebsocketClient as TendermintWebsocketClient} from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
+import { Clients } from '../../../types';
+import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 
 export interface PensionFundClients extends Clients {
-  tendermintWsClient?: TendermintWebsocketClient;
+  readonly transactionsBroker: TransactionBroker;
 }
 
-export {
-  onEventCallBack,
-  IContractProvider,
-}
+export * from '../../../types';

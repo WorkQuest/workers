@@ -2,10 +2,10 @@ import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from "./logger/pino";
-import { Clients } from "./src/providers/types";
 import configDatabase from './config/config.database';
+import { PensionFundClients } from "./src/providers/types";
 import configPensionFund from './config/config.pensionFund';
-import { PensionFundController } from "./src/controllers/pensionFundController";
+import { PensionFundController } from "./src/controllers/PensionFundController";
 import { PensionFundProvider } from "./src/providers/PensionFundProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import {
@@ -37,7 +37,7 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'pension-fund');
   await transactionsBroker.init();
 
-  const clients: Clients = { web3, transactionsBroker };
+  const clients: PensionFundClients = { web3, transactionsBroker };
 
   const pensionFundContract = new web3.eth.Contract(abi, contractAddress);
 

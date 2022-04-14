@@ -1,4 +1,3 @@
-import { IController } from '../../../types';
 import { EventData } from "web3-eth-contract";
 
 export enum ReferralEvent {
@@ -13,6 +12,4 @@ export type Notification = {
   data: EventData,
 }
 
-export {
-  IController,
-}
+export * from '../../../types';

@@ -1,8 +1,7 @@
-import {IController, ReferralEvent} from './types';
-import {EventData} from 'web3-eth-contract';
-import {Clients, IContractProvider} from "../providers/types";
-import {ReferralMessageBroker} from "./BrokerController";
 import { Logger } from "../../logger/pino";
+import {EventData} from 'web3-eth-contract';
+import {ReferralMessageBroker} from "./BrokerController";
+import {IController, ReferralEvent, Clients, IContractProvider} from './types';
 import {
   Wallet,
   RewardStatus,

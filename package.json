@@ -16,8 +16,6 @@
     "referral:compile": "tsc && node ./build/referral-program/index.js",
     "savingProduct:start": "nodemon -e ts --exec \"npm run SavingProduct:compile\"",
     "savingProduct:compile": "tsc && node ./build/saving-product/index.js",
-    "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
-    "fetcher:compile": "tsc && node ./build/fetchers/index.js"
     "questFactory:start": "nodemon -e ts --exec \"npm run questFactory:compile\"",
     "questFactory:compile": "tsc && node ./build/quest-factory/index.js",
     "quest:start": "nodemon -e ts --exec \"npm run quest:compile\"",
@@ -46,7 +44,7 @@
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
     "@sentry/node": "^6.19.2",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#e1de314ed1dac39bae4dfd6cf2a56187e74aa9aa",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#ef952dbc53798f624edc7047e518e84c79ba1912",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",

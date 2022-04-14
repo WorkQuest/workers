@@ -2,12 +2,12 @@ import fs from "fs";
 import Web3 from "web3";
 import path from "path";
 import { Logger } from "./logger/pino";
-import { Clients } from "./src/providers/types";
 import configBridge from "./config/config.bridge";
 import configDatabase from "../bridge/config/config.common";
 import { BridgeProvider } from "./src/providers/BridgeProvider";
 import { BridgeController } from "./src/controllers/BridgeController";
 import { BridgeMessageBroker } from "./src/controllers/BrokerController";
+import { BridgeClients, BridgeWorkNetClients } from "./src/providers/types";
 import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import {
@@ -77,9 +77,9 @@ export async function init() {
   Logger.debug('Binance smart chain contract address: "%s"', bscDefaultConfig.contractAddress);
   Logger.debug('Ethereum network contract address: "%s"', ethDefaultConfig.contractAddress);
 
-  const wqClients: Clients = { web3: web3Wq, transactionsBroker };
-  const bscClients: Clients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
-  const ethClients: Clients = { web3: web3Eth, webSocketProvider: ethWsProvider };
+  const wqClients: BridgeWorkNetClients = { web3: web3Wq, transactionsBroker };
+  const bscClients: BridgeClients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
+  const ethClients: BridgeClients = { web3: web3Eth, webSocketProvider: ethWsProvider };
 
   const wqBridgeProvider = new BridgeWorkNetProvider(wqClients, bridgeWqContract);
   const bscBridgeProvider = new BridgeProvider(bscClients, bridgeBscContract);

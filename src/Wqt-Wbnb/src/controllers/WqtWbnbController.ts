@@ -1,11 +1,11 @@
 import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
-import { WqtWbnbEvent } from './types';
+import {Clients, WqtWbnbEvent} from './types';
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import {
   Coin,
-  Web3Provider,
+  IContractProvider,
   TokenPriceProvider,
 } from '../providers/types';
 import {
@@ -20,11 +20,12 @@ import {
 
 export class WqtWbnbController {
   constructor(
-    private readonly web3Provider: Web3Provider,
+    public readonly contractProvider: IContractProvider,
     private readonly tokenPriceProvider: TokenPriceProvider,
+    private readonly clients: Clients,
     private readonly network: BlockchainNetworks,
   ) {
-    this.web3Provider.subscribeOnEvents(async (eventData) => {
+    this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
     });
   }
@@ -59,7 +60,7 @@ export class WqtWbnbController {
   }
 
   protected async syncEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
 
@@ -182,7 +183,7 @@ export class WqtWbnbController {
   }
 
   protected async swapEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const to = eventsData.returnValues.to.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -245,7 +246,7 @@ export class WqtWbnbController {
   }
 
   protected async mintEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const sender = eventsData.returnValues.sender.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -280,7 +281,7 @@ export class WqtWbnbController {
   }
 
   protected async burnEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3Provider.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     const to = eventsData.returnValues.to.toLowerCase();
     const sender = eventsData.returnValues.sender.toLowerCase();
@@ -326,7 +327,7 @@ export class WqtWbnbController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, error, lastBlockNumber } = await this.web3Provider.getAllEvents(fromBlockNumber);
+    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
     for (const event of collectedEvents) {
       try {
