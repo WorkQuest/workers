@@ -26,17 +26,6 @@
       }
     },
     {
-      "name": "{{ PM2_LIQUIDITY_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/daily-liquidity/index.js",
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
-    },
-    {
       "name": "{{ PM2_PROPOSAL_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",

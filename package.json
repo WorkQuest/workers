@@ -8,8 +8,6 @@
     "bridge:compile": "tsc && node ./build/bridge/index.js",
     "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",
     "proposal:compile": "tsc && node ./build/proposal/index.js",
-    "dailyLiquidity:start": "nodemon -e ts --exec \"npm run dailyLiquidity:compile\"",
-    "dailyLiquidity:compile": "tsc && node ./build/daily-liquidity/index.js",
     "WqtWbnb:start": "nodemon -e ts --exec \"npm run WqtWbnb:compile\"",
     "WqtWbnb:compile": "tsc && node ./build/Wqt-Wbnb/index.js",
     "PensionFund:start": "nodemon -e ts --exec \"npm run PensionFund:compile\"",
