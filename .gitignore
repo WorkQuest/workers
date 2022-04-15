@@ -27,10 +27,6 @@ npm-debug.log
 .env.wqt
 .env.raiseView
 .env.bridge
-.env.borrowing
-.env.brokers
-.env.raiseView
-.env.wqt
 .env.liquidity
 .env.proposal
 .env.quest
@@ -55,5 +51,3 @@ app.json
 
 # http request for debug
 http-requests
-
-package-lock.json
