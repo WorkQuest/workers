@@ -1,8 +1,8 @@
-import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, IContractProvider, Clients } from "./types";
-import { Logger } from "../../logger/pino";
 import { Transaction } from "web3-eth";
+import { Logger } from "../../logger/pino";
 import configBridge from "../../config/config.bridge";
+import { Contract, EventData } from "web3-eth-contract";
+import { onEventCallBack, IContractProvider, BridgeWorkNetClients } from "./types";
 
 export class BridgeWorkNetProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -10,7 +10,7 @@ export class BridgeWorkNetProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
 
   constructor (
-    public readonly clients: Clients,
+    public readonly clients: BridgeWorkNetClients,
     public readonly contract: Contract,
   ) {};
 

@@ -1,8 +1,8 @@
-import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, IContractProvider, Clients } from "./types";
-import { Logger } from "../../logger/pino";
 import { Transaction } from "web3-eth";
+import { Logger } from "../../logger/pino";
+import { Contract, EventData } from "web3-eth-contract";
 import configReferral from "../../config/config.referral";
+import { onEventCallBack, IContractProvider, ReferralClients } from "./types";
 
 export class ReferralProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -10,7 +10,7 @@ export class ReferralProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
 
   constructor (
-    public readonly clients: Clients,
+    public readonly clients: ReferralClients,
     public readonly contract: Contract,
   ) {};
 

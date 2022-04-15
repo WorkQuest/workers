@@ -4,3 +4,5 @@ export enum WqtWbnbEvent {
   Mint = 'Mint',
   Sync = 'Sync',
 }
+
+export * from '../../../types';

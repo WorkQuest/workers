@@ -15,13 +15,16 @@
   "exclude": ["node_modules"],
   "include": [
     "./src/**/*.ts",
+    "./src/quest-factory/abi/*.json",
+    "./src/quest/abi/*.json",
     "./src/bridge/abi/*.json",
     "./src/proposal/abi/*.json",
     "./src/daily-liquidity/abi/*.json",
     "./src/Wqt-Wbnb/abi/*.json",
     "./src/pension-fund/abi/*.json",
     "./src/referral-program/abi/*.json",
-    "./src/saving-product/abi/*.json"
+    "./src/saving-product/abi/*.json",
+    "./src/raise-view/abi/*.json",
   ],
   "rootDir":  ["src"]
 }

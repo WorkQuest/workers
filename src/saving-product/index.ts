@@ -2,9 +2,9 @@ import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from "./logger/pino";
-import { Clients } from "./src/providers/types";
 import configSavings from "./config/config.savings";
 import configDatabase from './config/config.database';
+import { SavingProductClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { SavingProductProvider } from "./src/providers/SavingProductProvider";
 import { SavingProductController } from "./src/controllers/SavingProductController";
@@ -39,7 +39,7 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'saving-product');
   await transactionsBroker.init();
 
-  const clients: Clients = { web3, transactionsBroker };
+  const clients: SavingProductClients = { web3, transactionsBroker };
 
   const savingProductContract = new web3.eth.Contract(abi, contractAddress);
 

@@ -1,8 +1,7 @@
 import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
-import { IController, TrackedEvents } from "./types";
 import { EventData } from "web3-eth-contract";
-import { Clients, IContractProvider } from "../providers/types";
+import { IController, TrackedEvents, Clients, IContractProvider } from "./types";
 import {
   BlockchainNetworks,
   SavingProductParseBlock,

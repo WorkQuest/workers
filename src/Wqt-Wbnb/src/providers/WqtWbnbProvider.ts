@@ -1,14 +1,17 @@
-import Web3 from 'web3';
 import { Logger } from "../../logger/pino";
 import { Contract, EventData } from 'web3-eth-contract';
-import { onEventCallBack, Web3Provider } from './types';
+import {onEventCallBack, IContractProvider, Clients} from './types';
 
-export class WqtWbnbProvider implements Web3Provider {
+export class WqtWbnbProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
 
   private readonly preParsingSteps = 6000;
 
-  constructor(public readonly web3: Web3, public readonly contract: Contract) {}
+  constructor(
+    public readonly clients: Clients,
+    public readonly contract: Contract,
+  ) {
+  }
 
   private onEventData(eventData) {
     this.onEventCallBacks.forEach((callBack) => callBack(eventData));
@@ -24,7 +27,7 @@ export class WqtWbnbProvider implements Web3Provider {
   }
 
   public async startListener(): Promise<void> {
-    const lastBlockNumber = await this.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
     this._eventListenerInit(lastBlockNumber);
   }
@@ -35,7 +38,7 @@ export class WqtWbnbProvider implements Web3Provider {
 
   public async getAllEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
     Logger.info('Start collecting all uncollected events from block number: "%s", last block number "%s"',
       fromBlockNumber,

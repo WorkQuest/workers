@@ -82,6 +82,40 @@
       "env": {
         "ENV": "prod"
       }
+    },
+    {
+      "name": "{{ PM2_QUEST_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/quest/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_QUEST_FACTORY_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/quest-factory/index.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_RAISE_VIEW_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/raise-view/index.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
     }
   ]
 }

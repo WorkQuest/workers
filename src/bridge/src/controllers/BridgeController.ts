@@ -4,8 +4,8 @@ import { Logger } from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {BridgeEvents, IController} from "./types";
 import configBridge from "../../config/config.bridge";
-import {Clients, IContractProvider} from "../providers/types";
 import { BridgeMessageBroker } from "./BrokerController";
+import {Clients, IContractProvider} from "../../../types";
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,
