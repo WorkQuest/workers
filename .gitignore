@@ -36,6 +36,7 @@ npm-debug.log
 .env.questFactory
 .env.fetcher
 .env.savingProduct
+.env.WqtWeth
 
 # build directory
 build/
