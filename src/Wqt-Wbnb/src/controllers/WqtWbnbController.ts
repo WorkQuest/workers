@@ -241,7 +241,7 @@ export class WqtWbnbController {
     );
 
     const usdAmount = new BigNumber(tokensPriceInUsd)
-      .shiftedBy(-18)
+      .shiftedBy(-18 * 2)
       .toString()
 
     await wqtWbnbSwapEvent.update({ amountUSD: usdAmount });
