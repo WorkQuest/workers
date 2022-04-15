@@ -237,10 +237,12 @@ export class WqtWbnbController {
     Logger.debug('Swap event handler: (tx hash "%s") tokens price (%s) in usd "%s"',
       transactionHash,
       trackedToken.symbol.toLowerCase(),
-      tokensPriceInUsd
+      tokensPriceInUsd,
     );
 
-    const usdAmount = new BigNumber(tokensPriceInUsd).shiftedBy(-18);
+    const usdAmount = new BigNumber(tokensPriceInUsd)
+      .shiftedBy(-18)
+      .toString()
 
     await wqtWbnbSwapEvent.update({ amountUSD: usdAmount });
   }
