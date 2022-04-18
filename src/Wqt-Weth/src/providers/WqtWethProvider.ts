@@ -1,6 +1,6 @@
 import { Logger } from "../../logger/pino";
 import { Contract, EventData } from 'web3-eth-contract';
-import {onEventCallBack, IContractProvider, Clients} from './types';
+import { onEventCallBack, IContractProvider, Clients } from './types';
 
 export class WqtWethProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];

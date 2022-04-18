@@ -1,8 +1,8 @@
 import pino from 'pino';
-import configWqtWbnb from "../config/config.WqtWeth";
+import configWqtWeth from "../config/config.WqtWeth";
 
 export const Logger = pino({
-  level: configWqtWbnb.logLevel,
+  level: configWqtWeth.logLevel,
   transport: {
     target: 'pino-pretty',
     options: {

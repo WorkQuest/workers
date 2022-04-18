@@ -1,23 +1,23 @@
 import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
-import {WqtWethProvider} from './src/providers/WqtWethProvider';
-import {WqtWethController} from './src/controllers/WqtWethController';
+import { WqtWethProvider } from './src/providers/WqtWethProvider';
+import { WqtWethController } from './src/controllers/WqtWethController';
 import configDatabase from './config/config.database';
 import configWqtWeth from './config/config.WqtWeth';
-import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
+import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
 import {
   initDatabase,
-  WqtWbnbBlockInfo,
+  WqtWethBlockInfo,
   BlockchainNetworks,
 } from '@workquest/database-models/lib/models';
-import {Clients} from "../types";
+import { Clients } from "../types";
 
-const abiFilePath = path.join(__dirname, '/abi/WqtWbnb.json');
+const abiFilePath = path.join(__dirname, '/abi/WqtWeth.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  await initDatabase(configDatabase.dbLink, false, false);
+  await initDatabase(configDatabase.dbLink, false, true);
 
   const websocketProvider = new Web3.providers.WebsocketProvider(configWqtWeth.wsProvider, {
     reconnect: {
@@ -28,31 +28,31 @@ export async function init() {
   });
 
   const web3 = new Web3(websocketProvider);
-  const wqtWbnbContract = new web3.eth.Contract(abi, configWqtWeth.contractAddress);
+  const wqtWethContract = new web3.eth.Contract(abi, configWqtWeth.contractAddress);
 
   const clients: Clients = { web3 };
-  const wqtWethProvider = new WqtWethProvider(clients, wqtWbnbContract);
+  const wqtWethProvider = new WqtWethProvider(clients, wqtWethContract);
 
-  const wqtWbnbController = new WqtWethController(
+  const wqtWethController = new WqtWethController(
     wqtWethProvider,
     new OraclePricesProvider(configWqtWeth.oracleLink),
     clients,
-    BlockchainNetworks.bscMainNetwork,
+    BlockchainNetworks.ethMainNetwork,
   );
 
-  const [wqtWbnbBlockInfo] = await WqtWbnbBlockInfo.findOrCreate({
-    where: { network: BlockchainNetworks.bscMainNetwork },
+  const [wqtWethBlockInfo] = await WqtWethBlockInfo.findOrCreate({
+    where: { network: BlockchainNetworks.ethMainNetwork },
     defaults: {
-      network: BlockchainNetworks.bscMainNetwork,
+      network: BlockchainNetworks.ethMainNetwork,
       lastParsedBlock: configWqtWeth.parseEventsFromHeight,
     },
   });
 
-  await wqtWbnbController.collectAllUncollectedEvents(wqtWbnbBlockInfo.lastParsedBlock);
+  await wqtWethController.collectAllUncollectedEvents(wqtWethBlockInfo.lastParsedBlock);
 
   console.log('Start swap listener');
 
-  await WqtWethProvider.startListener();
+  await wqtWethProvider.startListener();
 }
 
 init().catch(e => {

@@ -9,7 +9,7 @@ import {
   TokenPriceProvider,
 } from '../providers/types';
 import {
-  DailyLiquidity,
+  DailyLiquidityWqtWbnb,
   WqtWbnbBlockInfo,
   WqtWbnbSwapEvent,
   WqtWbnbMintEvent,
@@ -151,7 +151,7 @@ export class WqtWbnbController {
       currentEventDaySinceEpochBeginning,
     );
 
-    const [, isDailyLiquidityCreated] = await DailyLiquidity.findOrCreate({
+    const [, isDailyLiquidityCreated] = await DailyLiquidityWqtWbnb.findOrCreate({
       where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
       defaults: {
         date: timestamp,
@@ -165,7 +165,7 @@ export class WqtWbnbController {
     });
 
     if (!isDailyLiquidityCreated) {
-      await DailyLiquidity.update({
+      await DailyLiquidityWqtWbnb.update({
         date: timestamp,
         bnbPool: bnbPool,
         wqtPool: wqtPool,
