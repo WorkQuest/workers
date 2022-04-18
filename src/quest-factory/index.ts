@@ -15,6 +15,7 @@ import {
   BlockchainNetworks,
   QuestFactoryBlockInfo,
 } from '@workquest/database-models/lib/models';
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 
 const abiFilePath = path.join(__dirname, '../../src/quest-factory/abi/QuestFactory.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -45,8 +46,11 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
   await transactionsBroker.init()
 
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'quest');
+  await notificationsBroker.init();
+
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
-  const clients: QuestFactoryClients = { web3, questCacheProvider, transactionsBroker };
+  const clients: QuestFactoryClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker };
 
   const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
     where: { network: BlockchainNetworks.workQuestDevNetwork },

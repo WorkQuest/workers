@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { IController, QuestEvent } from "./types";
+import { IController, QuestEvent, QuestNotificationActions } from "./types";
 import { EventData } from "web3-eth-contract";
 import { Logger } from "../../logger/pino";
 import { QuestClients, IContractProvider } from "../providers/types";
@@ -25,7 +25,7 @@ import {
   QuestAssignedEventStatus,
   QuestJobStartedEventStatus,
   QuestJobFinishedEventStatus,
-  QuestJobCancelledEventStatus,
+  QuestJobCancelledEventStatus, QuestsResponse,
 } from "@workquest/database-models/lib/models";
 
 export class QuestController implements IController {
@@ -79,6 +79,7 @@ export class QuestController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
+    const questResponsesModelController = new QuestResponsesModelController(questModelController);
 
     const [questJobEditedEvent, isCreated] = await QuestJobEditedEvent.findOrCreate({
       where: {
@@ -124,6 +125,15 @@ export class QuestController implements IController {
 
     await questModelController.editQuest({
       price: eventsData.returnValues.cost,
+    });
+
+    const responses = await questResponsesModelController.getActiveResponses();
+    const responsesUserId = responses.map((questResponse: QuestsResponse) => questResponse.workerId);
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.userId, ...responsesUserId],
+      action: QuestNotificationActions.QuestEdited,
+      data: questModelController.quest
     });
   }
 
@@ -183,6 +193,11 @@ export class QuestController implements IController {
       questChatModelController.closeAllChats(),
       questResponsesModelController.closeAllResponses(),
       this.clients.questCacheProvider.remove(contractAddress),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [questModelController.quest.userId],
+        action: QuestNotificationActions.QuestStatusUpdated,
+        data: questModelController.quest
+      }),
     ]);
   }
 
@@ -243,8 +258,12 @@ export class QuestController implements IController {
       return questAssignedEvent.update({ status: QuestAssignedEventStatus.QuestStatusDoesNotMatch });
     }
 
-    // TODO нотификации
     await questModelController.assignWorkerOnQuest(workerModelController.user);
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.userId, workerModelController.user.id],
+      action: QuestNotificationActions.QuestStatusUpdated,
+      data: questModelController.quest,
+    });
   }
 
   protected async jobStartedEventHandler(eventsData: EventData) {
@@ -300,11 +319,15 @@ export class QuestController implements IController {
       return questJobStartedEvent.update({ status: QuestJobStartedEventStatus.QuestStatusDoesNotMatch });
     }
 
-    // TODO нотификации
     await Promise.all([
       questModelController.startQuest(),
       questResponsesModelController.closeAllWorkingResponses(),
       questChatModelController.closeAllWorkChatsExceptAssignedWorker(),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
+        action: QuestNotificationActions.QuestStatusUpdated,
+        data: questModelController.quest
+      }),
     ]);
   }
 
@@ -359,8 +382,12 @@ export class QuestController implements IController {
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestStatusDoesNotMatch });
     }
 
-    // TODO нотификации
     await questModelController.finishWork();
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
+      action: QuestNotificationActions.QuestStatusUpdated,
+      data: questModelController.quest
+    });
   }
 
   protected async jobFinishedEventHandler(eventsData: EventData) {
@@ -417,6 +444,11 @@ export class QuestController implements IController {
     await Promise.all([
       questModelController.completeQuest(),
       this.clients.questCacheProvider.remove(contractAddress),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
+        action: QuestNotificationActions.QuestStatusUpdated,
+        data: questModelController.quest
+      }),
     ]);
 
     await Promise.all([
