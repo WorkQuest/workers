@@ -25,7 +25,7 @@ import {
   QuestAssignedEventStatus,
   QuestJobStartedEventStatus,
   QuestJobFinishedEventStatus,
-  QuestJobCancelledEventStatus, QuestsResponse,
+  QuestJobCancelledEventStatus,
 } from "@workquest/database-models/lib/models";
 
 export class QuestController implements IController {
