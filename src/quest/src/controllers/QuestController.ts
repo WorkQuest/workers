@@ -128,12 +128,12 @@ export class QuestController implements IController {
     });
 
     const responses = await questResponsesModelController.getActiveResponses();
-    const responsesUserId = responses.map((questResponse: QuestsResponse) => questResponse.workerId);
+    const responseWorkerIds = responses.map(questResponse => questResponse.workerId);
 
     await this.clients.notificationsBroker.sendNotification({
-      recipients: [questModelController.quest.userId, ...responsesUserId],
+      recipients: [questModelController.quest.userId, ...responseWorkerIds],
       action: QuestNotificationActions.QuestEdited,
-      data: questModelController.quest
+      data: questModelController.quest,
     });
   }
 

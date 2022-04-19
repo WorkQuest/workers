@@ -14,7 +14,7 @@ export interface IQuestCacheProvider extends IContractCacheProvider<QuestPayload
 export interface QuestClients extends Clients {
   readonly questCacheProvider: IQuestCacheProvider;
   readonly transactionsBroker: TransactionBroker;
-  readonly notificationsBroker?: NotificationBroker;
+  readonly notificationsBroker: NotificationBroker;
 }
 
 export * from '../../../types';
