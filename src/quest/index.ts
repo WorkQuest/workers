@@ -13,6 +13,7 @@ import {
   QuestBlockInfo,
   BlockchainNetworks,
 } from "@workquest/database-models/lib/models";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 
 export async function init() {
   Logger.info('Start worker "Quest". Network: "%s"', configQuest.network);
@@ -25,7 +26,7 @@ export async function init() {
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
   Logger.debug('Redis number database: "%s"', redisConfig.number);
 
-  const redisClient = createClient(redisConfig);
+  const redisClient = createClient({ password: 'test', database: redisConfig.number });
 
   await redisClient.on('error', (err) => {
     Logger.error(err, 'Redis is stopped with error');
@@ -38,8 +39,11 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest');
   await transactionsBroker.init();
 
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'quest');
+  await notificationsBroker.init();
+
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
-  const clients: QuestClients = { web3, questCacheProvider, transactionsBroker };
+  const clients: QuestClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker };
 
   const [questBlockInfo] = await QuestBlockInfo.findOrCreate({
     where: { network: configQuest.network },
