@@ -26,7 +26,7 @@ export async function init() {
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
   Logger.debug('Redis number database: "%s"', redisConfig.number);
 
-  const redisClient = createClient({ password: 'test', database: redisConfig.number });
+  const redisClient = createClient(redisConfig);
 
   await redisClient.on('error', (err) => {
     Logger.error(err, 'Redis is stopped with error');
