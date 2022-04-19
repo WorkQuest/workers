@@ -5,6 +5,7 @@ import { QuestClients } from "./src/providers/types";
 import configQuest from "./config/config.quest";
 import configDatabase from "./config/config.database";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { QuestController } from "./src/controllers/QuestController";
 import { QuestCacheProvider } from "./src/providers/QuestCacheProvider";
 import { QuestProvider } from "./src/providers/QuestProvider";
@@ -13,7 +14,6 @@ import {
   QuestBlockInfo,
   BlockchainNetworks,
 } from "@workquest/database-models/lib/models";
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
 
 export async function init() {
   Logger.info('Start worker "Quest". Network: "%s"', configQuest.network);

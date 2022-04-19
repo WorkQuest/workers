@@ -7,6 +7,7 @@ import configDatabase from './config/config.database';
 import configQuestFactory from './config/config.questFactory';
 import { QuestFactoryClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { QuestFactoryProvider } from "./src/providers/QuestFactoryProvider";
 import { QuestCacheProvider } from "../quest/src/providers/QuestCacheProvider";
 import { QuestFactoryController } from './src/controllers/QuestFactoryController';
@@ -15,7 +16,6 @@ import {
   BlockchainNetworks,
   QuestFactoryBlockInfo,
 } from '@workquest/database-models/lib/models';
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
 
 const abiFilePath = path.join(__dirname, '../../src/quest-factory/abi/QuestFactory.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
