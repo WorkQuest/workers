@@ -1,23 +1,24 @@
 import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
-import {WqtWbnbProvider} from './src/providers/WqtWbnbProvider';
-import {WqtWbnbController} from './src/controllers/WqtWbnbController';
+import { Clients } from "../types";
+import { WqtWbnbProvider } from './src/providers/WqtWbnbProvider';
+import { WqtWbnbController } from './src/controllers/WqtWbnbController';
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import configDatabase from './config/config.database';
 import configWqtWbnb from './config/config.WqtWbnb';
-import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
+import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
 import {
   initDatabase,
   WqtWbnbBlockInfo,
   BlockchainNetworks,
 } from '@workquest/database-models/lib/models';
-import {Clients} from "../types";
 
 const abiFilePath = path.join(__dirname, '/abi/WqtWbnb.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  await initDatabase(configDatabase.dbLink, false, false);
+  await initDatabase(configDatabase.dbLink, false, true);
 
   const websocketProvider = new Web3.providers.WebsocketProvider(configWqtWbnb.wsProvider, {
     reconnect: {
@@ -26,6 +27,9 @@ export async function init() {
       onTimeout: false,
     },
   });
+
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker, 'daily_liquidity');
+  await notificationsBroker.init();
 
   const web3 = new Web3(websocketProvider);
   const wqtWbnbContract = new web3.eth.Contract(abi, configWqtWbnb.contractAddress);
@@ -38,6 +42,7 @@ export async function init() {
     new OraclePricesProvider(configWqtWbnb.oracleLink),
     clients,
     BlockchainNetworks.bscMainNetwork,
+    notificationsBroker
   );
 
   const [wqtWbnbBlockInfo] = await WqtWbnbBlockInfo.findOrCreate({
