@@ -1,7 +1,7 @@
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
-import { IController, QuestFactoryEvent } from './types';
+import { IController, QuestFactoryEvent, QuestFactoryNotificationActions } from './types';
 import { QuestFactoryClients, IContractProvider } from '../providers/types';
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
 import {
@@ -121,6 +121,11 @@ export class QuestFactoryController implements IController {
       quest.update({ contractAddress, status: QuestStatus.Recruitment }),
       this.clients.questCacheProvider.set(contractAddress, { transactionHash, nonce }),
       updateQuestsStatisticJob({ userId: quest.userId, role: UserRole.Employer }),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [quest.userId],
+        action: QuestFactoryNotificationActions.QuestStatusUpdated,
+        data: quest
+      }),
     ]);
 
     Logger.debug('Created event handler: set into redis key "%s", value %o', contractAddress, { transactionHash, nonce });

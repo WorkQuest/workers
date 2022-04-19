@@ -20,6 +20,11 @@ export enum QuestEvent {
   // ArbitrationStarted
 }
 
+export enum QuestNotificationActions {
+  QuestStatusUpdated = 'QuestStatusUpdated',
+  QuestEdited = 'QuestEditedOnContract'
+}
+
 export {
   IController,
 }

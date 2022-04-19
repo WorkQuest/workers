@@ -5,6 +5,7 @@ config({ path: __dirname +  '/../../../.env.questFactory'});
 export default {
   dbLink: process.env.DB_LINK,
   mqLink: process.env.RABBIT_LINK,
+  notificationMessageBrokerLink: process.env.NOTIFICATION_MESSAGE_BROKER_LINK,
   redis: {
     url: process.env.REDIS_LINK,
     number: {
