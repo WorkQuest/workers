@@ -16,13 +16,6 @@ export class NotificationBroker extends BaseBrokerClient {
 
   public async init() {
     await super.init();
-    await this.initQueue();
-  }
-
-  private async initQueue() {
-    await this.channel.assertQueue(this.queueName, {
-      durable: false
-    });
   }
 
   public async sendNotification(data: Notification) {
