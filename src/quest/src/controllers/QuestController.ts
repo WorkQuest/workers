@@ -193,12 +193,13 @@ export class QuestController implements IController {
       questChatModelController.closeAllChats(),
       questResponsesModelController.closeAllResponses(),
       this.clients.questCacheProvider.remove(contractAddress),
-      this.clients.notificationsBroker.sendNotification({
-        recipients: [questModelController.quest.userId],
-        action: QuestNotificationActions.QuestStatusUpdated,
-        data: questModelController.quest
-      }),
     ]);
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.userId],
+      action: QuestNotificationActions.QuestStatusUpdated,
+      data: questModelController.quest
+    });
   }
 
   protected async assignedEventHandler(eventsData: EventData) {
@@ -323,12 +324,13 @@ export class QuestController implements IController {
       questModelController.startQuest(),
       questResponsesModelController.closeAllWorkingResponses(),
       questChatModelController.closeAllWorkChatsExceptAssignedWorker(),
-      this.clients.notificationsBroker.sendNotification({
-        recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
-        action: QuestNotificationActions.QuestStatusUpdated,
-        data: questModelController.quest
-      }),
     ]);
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
+      action: QuestNotificationActions.QuestStatusUpdated,
+      data: questModelController.quest
+    });
   }
 
   protected async jobDoneEventHandler(eventsData: EventData) {
@@ -444,11 +446,6 @@ export class QuestController implements IController {
     await Promise.all([
       questModelController.completeQuest(),
       this.clients.questCacheProvider.remove(contractAddress),
-      this.clients.notificationsBroker.sendNotification({
-        recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
-        action: QuestNotificationActions.QuestStatusUpdated,
-        data: questModelController.quest
-      }),
     ]);
 
     await Promise.all([
@@ -456,6 +453,11 @@ export class QuestController implements IController {
       addUpdateReviewStatisticsJob({ userId: questModelController.quest.assignedWorkerId }),
       updateQuestsStatisticJob({ userId: questModelController.quest.id, role: UserRole.Employer }),
       updateQuestsStatisticJob({ userId: questModelController.quest.assignedWorkerId, role: UserRole.Worker }),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
+        action: QuestNotificationActions.QuestStatusUpdated,
+        data: questModelController.quest
+      }),
     ]);
   }
 
