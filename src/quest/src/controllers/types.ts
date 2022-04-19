@@ -22,7 +22,7 @@ export enum QuestEvent {
 
 export enum QuestNotificationActions {
   QuestStatusUpdated = 'questStatusUpdated',
-  QuestEdited = 'questEdited'
+  QuestEdited = 'questEditedOnContract'
 }
 
 export {
