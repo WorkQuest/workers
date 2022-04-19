@@ -30,9 +30,9 @@ export class BridgeController implements IController {
       eventsData.address,
     );
 
-    if (eventsData.event === BridgeEvents.swapRedeemed) {
+    if (eventsData.event === BridgeEvents.SwapRedeemed) {
       return this.swapRedeemedEventHandler(eventsData);
-    } else if (eventsData.event === BridgeEvents.swapInitialized) {
+    } else if (eventsData.event === BridgeEvents.SwapInitialized) {
       return this.swapInitializedEventHandler(eventsData);
     }
   }
@@ -78,7 +78,7 @@ export class BridgeController implements IController {
         messageHash,
         transactionHash,
         network: this.network,
-        event: BridgeEvents.swapRedeemed,
+        event: BridgeEvents.SwapRedeemed,
         blockNumber: eventsData.blockNumber,
         nonce: eventsData.returnValues.nonce,
         symbol: eventsData.returnValues.symbol,
@@ -100,7 +100,7 @@ export class BridgeController implements IController {
 
     BridgeMessageBroker.sendBridgeNotification({
       recipients: [recipient],
-      action: BridgeEvents.swapRedeemed,
+      action: BridgeEvents.SwapRedeemed,
       data: eventsData
     });
 
@@ -136,7 +136,7 @@ export class BridgeController implements IController {
         messageHash,
         transactionHash,
         network: this.network,
-        event: BridgeEvents.swapInitialized,
+        event: BridgeEvents.SwapInitialized,
         blockNumber: eventsData.blockNumber,
         nonce: eventsData.returnValues.nonce,
         symbol: eventsData.returnValues.symbol,
@@ -158,7 +158,7 @@ export class BridgeController implements IController {
 
     BridgeMessageBroker.sendBridgeNotification({
       recipients: [recipient],
-      action: BridgeEvents.swapInitialized,
+      action: BridgeEvents.SwapInitialized,
       data: eventsData
     });
 

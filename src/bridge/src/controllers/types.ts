@@ -1,6 +1,6 @@
 export enum BridgeEvents {
-  swapInitialized = 'SwapInitialized',
-  swapRedeemed = 'SwapRedeemed',
+  SwapInitialized = 'SwapInitialized',
+  SwapRedeemed = 'SwapRedeemed',
 }
 
 export * from '../../../types';
