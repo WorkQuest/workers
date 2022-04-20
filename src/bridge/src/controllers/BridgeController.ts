@@ -4,8 +4,8 @@ import { Logger } from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {BridgeEvents, IController} from "./types";
 import configBridge from "../../config/config.bridge";
-import { BridgeMessageBroker } from "./BrokerController";
-import {Clients, IContractProvider} from "../../../types";
+import { BridgeClients } from "../providers/types";
+import { IContractProvider } from "../../../types";
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,
@@ -14,7 +14,7 @@ import {
 
 export class BridgeController implements IController {
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: BridgeClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -98,7 +98,7 @@ export class BridgeController implements IController {
       return;
     }
 
-    BridgeMessageBroker.sendBridgeNotification({
+    await this.clients.notificationsBroker.sendNotification({
       recipients: [recipient],
       action: BridgeEvents.SwapRedeemed,
       data: eventsData
@@ -178,7 +178,7 @@ export class BridgeController implements IController {
       eventsData.returnValues.symbol,
     ]
 
-    BridgeMessageBroker.sendBridgeNotification({
+    await this.clients.notificationsBroker.sendNotification({
       recipients: [recipient],
       action: BridgeEvents.SwapInitialized,
       data: eventsData
