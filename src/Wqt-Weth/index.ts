@@ -1,17 +1,17 @@
 import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Clients } from "../types";
+import configWqtWeth from './config/config.WqtWeth';
+import configDatabase from './config/config.database';
 import { WqtWethProvider } from './src/providers/WqtWethProvider';
 import { WqtWethController } from './src/controllers/WqtWethController';
-import configDatabase from './config/config.database';
-import configWqtWeth from './config/config.WqtWeth';
 import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
 import {
   initDatabase,
   WqtWethBlockInfo,
   BlockchainNetworks,
 } from '@workquest/database-models/lib/models';
-import { Clients } from "../types";
 
 const abiFilePath = path.join(__dirname, '/abi/WqtWeth.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;

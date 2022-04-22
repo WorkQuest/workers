@@ -9,13 +9,13 @@ import {
   TokenPriceProvider,
 } from '../providers/types';
 import {
-  DailyLiquidityWqtWeth,
   WqtWethBlockInfo,
   WqtWethSwapEvent,
   WqtWethMintEvent,
   WqtWethSyncEvent,
   WqtWethBurnEvent,
   BlockchainNetworks,
+  DailyLiquidityWqtWeth,
 } from '@workquest/database-models/lib/models';
 
 export class WqtWethController {

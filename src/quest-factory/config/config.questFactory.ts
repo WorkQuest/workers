@@ -5,7 +5,7 @@ config({ path: __dirname +  '/../../../.env.questFactory'});
 export default {
   logLevel: 'debug',
   sentryLink: process.env.DEV_SENTRY_LINK || '',
-  network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
+  network: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
     contractAddress: process.env.WORK_QUEST_DEV_NETWORK_QUEST_FACTORY_CONTRACT_ADDRESS,
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,

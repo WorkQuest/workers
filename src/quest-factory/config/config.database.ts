@@ -16,7 +16,7 @@ export default {
     defaultConfigNetwork: (): { url: string, number: number } => {
       return {
         // @ts-ignore
-        number: this.default.redis.number[process.env.BLOCKCHAIN_NETWORK],
+        number: this.default.redis.number[process.env.WORK_QUEST_BLOCKCHAIN_NETWORK],
         // @ts-ignore
         url: this.default.redis.url
       }

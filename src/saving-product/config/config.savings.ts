@@ -4,7 +4,7 @@ config({ path: __dirname + '/../../../.env.savingProduct' });
 
 export default {
   logLevel: 'debug',
-  network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
+  network: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
     contractAddress: process.env.WORK_QUEST_DEV_NETWORK_SAVING_PRODUCT_CONTRACT_ADDRESS,
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
