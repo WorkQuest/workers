@@ -1,6 +1,7 @@
 import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
+import {Clients} from "../types";
 import {WqtWbnbProvider} from './src/providers/WqtWbnbProvider';
 import {WqtWbnbController} from './src/controllers/WqtWbnbController';
 import configDatabase from './config/config.database';
@@ -11,7 +12,6 @@ import {
   WqtWbnbBlockInfo,
   BlockchainNetworks,
 } from '@workquest/database-models/lib/models';
-import {Clients} from "../types";
 
 const abiFilePath = path.join(__dirname, '/abi/WqtWbnb.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
