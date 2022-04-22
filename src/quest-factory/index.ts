@@ -7,6 +7,7 @@ import configDatabase from './config/config.database';
 import configQuestFactory from './config/config.questFactory';
 import { QuestFactoryClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { QuestFactoryProvider } from "./src/providers/QuestFactoryProvider";
 import { QuestCacheProvider } from "../quest/src/providers/QuestCacheProvider";
 import { QuestFactoryController } from './src/controllers/QuestFactoryController';
@@ -45,8 +46,11 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
   await transactionsBroker.init()
 
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'quest');
+  await notificationsBroker.init();
+
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
-  const clients: QuestFactoryClients = { web3, questCacheProvider, transactionsBroker };
+  const clients: QuestFactoryClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker };
 
   const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
     where: { network: BlockchainNetworks.workQuestDevNetwork },

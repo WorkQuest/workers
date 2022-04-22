@@ -5,6 +5,7 @@ import { QuestClients } from "./src/providers/types";
 import configQuest from "./config/config.quest";
 import configDatabase from "./config/config.database";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { QuestController } from "./src/controllers/QuestController";
 import { QuestCacheProvider } from "./src/providers/QuestCacheProvider";
 import { QuestProvider } from "./src/providers/QuestProvider";
@@ -38,8 +39,11 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest');
   await transactionsBroker.init();
 
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'quest');
+  await notificationsBroker.init();
+
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
-  const clients: QuestClients = { web3, questCacheProvider, transactionsBroker };
+  const clients: QuestClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker };
 
   const [questBlockInfo] = await QuestBlockInfo.findOrCreate({
     where: { network: configQuest.network },

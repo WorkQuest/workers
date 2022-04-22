@@ -9,13 +9,13 @@ import {
   TokenPriceProvider,
 } from '../providers/types';
 import {
-  DailyLiquidityWqtWbnb,
   WqtWbnbBlockInfo,
   WqtWbnbSwapEvent,
   WqtWbnbMintEvent,
   WqtWbnbSyncEvent,
   WqtWbnbBurnEvent,
   BlockchainNetworks,
+  DailyLiquidityWqtWbnb,
 } from '@workquest/database-models/lib/models';
 
 export class WqtWbnbController {
@@ -237,10 +237,12 @@ export class WqtWbnbController {
     Logger.debug('Swap event handler: (tx hash "%s") tokens price (%s) in usd "%s"',
       transactionHash,
       trackedToken.symbol.toLowerCase(),
-      tokensPriceInUsd
+      tokensPriceInUsd,
     );
 
-    const usdAmount = new BigNumber(tokensPriceInUsd).shiftedBy(-18);
+    const usdAmount = new BigNumber(tokensPriceInUsd)
+      .shiftedBy(-18 * 2)
+      .toString()
 
     await wqtWbnbSwapEvent.update({ amountUSD: usdAmount });
   }
