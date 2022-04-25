@@ -1,7 +1,6 @@
 import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
-import { Clients, WqtWbnbEvent, WqtWbnbNotificationActions } from './types';
-import { NotificationBroker } from "../../../brokers/src/NotificationBroker";
+import {Clients, WqtWethEvent} from './types';
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import {
@@ -10,22 +9,21 @@ import {
   TokenPriceProvider,
 } from '../providers/types';
 import {
-  WqtWbnbBlockInfo,
-  WqtWbnbSwapEvent,
-  WqtWbnbMintEvent,
-  WqtWbnbSyncEvent,
-  WqtWbnbBurnEvent,
+  WqtWethBlockInfo,
+  WqtWethSwapEvent,
+  WqtWethMintEvent,
+  WqtWethSyncEvent,
+  WqtWethBurnEvent,
   BlockchainNetworks,
-  DailyLiquidityWqtWbnb,
+  DailyLiquidityWqtWeth,
 } from '@workquest/database-models/lib/models';
 
-export class WqtWbnbController {
+export class WqtWethController {
   constructor(
     public readonly contractProvider: IContractProvider,
     private readonly tokenPriceProvider: TokenPriceProvider,
     private readonly clients: Clients,
     private readonly network: BlockchainNetworks,
-    private readonly notificationsBroker: NotificationBroker,
   ) {
     this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
@@ -35,7 +33,7 @@ export class WqtWbnbController {
   protected updateBlockViewHeight(blockHeight: number): Promise<any> {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return WqtWbnbBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    return WqtWethBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -50,13 +48,13 @@ export class WqtWbnbController {
       eventsData.address,
     );
 
-    if (eventsData.event === WqtWbnbEvent.Swap) {
+    if (eventsData.event === WqtWethEvent.Swap) {
       await this.swapEventHandler(eventsData);
-    } else if (eventsData.event === WqtWbnbEvent.Mint) {
+    } else if (eventsData.event === WqtWethEvent.Mint) {
       await this.mintEventHandler(eventsData);
-    } else if (eventsData.event === WqtWbnbEvent.Burn) {
+    } else if (eventsData.event === WqtWethEvent.Burn) {
       await this.burnEventHandler(eventsData);
-    } else if (eventsData.event === WqtWbnbEvent.Sync) {
+    } else if (eventsData.event === WqtWethEvent.Sync) {
       await this.syncEventHandler(eventsData);
     }
   }
@@ -71,7 +69,7 @@ export class WqtWbnbController {
       eventsData,
     );
 
-    const bnbPool = new BigNumber(eventsData.returnValues.reserve0)
+    const ethPool = new BigNumber(eventsData.returnValues.reserve0)
       .shiftedBy(-18)
       .toString()
 
@@ -79,18 +77,18 @@ export class WqtWbnbController {
       .shiftedBy(-18)
       .toString()
 
-    Logger.debug('Sync event handler: (tx hash "%s") tokens pool (shifted by -18): bnb "%s", wqt "%s"',
+    Logger.debug('Sync event handler: (tx hash "%s") tokens pool (shifted by -18): eth "%s", wqt "%s"',
       transactionHash,
-      bnbPool,
+      ethPool,
       wqtPool,
     );
 
-    const [, isCreated] = await WqtWbnbSyncEvent.findOrCreate({
+    const [, isCreated] = await WqtWethSyncEvent.findOrCreate({
       where: { transactionHash },
       defaults: {
         transactionHash,
-        reserve1: wqtPool,
-        reserve0: bnbPool,
+        reserve1: ethPool,
+        reserve0: wqtPool,
         timestamp: timestamp,
         blockNumber: eventsData.blockNumber,
       }
@@ -107,13 +105,13 @@ export class WqtWbnbController {
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
-    const tokenBNBPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.BNB);
+    const tokenETHPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.ETH);
     const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
 
-    if (!tokenBNBPriceInUsd || !tokenWQTPriceInUsd) {
-      Logger.warn('Sync event handler: (tx hash "%s") tokens price (bnb "%s", wqt "%s") in usd at timestamp "%s" moment is not found',
+    if (!tokenETHPriceInUsd || !tokenWQTPriceInUsd) {
+      Logger.warn('Sync event handler: (tx hash "%s") tokens price (eth "%s", wqt "%s") in usd at timestamp "%s" moment is not found',
         transactionHash,
-        tokenBNBPriceInUsd,
+        tokenETHPriceInUsd,
         tokenWQTPriceInUsd,
         timestamp,
       );
@@ -121,21 +119,21 @@ export class WqtWbnbController {
       return;
     }
 
-    Logger.debug('Sync event handler: (tx hash "%s") tokens price in usd: bnb "%s", wqt "%s"',
+    Logger.debug('Sync event handler: (tx hash "%s") tokens price in usd: eth "%s", wqt "%s"',
       transactionHash,
-      tokenBNBPriceInUsd,
+      tokenETHPriceInUsd,
       tokenWQTPriceInUsd,
     );
 
-    const bnbPoolInUsd = new BigNumber(tokenBNBPriceInUsd)
+    const entPoolInUsd = new BigNumber(tokenETHPriceInUsd)
       .shiftedBy(-18)
-      .multipliedBy(bnbPool)
+      .multipliedBy(ethPool)
 
     const wqtPoolInUsd = new BigNumber(tokenWQTPriceInUsd)
       .shiftedBy(-18)
       .multipliedBy(wqtPool)
 
-    const poolToken = bnbPoolInUsd
+    const poolToken = entPoolInUsd
       .plus(wqtPoolInUsd)
       .toString()
 
@@ -153,26 +151,26 @@ export class WqtWbnbController {
       currentEventDaySinceEpochBeginning,
     );
 
-    const [, isDailyLiquidityCreated] = await DailyLiquidityWqtWbnb.findOrCreate({
+    const [, isDailyLiquidityCreated] = await DailyLiquidityWqtWeth.findOrCreate({
       where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning },
       defaults: {
         date: timestamp,
-        bnbPool: bnbPool,
+        ethPool: ethPool,
         wqtPool: wqtPool,
         blockNumber: eventsData.blockNumber,
-        usdPriceBNB: tokenBNBPriceInUsd.toString(),
+        usdPriceETH: tokenETHPriceInUsd.toString(),
         usdPriceWQT: tokenWQTPriceInUsd.toString(),
         reserveUSD: poolToken,
       }
     });
 
     if (!isDailyLiquidityCreated) {
-      await DailyLiquidityWqtWbnb.update({
+      await DailyLiquidityWqtWeth.update({
         date: timestamp,
-        bnbPool: bnbPool,
+        ethPool: ethPool,
         wqtPool: wqtPool,
         blockNumber: eventsData.blockNumber,
-        usdPriceBNB: tokenBNBPriceInUsd.toString(),
+        usdPriceETH: tokenETHPriceInUsd.toString(),
         usdPriceWQT: tokenWQTPriceInUsd.toString(),
         reserveUSD: poolToken,
       }, {
@@ -182,14 +180,6 @@ export class WqtWbnbController {
         }
       });
     }
-
-    await this.notificationsBroker.sendNotification({
-      action: WqtWbnbNotificationActions.Sync,
-      recipients: [],
-      data: await DailyLiquidity.findOne({
-        where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning }
-      }),
-    });
   }
 
   protected async swapEventHandler(eventsData: EventData) {
@@ -203,7 +193,7 @@ export class WqtWbnbController {
       eventsData,
     );
 
-    const [wqtWbnbSwapEvent, isCreated] = await WqtWbnbSwapEvent.findOrCreate({
+    const [wqtWethSwapEvent, isCreated] = await WqtWethSwapEvent.findOrCreate({
       where: { transactionHash },
       defaults: {
         to,
@@ -229,7 +219,7 @@ export class WqtWbnbController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     const trackedToken = eventsData.returnValues.amount0Out !== '0'
-      ? { symbol: Coin.BNB, value: eventsData.returnValues.amount0Out }
+      ? { symbol: Coin.ETH, value: eventsData.returnValues.amount0Out }
       : { symbol: Coin.WQT, value: eventsData.returnValues.amount1Out }
 
     const tokensPriceInUsd = await this.getTokensPriceInUsd(timestamp as string, trackedToken.symbol, parseInt(trackedToken.value))
@@ -247,14 +237,14 @@ export class WqtWbnbController {
     Logger.debug('Swap event handler: (tx hash "%s") tokens price (%s) in usd "%s"',
       transactionHash,
       trackedToken.symbol.toLowerCase(),
-      tokensPriceInUsd,
+      tokensPriceInUsd
     );
 
     const usdAmount = new BigNumber(tokensPriceInUsd)
-      .shiftedBy(-18 * 2)
+      .shiftedBy(-18)
       .toString()
 
-    await wqtWbnbSwapEvent.update({ amountUSD: usdAmount });
+    await wqtWethSwapEvent.update({ amountUSD: usdAmount });
   }
 
   protected async mintEventHandler(eventsData: EventData) {
@@ -268,7 +258,7 @@ export class WqtWbnbController {
       eventsData,
     );
 
-    const [, isCreated] = await WqtWbnbMintEvent.findOrCreate({
+    const [, isCreated] = await WqtWethMintEvent.findOrCreate({
       where: { transactionHash },
       defaults: {
         sender,
@@ -304,7 +294,7 @@ export class WqtWbnbController {
       eventsData,
     );
 
-    const [, isCreated] = await WqtWbnbBurnEvent.findOrCreate({
+    const [, isCreated] = await WqtWethBurnEvent.findOrCreate({
       where: { transactionHash },
       defaults: {
         to,

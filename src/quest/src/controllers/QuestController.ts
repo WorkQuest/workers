@@ -451,7 +451,7 @@ export class QuestController implements IController {
     await Promise.all([
       addUpdateReviewStatisticsJob({ userId: questModelController.quest.userId }),
       addUpdateReviewStatisticsJob({ userId: questModelController.quest.assignedWorkerId }),
-      updateQuestsStatisticJob({ userId: questModelController.quest.id, role: UserRole.Employer }),
+      updateQuestsStatisticJob({ userId: questModelController.quest.userId, role: UserRole.Employer }),
       updateQuestsStatisticJob({ userId: questModelController.quest.assignedWorkerId, role: UserRole.Worker }),
       this.clients.notificationsBroker.sendNotification({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],

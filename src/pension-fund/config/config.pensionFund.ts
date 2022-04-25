@@ -4,7 +4,7 @@ config({ path: __dirname + '/../../../.env.pensionFund' });
 
 export default {
   logLevel: 'debug',
-  network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
+  network: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
     contractAddress: process.env.WORK_QUEST_DEV_NETWORK_PENSION_FUND_CONTRACT_ADDRESS,
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,

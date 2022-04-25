@@ -156,6 +156,28 @@ export class BridgeController implements IController {
       return;
     }
 
+    /** Не трогать последовательность */
+    const sign = await this.clients.web3.eth.accounts.sign(this.clients.web3.utils.soliditySha3(
+      eventsData.returnValues.nonce,
+      eventsData.returnValues.amount,
+      recipient,
+      eventsData.returnValues.chainFrom,
+      eventsData.returnValues.chainTo,
+      eventsData.returnValues.symbol,
+    ), configBridge.privateKey);
+
+    /** Не трогать последовательность! Метод redeem на контракте */
+    eventsData['signData'] = [
+      eventsData.returnValues.nonce.toString(),
+      eventsData.returnValues.chainFrom.toString(),
+      eventsData.returnValues.amount,
+      recipient,
+      sign.v,
+      sign.r,
+      sign.s,
+      eventsData.returnValues.symbol,
+    ]
+
     BridgeMessageBroker.sendBridgeNotification({
       recipients: [recipient],
       action: BridgeEvents.SwapInitialized,

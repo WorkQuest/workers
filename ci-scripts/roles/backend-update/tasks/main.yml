@@ -88,6 +88,11 @@
     src: ./{{ raise_view_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ raise_view_env }}'
 
+- name: Copy or generate wqt-weth env file
+  template:
+    src: ./{{ wqt_weth_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ wqt_weth_env }}'
+
 - name: Start backend process
   shell: pm2 reload app.json
   args:

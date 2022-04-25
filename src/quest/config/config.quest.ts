@@ -4,7 +4,7 @@ config({ path: __dirname +  '/../../../.env.quest'});
 
 export default {
   logLevel: 'debug',
-  network: process.env.BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
+  network: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
