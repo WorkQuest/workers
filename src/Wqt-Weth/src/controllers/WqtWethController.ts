@@ -1,12 +1,12 @@
 import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
-import {Clients, WqtWethEvent} from './types';
+import { WqtWethEvent, WqtWethNotificationActions } from './types';
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import {
   Coin,
   IContractProvider,
-  TokenPriceProvider,
+  TokenPriceProvider, WqtWethClients,
 } from '../providers/types';
 import {
   WqtWethBlockInfo,
@@ -15,14 +15,14 @@ import {
   WqtWethSyncEvent,
   WqtWethBurnEvent,
   BlockchainNetworks,
-  DailyLiquidityWqtWeth,
+  DailyLiquidityWqtWeth, DailyLiquidityWqtWbnb,
 } from '@workquest/database-models/lib/models';
 
 export class WqtWethController {
   constructor(
     public readonly contractProvider: IContractProvider,
     private readonly tokenPriceProvider: TokenPriceProvider,
-    private readonly clients: Clients,
+    private readonly clients: WqtWethClients,
     private readonly network: BlockchainNetworks,
   ) {
     this.contractProvider.subscribeOnEvents(async (eventData) => {
@@ -180,6 +180,14 @@ export class WqtWethController {
         }
       });
     }
+
+    await this.clients.notificationsBroker.sendNotification({
+      action: WqtWethNotificationActions.Sync,
+      recipients: [],
+      data: await DailyLiquidityWqtWeth.findOne({
+        where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning }
+      }),
+    });
   }
 
   protected async swapEventHandler(eventsData: EventData) {

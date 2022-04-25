@@ -1,10 +1,11 @@
 import Web3 from 'web3';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Clients } from "../types";
 import configWqtWeth from './config/config.WqtWeth';
 import configDatabase from './config/config.database';
+import { WqtWethClients } from "./src/providers/types";
 import { WqtWethProvider } from './src/providers/WqtWethProvider';
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { WqtWethController } from './src/controllers/WqtWethController';
 import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
 import {
@@ -27,10 +28,13 @@ export async function init() {
     },
   });
 
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker, 'daily_liquidity');
+  await notificationsBroker.init();
+
   const web3 = new Web3(websocketProvider);
   const wqtWethContract = new web3.eth.Contract(abi, configWqtWeth.contractAddress);
 
-  const clients: Clients = { web3 };
+  const clients: WqtWethClients = { web3, notificationsBroker };
   const wqtWethProvider = new WqtWethProvider(clients, wqtWethContract);
 
   const wqtWethController = new WqtWethController(

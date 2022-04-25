@@ -5,4 +5,8 @@ export enum WqtWethEvent {
   Sync = 'Sync',
 }
 
+export enum WqtWethNotificationActions {
+  Sync = 'DailyLiquidityWqtWeth'
+}
+
 export * from '../../../types';

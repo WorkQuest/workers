@@ -5,4 +5,8 @@ export enum WqtWbnbEvent {
   Sync = 'Sync',
 }
 
+export enum WqtWbnbNotificationActions {
+  Sync = 'DailyLiquidityWqtWbnb'
+}
+
 export * from '../../../types';
