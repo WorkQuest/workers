@@ -69,11 +69,11 @@ export class WqtWethController {
       eventsData,
     );
 
-    const ethPool = new BigNumber(eventsData.returnValues.reserve0)
+    const ethPool = new BigNumber(eventsData.returnValues.reserve1)
       .shiftedBy(-18)
       .toString()
 
-    const wqtPool = new BigNumber(eventsData.returnValues.reserve1)
+    const wqtPool = new BigNumber(eventsData.returnValues.reserve0)
       .shiftedBy(-18)
       .toString()
 
@@ -208,10 +208,10 @@ export class WqtWethController {
         transactionHash,
         timestamp: timestamp,
         blockNumber: eventsData.blockNumber,
-        amount0In: eventsData.returnValues.amount0In,
-        amount1In: eventsData.returnValues.amount1In,
-        amount0Out: eventsData.returnValues.amount0Out,
-        amount1Out: eventsData.returnValues.amount1Out,
+        amount0In: eventsData.returnValues.amount1In,
+        amount1In: eventsData.returnValues.amount0In,
+        amount0Out: eventsData.returnValues.amount1Out,
+        amount1Out: eventsData.returnValues.amount0Out,
       },
     });
 
@@ -227,8 +227,8 @@ export class WqtWethController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     const trackedToken = eventsData.returnValues.amount0Out !== '0'
-      ? { symbol: Coin.ETH, value: eventsData.returnValues.amount0Out }
-      : { symbol: Coin.WQT, value: eventsData.returnValues.amount1Out }
+      ? { symbol: Coin.WQT, value: eventsData.returnValues.amount0Out }
+      : { symbol: Coin.ETH, value: eventsData.returnValues.amount1Out }
 
     const tokensPriceInUsd = await this.getTokensPriceInUsd(timestamp as string, trackedToken.symbol, parseInt(trackedToken.value))
 
@@ -249,7 +249,7 @@ export class WqtWethController {
     );
 
     const usdAmount = new BigNumber(tokensPriceInUsd)
-      .shiftedBy(-18)
+      .shiftedBy(-18 * 2)
       .toString()
 
     await wqtWethSwapEvent.update({ amountUSD: usdAmount });
