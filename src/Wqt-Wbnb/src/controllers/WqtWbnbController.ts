@@ -1,13 +1,12 @@
 import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
-import { Clients, WqtWbnbEvent, WqtWbnbNotificationActions } from './types';
-import { NotificationBroker } from "../../../brokers/src/NotificationBroker";
+import { WqtWbnbEvent, WqtWbnbNotificationActions } from './types';
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import {
   Coin,
   IContractProvider,
-  TokenPriceProvider,
+  TokenPriceProvider, WqtWbnbClients,
 } from '../providers/types';
 import {
   WqtWbnbBlockInfo,
@@ -23,9 +22,8 @@ export class WqtWbnbController {
   constructor(
     public readonly contractProvider: IContractProvider,
     private readonly tokenPriceProvider: TokenPriceProvider,
-    private readonly clients: Clients,
+    private readonly clients: WqtWbnbClients,
     private readonly network: BlockchainNetworks,
-    private readonly notificationsBroker: NotificationBroker,
   ) {
     this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
@@ -183,10 +181,10 @@ export class WqtWbnbController {
       });
     }
 
-    await this.notificationsBroker.sendNotification({
+    await this.clients.notificationsBroker.sendNotification({
       action: WqtWbnbNotificationActions.Sync,
       recipients: [],
-      data: await DailyLiquidity.findOne({
+      data: await DailyLiquidityWqtWbnb.findOne({
         where: { daySinceEpochBeginning: currentEventDaySinceEpochBeginning }
       }),
     });

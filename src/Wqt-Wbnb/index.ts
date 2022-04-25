@@ -5,6 +5,7 @@ import { Clients } from "../types";
 import { WqtWbnbProvider } from './src/providers/WqtWbnbProvider';
 import { WqtWbnbController } from './src/controllers/WqtWbnbController';
 import { NotificationBroker } from "../brokers/src/NotificationBroker";
+import { WqtWbnbClients } from "./src/providers/types";
 import configDatabase from './config/config.database';
 import configWqtWbnb from './config/config.WqtWbnb';
 import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
@@ -34,15 +35,14 @@ export async function init() {
   const web3 = new Web3(websocketProvider);
   const wqtWbnbContract = new web3.eth.Contract(abi, configWqtWbnb.contractAddress);
 
-  const clients: Clients = { web3 };
+  const clients: WqtWbnbClients = { web3, notificationsBroker };
   const wqtWbnbProvider = new WqtWbnbProvider(clients, wqtWbnbContract);
 
   const wqtWbnbController = new WqtWbnbController(
     wqtWbnbProvider,
     new OraclePricesProvider(configWqtWbnb.oracleLink),
     clients,
-    BlockchainNetworks.bscMainNetwork,
-    notificationsBroker
+    BlockchainNetworks.bscMainNetwork
   );
 
   const [wqtWbnbBlockInfo] = await WqtWbnbBlockInfo.findOrCreate({
