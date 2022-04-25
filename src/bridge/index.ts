@@ -6,10 +6,10 @@ import configBridge from "./config/config.bridge";
 import configDatabase from "../bridge/config/config.common";
 import { BridgeProvider } from "./src/providers/BridgeProvider";
 import { BridgeController } from "./src/controllers/BridgeController";
-import { BridgeMessageBroker } from "./src/controllers/BrokerController";
-import { BridgeClients, BridgeWorkNetClients } from "./src/providers/types";
+import { BridgeEthClients, BridgeWorkNetClients } from "./src/providers/types";
 import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import {
   initDatabase,
   BlockchainNetworks,
@@ -21,8 +21,6 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
   await initDatabase(configDatabase.database.link, false, false);
-
-  BridgeMessageBroker.initMessageBroker();
 
   const networks = [configBridge.bscNetwork, configBridge.ethereumNetwork, configBridge.workQuestNetwork];
 
@@ -69,6 +67,9 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'bridge');
   await transactionsBroker.init();
 
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge');
+  await notificationsBroker.init();
+
   const bridgeWqContract = new web3Wq.eth.Contract(abi, wqDefaultConfig.contractAddress);
   const bridgeBscContract = new web3Bsc.eth.Contract(abi, bscDefaultConfig.contractAddress);
   const bridgeEthContract = new web3Eth.eth.Contract(abi, ethDefaultConfig.contractAddress);
@@ -77,9 +78,9 @@ export async function init() {
   Logger.debug('Binance smart chain contract address: "%s"', bscDefaultConfig.contractAddress);
   Logger.debug('Ethereum network contract address: "%s"', ethDefaultConfig.contractAddress);
 
-  const wqClients: BridgeWorkNetClients = { web3: web3Wq, transactionsBroker };
-  const bscClients: BridgeClients = { web3: web3Bsc, webSocketProvider: bscWsProvider };
-  const ethClients: BridgeClients = { web3: web3Eth, webSocketProvider: ethWsProvider };
+  const wqClients: BridgeWorkNetClients = { web3: web3Wq, transactionsBroker, notificationsBroker };
+  const bscClients: BridgeEthClients = { web3: web3Bsc, webSocketProvider: bscWsProvider, notificationsBroker };
+  const ethClients: BridgeEthClients = { web3: web3Eth, webSocketProvider: ethWsProvider, notificationsBroker };
 
   const wqBridgeProvider = new BridgeWorkNetProvider(wqClients, bridgeWqContract);
   const bscBridgeProvider = new BridgeProvider(bscClients, bridgeBscContract);

@@ -1,7 +1,7 @@
 import { Logger } from "../../logger/pino";
-import {EventData} from 'web3-eth-contract';
-import {ReferralMessageBroker} from "./BrokerController";
-import {IController, ReferralEvent, Clients, IContractProvider} from './types';
+import { EventData } from 'web3-eth-contract';
+import { ReferralClients } from "../providers/types";
+import { IController, ReferralEvent, IContractProvider } from './types';
 import {
   Wallet,
   RewardStatus,
@@ -17,7 +17,7 @@ import {
 
 export class ReferralController implements IController {
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: ReferralClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -85,7 +85,7 @@ export class ReferralController implements IController {
       return;
     }
 
-    ReferralMessageBroker.sendReferralNotification({
+    await this.clients.notificationsBroker.sendNotification({
       data: eventsData,
       action: eventsData.event,
       recipients: [referralAddress],
@@ -147,7 +147,7 @@ export class ReferralController implements IController {
       return;
     }
 
-    ReferralMessageBroker.sendReferralNotification({
+    await this.clients.notificationsBroker.sendNotification({
       data: eventsData,
       action: eventsData.event,
       recipients: [affiliateAddress],
@@ -207,7 +207,7 @@ export class ReferralController implements IController {
       return;
     }
 
-    ReferralMessageBroker.sendReferralNotification({
+    await this.clients.notificationsBroker.sendNotification({
       data: eventsData,
       action: eventsData.event,
       recipients: [affiliateAddress],
