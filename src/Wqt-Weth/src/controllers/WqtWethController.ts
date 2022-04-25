@@ -208,6 +208,7 @@ export class WqtWethController {
         transactionHash,
         timestamp: timestamp,
         blockNumber: eventsData.blockNumber,
+        /** Не трогать последовательность! Сети токенов BNB и ETH под значениями amount0/1 отдают разное значения токена */
         amount0In: eventsData.returnValues.amount1In,
         amount1In: eventsData.returnValues.amount0In,
         amount0Out: eventsData.returnValues.amount1Out,
@@ -226,6 +227,7 @@ export class WqtWethController {
 
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
+    /** Не трогать последовательность! Сети токенов BNB и ETH под значениями amount0/1 отдают разное значения токена */
     const trackedToken = eventsData.returnValues.amount0Out !== '0'
       ? { symbol: Coin.WQT, value: eventsData.returnValues.amount0Out }
       : { symbol: Coin.ETH, value: eventsData.returnValues.amount1Out }
