@@ -240,7 +240,9 @@ export class WqtWethController {
       tokensPriceInUsd
     );
 
-    const usdAmount = new BigNumber(tokensPriceInUsd).shiftedBy(-18);
+    const usdAmount = new BigNumber(tokensPriceInUsd)
+      .shiftedBy(-18)
+      .toString()
 
     await wqtWethSwapEvent.update({ amountUSD: usdAmount });
   }
