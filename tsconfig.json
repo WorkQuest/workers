@@ -21,6 +21,7 @@
     "./src/proposal/abi/*.json",
     "./src/daily-liquidity/abi/*.json",
     "./src/Wqt-Wbnb/abi/*.json",
+    "./src/Wqt-Weth/abi/*.json",
     "./src/pension-fund/abi/*.json",
     "./src/referral-program/abi/*.json",
     "./src/saving-product/abi/*.json",
