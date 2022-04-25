@@ -15,7 +15,7 @@ import {
   WqtWethSyncEvent,
   WqtWethBurnEvent,
   BlockchainNetworks,
-  DailyLiquidityWqtWeth, DailyLiquidityWqtWbnb,
+  DailyLiquidityWqtWeth,
 } from '@workquest/database-models/lib/models';
 
 export class WqtWethController {
