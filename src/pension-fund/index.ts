@@ -49,9 +49,9 @@ export async function init() {
   const pensionFundController = new PensionFundController(clients, configPensionFund.network as BlockchainNetworks, pensionFundProvider);
 
   const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
-    where: { network: BlockchainNetworks.workQuestNetwork },
+    where: { network: configPensionFund.network },
     defaults: {
-      network: BlockchainNetworks.workQuestNetwork,
+      network: configPensionFund.network,
       lastParsedBlock: parseEventsFromHeight,
     },
   });
