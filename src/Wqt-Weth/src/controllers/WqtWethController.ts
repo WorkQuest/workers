@@ -87,8 +87,8 @@ export class WqtWethController {
       where: { transactionHash },
       defaults: {
         transactionHash,
-        reserve1: ethPool,
-        reserve0: wqtPool,
+        reserve1: wqtPool,
+        reserve0: ethPool,
         timestamp: timestamp,
         blockNumber: eventsData.blockNumber,
       }
@@ -229,8 +229,8 @@ export class WqtWethController {
 
     /** Не трогать последовательность! Сети токенов BNB и ETH под значениями amount0/1 отдают разное значения токена */
     const trackedToken = eventsData.returnValues.amount0Out !== '0'
-      ? { symbol: Coin.ETH, value: eventsData.returnValues.amount0Out }
-      : { symbol: Coin.WQT, value: eventsData.returnValues.amount1Out }
+      ? { symbol: Coin.WQT, value: eventsData.returnValues.amount0Out }
+      : { symbol: Coin.ETH, value: eventsData.returnValues.amount1Out }
 
     const tokensPriceInUsd = await this.getTokensPriceInUsd(timestamp as string, trackedToken.symbol, parseInt(trackedToken.value))
 
