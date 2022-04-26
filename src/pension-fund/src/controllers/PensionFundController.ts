@@ -2,7 +2,7 @@ import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { PensionFundEvents } from './types';
 import { EventData } from 'web3-eth-contract';
-import { Clients, IContractProvider } from "../providers/types";
+import { IContractProvider, PensionFundClients } from "../providers/types";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
@@ -13,7 +13,7 @@ import {
 
 export class PensionFundController {
   constructor(
-    public readonly clients: Clients,
+    public readonly clients: PensionFundClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -56,7 +56,7 @@ export class PensionFundController {
     const user = eventsData.returnValues.user.toLowerCase();
 
     Logger.debug(
-      'Received event handler: timestamp "%s", event data o%',
+      'Received event handler: timestamp "%s", event data %o',
       block.timestamp, eventsData
     );
 
@@ -82,6 +82,12 @@ export class PensionFundController {
       return;
     }
 
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [user],
+      action: eventsData.event,
+      data: eventsData
+    });
+
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
@@ -92,7 +98,7 @@ export class PensionFundController {
     const user = eventsData.returnValues.user.toLowerCase();
 
     Logger.debug(
-      'Withdrew event handler: timestamp "%s", event data o%',
+      'Withdrew event handler: timestamp "%s", event data %o',
       block.timestamp,
       eventsData,
     );
@@ -119,6 +125,12 @@ export class PensionFundController {
       return;
     }
 
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [user],
+      action: eventsData.event,
+      data: eventsData
+    });
+
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
@@ -129,7 +141,7 @@ export class PensionFundController {
     const user = eventsData.returnValues.user.toLowerCase();
 
     Logger.debug(
-      'Wallet updated event handler: timestamp "%s", event data o%',
+      'Wallet updated event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -156,6 +168,12 @@ export class PensionFundController {
 
       return;
     }
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [user],
+      action: eventsData.event,
+      data: eventsData
+    });
 
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
