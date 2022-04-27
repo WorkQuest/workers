@@ -1,8 +1,8 @@
-import {Op} from "sequelize";
+import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
-import {IController, ProposalEvents} from "./types";
-import {Clients, IContractProvider} from "../providers/types";
+import { IController, ProposalEvents } from "./types";
+import { IContractProvider, ProposalClients } from "../providers/types";
 import {
   Proposal,
   Discussion,
@@ -15,8 +15,8 @@ import {
 } from "@workquest/database-models/lib/models";
 
 export class ProposalController implements IController {
-  constructor (
-    public readonly clients: Clients,
+  constructor(
+    public readonly clients: ProposalClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -59,7 +59,7 @@ export class ProposalController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Proposal created event handler: timestamp "%s", event data o%',
+      'Proposal created event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -121,11 +121,18 @@ export class ProposalController implements IController {
       discussion,
     );
 
-    return Promise.all([
+    await Promise.all([
       discussion.$set('medias', proposal.medias), /** Duplicate medias  */
       this.updateBlockViewHeight(eventsData.blockNumber),
       proposal.update({ discussionId: discussion.id, status: ProposalStatus.Active }),
     ]);
+
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [proposer],
+      action: eventsData.event,
+      data: eventsData,
+    });
   }
 
   protected async voteCastEventHandler(eventsData: EventData) {
@@ -135,7 +142,7 @@ export class ProposalController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Proposal vote cast event handler: timestamp "%s", event data o%',
+      'Proposal vote cast event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -178,6 +185,12 @@ export class ProposalController implements IController {
       return this.updateBlockViewHeight(eventsData.blockNumber);
     }
 
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [proposalCreatedEvent.proposer],
+      action: eventsData.event,
+      data: eventsData,
+    });
+
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
@@ -187,7 +200,7 @@ export class ProposalController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Proposal executed event handler: timestamp "%s", event data o%',
+      'Proposal executed event handler: timestamp "%s", event data %o',
       timestamp, eventsData
     );
 
@@ -232,13 +245,19 @@ export class ProposalController implements IController {
       ? ProposalStatus.Accepted
       : ProposalStatus.Rejected
 
-    return Promise.all([
+    await Promise.all([
       this.updateBlockViewHeight(eventsData.blockNumber),
       Proposal.update(
         { status: proposalStatus },
         { where: { id: executedEvent.proposalId } },
       ),
     ]);
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [proposalCreatedEvent.proposer],
+      action: eventsData.event,
+      data: eventsData
+    });
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

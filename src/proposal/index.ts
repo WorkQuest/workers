@@ -9,6 +9,7 @@ import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest
 import { ProposalClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { Logger } from "./logger/pino";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 
 const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -33,7 +34,10 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'proposal');
   await transactionsBroker.init();
 
-  const clients: ProposalClients = { web3, transactionsBroker };
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'proposal');
+  await notificationsBroker.init();
+
+  const clients: ProposalClients = { web3, transactionsBroker, notificationsBroker };
 
   const proposalContract = new web3.eth.Contract(abi, contractAddress);
 
