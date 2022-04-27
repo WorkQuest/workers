@@ -13,6 +13,7 @@ import {
   BlockchainNetworks,
   PensionFundBlockInfo,
 } from '@workquest/database-models/lib/models';
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
 
 const abiFilePath = path.join(__dirname, '/abi/WQPensionFund.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
@@ -37,7 +38,10 @@ export async function init() {
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'pension-fund');
   await transactionsBroker.init();
 
-  const clients: PensionFundClients = { web3, transactionsBroker };
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'pension_fund');
+  await notificationsBroker.init();
+
+  const clients: PensionFundClients = { web3, transactionsBroker, notificationsBroker };
 
   const pensionFundContract = new web3.eth.Contract(abi, contractAddress);
 
@@ -45,9 +49,9 @@ export async function init() {
   const pensionFundController = new PensionFundController(clients, configPensionFund.network as BlockchainNetworks, pensionFundProvider);
 
   const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
-    where: { network: BlockchainNetworks.workQuestNetwork },
+    where: { network: configPensionFund.network },
     defaults: {
-      network: BlockchainNetworks.workQuestNetwork,
+      network: configPensionFund.network,
       lastParsedBlock: parseEventsFromHeight,
     },
   });
