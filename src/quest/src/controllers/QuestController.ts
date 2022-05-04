@@ -2,30 +2,40 @@ import { Op } from "sequelize";
 import { IController, QuestEvent, QuestNotificationActions } from "./types";
 import { EventData } from "web3-eth-contract";
 import { Logger } from "../../logger/pino";
-import { QuestClients, IContractProvider } from "../providers/types";
+import { IContractProvider, QuestClients } from "../providers/types";
 import { QuestModelController } from "./models/QuestModelController";
 import { UserModelController } from "./models/UserModelController";
 import { QuestResponsesModelController } from "./models/QuestResponsesModelController";
 import { QuestChatModelController } from "./models/QuestChatModelController";
+import { QuestDisputeModelController } from "./models/QuestDisputeModelController";
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
 import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
 import {
   UserRole,
   QuestStatus,
+  DisputeStatus,
   QuestBlockInfo,
   QuestJobDoneEvent,
+  QuestJobDoneStatus,
   BlockchainNetworks,
   QuestAssignedEvent,
-  QuestJobDoneStatus,
   QuestJobEditedEvent,
-  QuestJobEditedStatus,
   QuestJobStartedEvent,
+  QuestJobEditedStatus,
   QuestJobFinishedEvent,
   QuestJobCancelledEvent,
   QuestAssignedEventStatus,
   QuestJobStartedEventStatus,
+  QuestArbitrationReworkEvent,
   QuestJobFinishedEventStatus,
+  QuestArbitrationReworkStatus,
+  QuestArbitrationStartedEvent,
   QuestJobCancelledEventStatus,
+  QuestArbitrationStartedStatus,
+  QuestArbitrationRejectWorkEvent,
+  QuestArbitrationAcceptWorkEvent,
+  QuestArbitrationAcceptWorkStatus,
+  QuestArbitrationRejectWorkStatus,
 } from "@workquest/database-models/lib/models";
 
 export class QuestController implements IController {
@@ -58,6 +68,14 @@ export class QuestController implements IController {
       await this.jobCancelledEventHandler(eventsData);
     } else if (eventsData.event === QuestEvent.JobEdited) {
       await this.jobEditedEventHandler(eventsData);
+    } else if (eventsData.event === QuestEvent.ArbitrationStarted) {
+      await this.arbitrationStartedEventHandler(eventsData);
+    } else if (eventsData.event === QuestEvent.ArbitrationAcceptWork) {
+      await this.arbitrationAcceptWorkEventHandler(eventsData);
+    } else if (eventsData.event === QuestEvent.ArbitrationRejectWork) {
+      await this.arbitrationRejectWorkEventHandler(eventsData);
+    } else if (eventsData.event === QuestEvent.ArbitrationRework) {
+      await this.arbitrationReworkEventHandler(eventsData);
     }
   }
 
@@ -459,6 +477,224 @@ export class QuestController implements IController {
         data: questModelController.quest
       }),
     ]);
+  }
+
+  protected async arbitrationStartedEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug('Arbitration started event handler: timestamp "%s", event data %o', timestamp, eventsData);
+
+    const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
+
+    const [questArbitrationStartedEvent, isCreated] = await QuestArbitrationStartedEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      },
+      defaults: {
+        timestamp,
+        contractAddress,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+        status: QuestArbitrationStartedStatus.Successfully
+      }
+    });
+
+    if (!isCreated) {
+      Logger.warn('Arbitration started event handler: event "%s" is skipped because is has already been created',
+        eventsData.event
+      );
+
+      return;
+    }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questDisputeModelController) {
+      Logger.warn('Arbitration started event handler: event "%s" is skipped because dispute entity not found',
+        eventsData.event
+      );
+
+      return questArbitrationStartedEvent.update({ status: QuestArbitrationStartedStatus.DisputeNotFound });
+    }
+
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.Pending)) {
+      Logger.warn('Arbitration started event handler: event "%s" is skipped because dispute status does not match',
+        eventsData.event
+      );
+
+      return questArbitrationStartedEvent.update({ status: QuestArbitrationStartedStatus.DisputeStatusDoesNotMatch });
+    }
+
+    await questDisputeModelController.startDispute();
+  }
+
+  protected async arbitrationAcceptWorkEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug('Arbitration accept work event handler: timestamp "%s", event data %o', timestamp, eventsData);
+
+    const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
+
+    const [questArbitrationAcceptWorkEvent, isCreated] = await QuestArbitrationAcceptWorkEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      },
+      defaults: {
+        timestamp,
+        contractAddress,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+        status: QuestArbitrationAcceptWorkStatus.Successfully,
+      }
+    });
+
+    if (!isCreated) {
+      Logger.warn('Arbitration accept work event handler: event "%s" is skipped because is has already been created',
+        eventsData.event
+      );
+
+      return;
+    }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questDisputeModelController) {
+      Logger.warn('Arbitration accept work event handler: event "%s" is skipped because dispute entity not found',
+        eventsData.event
+      );
+
+      return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.DisputeNotFound });
+    }
+
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+      Logger.warn('Arbitration accept work event handler: event "%s" is skipped because dispute status does not match',
+        eventsData.event
+      );
+
+      return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.DisputeStatusDoesNotMatch });
+    }
+
+    await questDisputeModelController.closeDispute();
+  }
+
+  protected async arbitrationRejectWorkEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug('Arbitration reject work event handler: timestamp "%s", event data %o', timestamp, eventsData);
+
+    const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
+
+    const [questArbitrationRejectWorkEvent, isCreated] = await QuestArbitrationRejectWorkEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      },
+      defaults: {
+        timestamp,
+        contractAddress,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+        status: QuestArbitrationRejectWorkStatus.Successfully,
+      }
+    });
+
+    if (!isCreated) {
+      Logger.warn('Arbitration reject work event handler: event "%s" is skipped because is has already been created',
+        eventsData.event
+      );
+
+      return;
+    }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questDisputeModelController) {
+      Logger.warn('Arbitration reject work event handler: event "%s" is skipped because dispute entity not found',
+        eventsData.event
+      );
+
+      return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.DisputeNotFound });
+    }
+
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+      Logger.warn('Arbitration reject work event handler: event "%s" is skipped because dispute status does not match',
+        eventsData.event
+      );
+
+      return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.DisputeStatusDoesNotMatch });
+    }
+
+    // TODO: отправлять решение при закрытии диспута
+    await questDisputeModelController.closeDispute();
+  }
+
+  protected async arbitrationReworkEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const contractAddress = eventsData.address.toLowerCase();
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    Logger.debug('Arbitration rework event handler: timestamp "%s", event data %o', timestamp, eventsData);
+
+    const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
+
+    const [questArbitrationReworkEvent, isCreated] = await QuestArbitrationReworkEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      },
+      defaults: {
+        timestamp,
+        contractAddress,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+        status: QuestArbitrationReworkStatus.Successfully,
+      }
+    });
+
+    if (!isCreated) {
+      Logger.warn('Arbitration rework event handler: event "%s" is skipped because is has already been created',
+        eventsData.event
+      );
+
+      return;
+    }
+
+    await this.updateBlockViewHeight(eventsData.blockNumber);
+
+    if (!questDisputeModelController) {
+      Logger.warn('Arbitration rework event handler: event "%s" is skipped because dispute entity not found',
+        eventsData.event
+      );
+
+      return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.DisputeNotFound });
+    }
+
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+      Logger.warn('Arbitration rework event handler: event "%s" is skipped because dispute status does not match',
+        eventsData.event
+      );
+
+      return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.DisputeStatusDoesNotMatch });
+    }
+
+    // TODO: отправлять решение при закрытии диспута
+    await questDisputeModelController.closeDispute();
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
