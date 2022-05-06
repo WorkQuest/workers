@@ -15,6 +15,7 @@ import {
   QuestStatus,
   DisputeStatus,
   QuestBlockInfo,
+  DisputeDecision,
   QuestJobDoneEvent,
   QuestJobDoneStatus,
   BlockchainNetworks,
@@ -530,7 +531,7 @@ export class QuestController implements IController {
       return questArbitrationStartedEvent.update({ status: QuestArbitrationStartedStatus.DisputeStatusDoesNotMatch });
     }
 
-    await questDisputeModelController.startDispute();
+    await questDisputeModelController.setCreatedStatus();
   }
 
   protected async arbitrationAcceptWorkEventHandler(eventsData: EventData) {
@@ -584,7 +585,7 @@ export class QuestController implements IController {
       return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.DisputeStatusDoesNotMatch });
     }
 
-    await questDisputeModelController.closeDispute();
+    await questDisputeModelController.closeDispute(DisputeDecision.AcceptWork);
   }
 
   protected async arbitrationRejectWorkEventHandler(eventsData: EventData) {
@@ -638,8 +639,7 @@ export class QuestController implements IController {
       return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.DisputeStatusDoesNotMatch });
     }
 
-    // TODO: отправлять решение при закрытии диспута
-    await questDisputeModelController.closeDispute();
+    await questDisputeModelController.closeDispute(DisputeDecision.RejectWork);
   }
 
   protected async arbitrationReworkEventHandler(eventsData: EventData) {
@@ -693,8 +693,7 @@ export class QuestController implements IController {
       return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.DisputeStatusDoesNotMatch });
     }
 
-    // TODO: отправлять решение при закрытии диспута
-    await questDisputeModelController.closeDispute();
+    await questDisputeModelController.closeDispute(DisputeDecision.Rework);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

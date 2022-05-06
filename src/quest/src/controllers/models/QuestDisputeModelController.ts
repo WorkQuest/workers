@@ -1,18 +1,19 @@
-import { DisputeStatus, Quest, QuestDispute } from "@workquest/database-models/lib/models";
+import { DisputeDecision, DisputeStatus, Quest, QuestDispute } from "@workquest/database-models/lib/models";
 
 export class QuestDisputeModelController {
   constructor(
     public readonly dispute: QuestDispute,
   ) {}
 
-  public startDispute(): Promise<QuestDispute> {
-    return this.dispute.update({ status: DisputeStatus.InProgress });
+  public setCreatedStatus(): Promise<QuestDispute> {
+    return this.dispute.update({ status: DisputeStatus.Created });
   }
 
-  public closeDispute(): Promise<QuestDispute> {
+  public closeDispute(decision: DisputeDecision): Promise<QuestDispute> {
     return this.dispute.update({
       resolvedAt: new Date(),
       status: DisputeStatus.Closed,
+      decision,
     });
   }
 
