@@ -1,13 +1,15 @@
+import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
-import { BridgeUSDTEvents, IController } from "./types";
-import { BridgeUSDTClients } from "../providers/types";
 import { IContractProvider } from "../../../types";
+import { BridgeUSDTClients } from "../providers/types";
+import { BridgeUSDTEvents, IController } from "./types";
 import {
   BlockchainNetworks,
-  // BridgeUSDTSwapTokenEvent,
-  // BridgeUSDTParserBlockInfo,
+  BridgeUSDTSwapTokenEvent,
+  BridgeUSDTParserBlockInfo,
 } from "@workquest/database-models/lib/models";
+import { BridgeEvents } from "../../../bridge/src/controllers/types";
 
 export class BridgeUSDTController implements IController {
   constructor(
@@ -32,29 +34,56 @@ export class BridgeUSDTController implements IController {
     }
   }
 
-  // protected updateBlockViewHeight(blockHeight: number) {
-  //   Logger.debug('Update blocks: new block height "%s"', blockHeight);
-  //
-  //   return BridgeUSDTParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
-  //     where: {
-  //       network: this.network,
-  //       lastParsedBlock: { [Op.lt]: blockHeight },
-  //     }
-  //   });
-  // }
+  protected updateBlockViewHeight(blockHeight: number) {
+    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+
+    return BridgeUSDTParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
+      where: {
+        network: this.network,
+        lastParsedBlock: { [Op.lt]: blockHeight },
+      }
+    });
+  }
 
   public async swapInitializedEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const initiator = eventsData.returnValues.sender.toLowerCase();
     const recipient = eventsData.returnValues.recipient.toLowerCase();
 
-    console.log(eventsData)
+    console.log(eventsData, this.network)
     Logger.debug(
       'Swap initialized event handler: timestamp "%s", event data %o',
       eventsData.returnValues.timestamp, eventsData
     );
 
-    // return this.updateBlockViewHeight(eventsData.blockNumber);
+    const [_, isCreated] = await BridgeUSDTSwapTokenEvent.findOrCreate({
+      where: { transactionHash, network: this.network },
+      defaults: {
+        transactionHash,
+        blockNumber: eventsData.blockNumber,
+        network: this.network,
+        event: BridgeEvents.SwapInitialized,
+        nonce: eventsData.returnValues.nonce,
+        timestamp: eventsData.returnValues.timestamp,
+        initiator,
+        recipient,
+        amount: eventsData.returnValues.amount,
+        chainTo: eventsData.returnValues.chainTo,
+        chainFrom: eventsData.returnValues.chainFrom,
+        symbol: eventsData.returnValues.symbol,
+      }
+    })
+
+    if (!isCreated) {
+      Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+      return;
+    }
+
+    //TODO нужно добавить job по переводу wqt на кошелёк recipient
+    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
@@ -72,7 +101,7 @@ export class BridgeUSDTController implements IController {
       }
     }
 
-    // await this.updateBlockViewHeight(lastBlockNumber);
+    await this.updateBlockViewHeight(lastBlockNumber);
 
     if (error) {
       throw error;

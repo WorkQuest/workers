@@ -152,7 +152,7 @@ export async function init() {
     wqBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridgeUSDT.workQuestNetwork)),
     bscBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridgeUSDT.bscNetwork)),
     ethBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridgeUSDT.ethereumNetwork)),
-    polygonBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridgeUSDT.ethereumNetwork)),
+    polygonBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridgeUSDT.polygonscanNetwork)),
   ]);
 
   await wqBridgeProvider.startListener();
