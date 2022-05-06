@@ -25,7 +25,9 @@
     "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
     "fetcher:compile": "tsc && node ./build/fetchers",
     "raiseView:start": "nodemon -e ts --exec \"npm run raise-view:compile\"",
-    "raiseView:compile": "tsc && node ./build/raise-view"
+    "raiseView:compile": "tsc && node ./build/raise-view",
+    "bridgeUSDT:start": "nodemon -e ts --exec \"npm run bridgeUSDT:compile\"",
+    "bridgeUSDT:compile": "tsc && node ./build/bridgeUSDT/index.js"
   },
   "jest": {
     "transform": {

@@ -26,6 +26,7 @@
     "./src/referral-program/abi/*.json",
     "./src/saving-product/abi/*.json",
     "./src/raise-view/abi/*.json",
+    "./src/bridgeUSDT/abi/*.json"
   ],
   "rootDir":  ["src"]
 }
