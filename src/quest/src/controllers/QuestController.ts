@@ -481,8 +481,7 @@ export class QuestController implements IController {
   }
 
   protected async arbitrationStartedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
-
+    const timestamp = eventsData.returnValues.timestamp;
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
@@ -535,8 +534,7 @@ export class QuestController implements IController {
   }
 
   protected async arbitrationAcceptWorkEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
-
+    const timestamp = eventsData.returnValues.timestamp;
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
@@ -585,12 +583,11 @@ export class QuestController implements IController {
       return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.DisputeStatusDoesNotMatch });
     }
 
-    await questDisputeModelController.closeDispute(DisputeDecision.AcceptWork);
+    await questDisputeModelController.closeDispute(DisputeDecision.AcceptWork, timestamp);
   }
 
   protected async arbitrationRejectWorkEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
-
+    const timestamp = eventsData.returnValues.timestamp;
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
@@ -639,12 +636,11 @@ export class QuestController implements IController {
       return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.DisputeStatusDoesNotMatch });
     }
 
-    await questDisputeModelController.closeDispute(DisputeDecision.RejectWork);
+    await questDisputeModelController.closeDispute(DisputeDecision.RejectWork, timestamp);
   }
 
   protected async arbitrationReworkEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
-
+    const timestamp = eventsData.returnValues.timestamp;
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
@@ -693,7 +689,7 @@ export class QuestController implements IController {
       return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.DisputeStatusDoesNotMatch });
     }
 
-    await questDisputeModelController.closeDispute(DisputeDecision.Rework);
+    await questDisputeModelController.closeDispute(DisputeDecision.Rework, timestamp);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

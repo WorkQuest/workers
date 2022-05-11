@@ -1,4 +1,5 @@
 import { DisputeDecision, DisputeStatus, Quest, QuestDispute } from "@workquest/database-models/lib/models";
+import { incrementAdminDisputeStatisticJob } from "../../../jobs/incrementAdminDisputeStatistic";
 
 export class QuestDisputeModelController {
   constructor(
@@ -9,12 +10,20 @@ export class QuestDisputeModelController {
     return this.dispute.update({ status: DisputeStatus.Created });
   }
 
-  public closeDispute(decision: DisputeDecision): Promise<QuestDispute> {
-    return this.dispute.update({
-      resolvedAt: new Date(),
-      status: DisputeStatus.Closed,
-      decision,
-    });
+  public closeDispute(decision: DisputeDecision, timestamp: string): Promise<any> {
+    const resolvedAt = new Date(timestamp);
+
+    return Promise.all([
+      this.dispute.update({
+        status: DisputeStatus.Closed,
+        resolvedAt,
+        decision,
+      }),
+      incrementAdminDisputeStatisticJob({
+        adminId: this.dispute.assignedAdminId,
+        resolutionTimeInSeconds: (resolvedAt.getTime() - this.dispute.acceptedAt.getTime()) / 1000,
+      }),
+    ]);
   }
 
   public statusDoesMatch(...statuses: DisputeStatus[]): boolean {
