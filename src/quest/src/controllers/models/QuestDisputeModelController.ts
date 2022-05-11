@@ -11,7 +11,7 @@ export class QuestDisputeModelController {
   }
 
   public closeDispute(decision: DisputeDecision, timestamp: string): Promise<any> {
-    const resolvedAt = new Date(timestamp);
+    const resolvedAt = new Date(parseInt(timestamp) * 1000);
 
     return Promise.all([
       this.dispute.update({
