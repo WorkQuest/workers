@@ -487,6 +487,7 @@ export class QuestController implements IController {
 
     Logger.debug('Arbitration started event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
 
     const [questArbitrationStartedEvent, isCreated] = await QuestArbitrationStartedEvent.findOrCreate({
@@ -530,7 +531,14 @@ export class QuestController implements IController {
       return questArbitrationStartedEvent.update({ status: QuestArbitrationStartedStatus.DisputeStatusDoesNotMatch });
     }
 
+    await questModelController.freezeQuestForDispute();
     await questDisputeModelController.setCreatedStatus();
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
+      action: QuestNotificationActions.OpenDispute,
+      data: questDisputeModelController.dispute,
+    });
   }
 
   protected async arbitrationAcceptWorkEventHandler(eventsData: EventData) {
@@ -540,6 +548,7 @@ export class QuestController implements IController {
 
     Logger.debug('Arbitration accept work event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
 
     const [questArbitrationAcceptWorkEvent, isCreated] = await QuestArbitrationAcceptWorkEvent.findOrCreate({
@@ -583,7 +592,22 @@ export class QuestController implements IController {
       return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.DisputeStatusDoesNotMatch });
     }
 
+    if (!questModelController) {
+      Logger.warn('Arbitration accept work event handler: event "%s" is skipped because quest entity not found',
+        eventsData.event
+      )
+
+      return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.QuestNotFound });
+    }
+
+    await questModelController.completeQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.AcceptWork, timestamp);
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
+      action: QuestNotificationActions.DisputeDecision,
+      data: questDisputeModelController.dispute,
+    });
   }
 
   protected async arbitrationRejectWorkEventHandler(eventsData: EventData) {
@@ -593,6 +617,7 @@ export class QuestController implements IController {
 
     Logger.debug('Arbitration reject work event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
 
     const [questArbitrationRejectWorkEvent, isCreated] = await QuestArbitrationRejectWorkEvent.findOrCreate({
@@ -636,7 +661,22 @@ export class QuestController implements IController {
       return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.DisputeStatusDoesNotMatch });
     }
 
+    if (!questModelController) {
+      Logger.warn('Arbitration reject work event handler: event "%s" is skipped because quest entity not found',
+        eventsData.event
+      )
+
+      return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.QuestNotFound });
+    }
+
+    await questModelController.completeQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.RejectWork, timestamp);
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
+      action: QuestNotificationActions.DisputeDecision,
+      data: questDisputeModelController.dispute,
+    });
   }
 
   protected async arbitrationReworkEventHandler(eventsData: EventData) {
@@ -646,6 +686,7 @@ export class QuestController implements IController {
 
     Logger.debug('Arbitration rework event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
+    const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
 
     const [questArbitrationReworkEvent, isCreated] = await QuestArbitrationReworkEvent.findOrCreate({
@@ -689,7 +730,22 @@ export class QuestController implements IController {
       return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.DisputeStatusDoesNotMatch });
     }
 
+    if (!questModelController) {
+      Logger.warn('Arbitration rework work event handler: event "%s" is skipped because quest entity not found',
+        eventsData.event
+      )
+
+      return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.QuestNotFound });
+    }
+
+    await questModelController.restartQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.Rework, timestamp);
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
+      action: QuestNotificationActions.DisputeDecision,
+      data: questDisputeModelController.dispute,
+    });
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
