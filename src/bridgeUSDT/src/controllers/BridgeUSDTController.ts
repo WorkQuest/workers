@@ -9,7 +9,7 @@ import {
   BridgeUSDTSwapTokenEvent,
   BridgeUSDTParserBlockInfo,
 } from "@workquest/database-models/lib/models";
-import { BridgeEvents } from "../../../bridge/src/controllers/types";
+import { sendFirstWqt, sendFirstWqtPayload } from "../../jobs/sendFirstWqt";
 
 export class BridgeUSDTController implements IController {
   constructor(
@@ -47,10 +47,8 @@ export class BridgeUSDTController implements IController {
 
   public async swapInitializedEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
-    const initiator = eventsData.returnValues.sender.toLowerCase();
     const recipient = eventsData.returnValues.recipient.toLowerCase();
 
-    console.log(eventsData, this.network)
     Logger.debug(
       'Swap initialized event handler: timestamp "%s", event data %o',
       eventsData.returnValues.timestamp, eventsData
@@ -62,14 +60,14 @@ export class BridgeUSDTController implements IController {
         transactionHash,
         blockNumber: eventsData.blockNumber,
         network: this.network,
-        event: BridgeEvents.SwapInitialized,
+        event: BridgeUSDTEvents.SwapInitialized,
         nonce: eventsData.returnValues.nonce,
         timestamp: eventsData.returnValues.timestamp,
-        initiator,
         recipient,
         amount: eventsData.returnValues.amount,
         chainTo: eventsData.returnValues.chainTo,
         chainFrom: eventsData.returnValues.chainFrom,
+        userId: eventsData.returnValues.userId,
         symbol: eventsData.returnValues.symbol,
       }
     })
@@ -82,7 +80,14 @@ export class BridgeUSDTController implements IController {
       return;
     }
 
-    //TODO нужно добавить job по переводу wqt на кошелёк recipient
+    await sendFirstWqt({
+      recipientWallet: recipient,
+      network: this.network,
+      userId: eventsData.returnValues.userId,
+      amount: eventsData.returnValues.amount
+    })
+
+
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 

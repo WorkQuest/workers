@@ -13,14 +13,14 @@ import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import {
   initDatabase,
   BlockchainNetworks,
-  BridgeParserBlockInfo,
+  BridgeUSDTParserBlockInfo,
 } from "@workquest/database-models/lib/models";
 
 const abiFilePath = path.join(__dirname, '../../src/bridgeUSDT/abi/BridgeUSDT.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  await initDatabase(configDatabase.database.link, false, false);
+  await initDatabase(configDatabase.database.link, false, true);
 
   const networks = [
     configBridgeUSDT.bscNetwork,
@@ -134,7 +134,7 @@ export async function init() {
   const blockInfos = new Map<string, number>();
 
   for (const network of networks) {
-    const [bridgeUSDTBlockInfo] = await BridgeParserBlockInfo.findOrCreate({
+    const [bridgeUSDTBlockInfo] = await BridgeUSDTParserBlockInfo.findOrCreate({
       where: { network },
       defaults: { network, lastParsedBlock: configBridgeUSDT[network].parseEventsFromHeight }
     });

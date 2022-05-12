@@ -8,6 +8,9 @@ export default {
   bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
   ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork
   polygonscanNetwork: process.env.POLYGONSCAN_BLOCKCHAIN_NETWORK,//polygonscanMainNetwork, mumbaiTestNetwork
+  mnemonic: process.env.BRIDGE_USDT_MNEMONIC_WALLET_ADDRESS,
+  wqtTokenContractAddress: process.env.WQT_TOKEN_CONTRACT_ADRESS,
+  gasLimitWqtTransfer: process.env.GAS_LIMIT_TRANSFER_WQT,
 
   workQuestDevNetwork: {
     contractAddress: process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_CONTRACT_ADDRESS,
