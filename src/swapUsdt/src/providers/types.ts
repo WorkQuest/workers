@@ -1,16 +1,21 @@
 import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 import { Clients } from '../../../types';
 import { NotificationBroker } from "../../../brokers/src/NotificationBroker";
+import { Coin } from "../../../Wqt-Weth/src/providers/types";
 
-export interface BridgeUSDTClients extends Clients {
+export interface TokenPriceProvider {
+  coinPriceInUSD(timestamp: number | string): Promise<number>;
+}
+
+export interface SwapUsdtClients extends Clients {
   readonly notificationsBroker: NotificationBroker;
 }
 
-export interface BridgeUSDTWorkNetClients extends BridgeUSDTClients {
+export interface SwapUsdtWorkNetClients extends SwapUsdtClients {
   readonly transactionsBroker: TransactionBroker;
 }
 
-export interface BridgeUSDTEthClients extends BridgeUSDTClients {
+export interface SwapUsdtEthClients extends SwapUsdtClients {
   readonly webSocketProvider: any;
 }
 

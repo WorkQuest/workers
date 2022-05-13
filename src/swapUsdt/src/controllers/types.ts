@@ -1,4 +1,4 @@
-export enum BridgeUSDTEvents {
+export enum SwapUsdtEvents {
   SwapInitialized = 'SwapInitialized',
 }
 

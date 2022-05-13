@@ -1,5 +1,5 @@
 import pino from 'pino';
-import configBridge from "../config/config.bridgeUSDT";
+import configBridge from "../config/config.SwapUsdt";
 
 export const Logger = pino({
   level: configBridge.logLevel,
@@ -11,4 +11,4 @@ export const Logger = pino({
       translateTime: "dd-mm-yyyy HH:MM:ss",
     },
   },
-}).child({ workerName: 'BridgeUSDT' });
+}).child({ workerName: 'SwapUsdt' });

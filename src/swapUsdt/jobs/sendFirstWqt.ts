@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import Web3 from "web3";
 import { ethers } from 'ethers';
-import configBridgeUSDT from "../config/config.bridgeUSDT";
+import configBridgeUSDT from "../config/config.SwapUsdt";
 import BigNumber from "bignumber.js";
 
 
@@ -13,7 +13,8 @@ export interface sendFirstWqtPayload {
   recipientWallet: string;
   userId: string;
   network: string;
-  amount: string;
+  amount: number;
+  txSwap: string
 }
 
 export async function sendFirstWqt(payload: sendFirstWqtPayload) {
@@ -31,23 +32,32 @@ export async function sendFirstWqt(payload: sendFirstWqtPayload) {
     return value;
   });
 
-  //TODO сначала нужно унать чему равна сумма USDT в WQT, потом уже добавлять запрашивать стоимость транзы!
+  const amountValue = new BigNumber(payload.amount).shiftedBy(+18).toFormat({ decimalSeparator: '' }).toString()
+
   const txObject = {
     from: faucetWallet.address,
     gasPrice,
+    gas: undefined,
     to: configBridgeUSDT.wqtTokenContractAddress,
     value: '0x0',
-    data: contract.methods.transfer(payload.recipientWallet, new BigNumber(payload.amount).shiftedBy(+12).toString()).encodeABI(),
-    gas: null
+    data: contract.methods.transfer(payload.recipientWallet, amountValue ).encodeABI()
   }
-  const gasLimit = await web3.eth.estimateGas(txObject).then(value => {
-    return value;
-  });
+  const gasLimit = await web3.eth.estimateGas(txObject).then(value => { return value });
 
-  const txFee = parseInt(gasPrice) * gasLimit
-  const sendAmount = new BigNumber(payload.amount).shiftedBy(+12) - txFee //TODO fix
+  //@ts-ignore
+  const txFee = new BigNumber(amountValue).toFormat({ decimalSeparator: '' }) - (parseInt(gasPrice) * gasLimit)
+
+  const sendWqtAmount = new BigNumber(txFee).toFormat({ decimalSeparator: '' }).toString()
+
+  console.log(sendWqtAmount)
   txObject.gas = gasLimit
-  txObject.data = contract.methods.transfer(payload.recipientWallet,
+
+  // 1345.605253242908700000
+  // 1345.605253242908300000
+
+  //TODO нужно добавить в запрос конечное значение получаемых WQT и открыть ПР
+
+  // txObject.data = contract.methods.transfer(payload.recipientWallet,
 
   // const sendTrans = await web3.eth.sendTransaction({
   //   from: faucetWallet.address,
@@ -59,7 +69,7 @@ export async function sendFirstWqt(payload: sendFirstWqtPayload) {
   // }).then(response => {
   //   return response;
   // });
-
+  //
   // await FaucetWusdWqt.create({
   //   userId: user.id,
   //   address: userWallet.wallet.address,
@@ -70,8 +80,8 @@ export async function sendFirstWqt(payload: sendFirstWqtPayload) {
   //   network: BlockchainNetworks.workQuestDevNetwork //TODO fix newtwork
   // });
 
-  return ({
-    txHash: sendTrans.transactionHash,
-    status: sendTrans.status
-  });
+  // return ({
+  //   txHash: sendTrans.transactionHash,
+  //   status: sendTrans.status
+  // });
 }

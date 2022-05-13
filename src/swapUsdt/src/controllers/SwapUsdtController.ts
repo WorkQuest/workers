@@ -2,20 +2,22 @@ import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
 import { IContractProvider } from "../../../types";
-import { BridgeUSDTClients } from "../providers/types";
-import { BridgeUSDTEvents, IController } from "./types";
+import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
+import { IController, SwapUsdtEvents } from "./types";
 import {
   BlockchainNetworks,
-  BridgeUSDTSwapTokenEvent,
-  BridgeUSDTParserBlockInfo,
+  SwapUsdtParserBlockInfo,
+  SwapUsdtSwapTokenEvent,
 } from "@workquest/database-models/lib/models";
-import { sendFirstWqt, sendFirstWqtPayload } from "../../jobs/sendFirstWqt";
+import { sendFirstWqt } from "../../jobs/sendFirstWqt";
+import BigNumber from "bignumber.js";
 
-export class BridgeUSDTController implements IController {
+export class SwapUsdtController implements IController {
   constructor(
-    public readonly clients: BridgeUSDTClients,
+    public readonly clients: SwapUsdtClients,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
+    private readonly tokenPriceProvider: TokenPriceProvider,
   ) {
     this.contractProvider.subscribeOnEvents(async (eventData) => {
       await this.onEvent(eventData);
@@ -29,7 +31,7 @@ export class BridgeUSDTController implements IController {
       eventsData.address,
     );
 
-    if (eventsData.event === BridgeUSDTEvents.SwapInitialized) {
+    if (eventsData.event === SwapUsdtEvents.SwapInitialized) {
       return this.swapInitializedEventHandler(eventsData);
     }
   }
@@ -37,7 +39,7 @@ export class BridgeUSDTController implements IController {
   protected updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return BridgeUSDTParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    return SwapUsdtParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -54,13 +56,13 @@ export class BridgeUSDTController implements IController {
       eventsData.returnValues.timestamp, eventsData
     );
 
-    const [_, isCreated] = await BridgeUSDTSwapTokenEvent.findOrCreate({
+    const [_, isCreated] = await SwapUsdtSwapTokenEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         transactionHash,
         blockNumber: eventsData.blockNumber,
         network: this.network,
-        event: BridgeUSDTEvents.SwapInitialized,
+        event: SwapUsdtEvents.SwapInitialized,
         nonce: eventsData.returnValues.nonce,
         timestamp: eventsData.returnValues.timestamp,
         recipient,
@@ -79,16 +81,23 @@ export class BridgeUSDTController implements IController {
       );
       return;
     }
+    //TODO нужно придумать вычисление получше не пройдёт тут такое!!!!!
+    // @ts-ignore
+    const amountWqt = new BigNumber(eventsData.returnValues.amount).shiftedBy(+12) /
+      await this.getTokensPriceInUsd(eventsData.returnValues.timestamp)
 
     await sendFirstWqt({
       recipientWallet: recipient,
       network: this.network,
       userId: eventsData.returnValues.userId,
-      amount: eventsData.returnValues.amount
+      amount: amountWqt,
+      txSwap: transactionHash,
     })
-
-
     return this.updateBlockViewHeight(eventsData.blockNumber);
+  }
+
+  private async getTokensPriceInUsd(timestamp: string | number): Promise<number> {
+    return await this.tokenPriceProvider.coinPriceInUSD(timestamp);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

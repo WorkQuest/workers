@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.bridgeUSDT' });
+config({ path: __dirname + '/../../../.env.swapUsdt' });
 
 export default {
   logLevel: 'debug',
@@ -11,7 +11,7 @@ export default {
   mnemonic: process.env.BRIDGE_USDT_MNEMONIC_WALLET_ADDRESS,
   wqtTokenContractAddress: process.env.WQT_TOKEN_CONTRACT_ADRESS,
   gasLimitWqtTransfer: process.env.GAS_LIMIT_TRANSFER_WQT,
-
+  oracleLink: process.env.ORACLE_LINK,
   workQuestDevNetwork: {
     contractAddress: process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_CONTRACT_ADDRESS,
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
