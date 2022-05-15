@@ -501,7 +501,7 @@ export class QuestController implements IController {
         transactionHash,
         network: this.network,
         blockNumber: eventsData.blockNumber,
-        status: QuestArbitrationStartedStatus.Successfully
+        status: QuestArbitrationStartedStatus.Successfully,
       }
     });
 
