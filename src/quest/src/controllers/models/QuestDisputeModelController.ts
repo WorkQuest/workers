@@ -1,29 +1,23 @@
 import { DisputeDecision, DisputeStatus, Quest, QuestDispute } from "@workquest/database-models/lib/models";
-import { incrementAdminDisputeStatisticJob } from "../../../jobs/incrementAdminDisputeStatistic";
+import { Op } from "sequelize";
 
 export class QuestDisputeModelController {
   constructor(
     public readonly dispute: QuestDispute,
   ) {}
 
-  public setCreatedStatus(): Promise<QuestDispute> {
+  public confirmDispute(): Promise<QuestDispute> {
     return this.dispute.update({ status: DisputeStatus.Created });
   }
 
   public closeDispute(decision: DisputeDecision, timestamp: string): Promise<any> {
     const resolvedAt = new Date(parseInt(timestamp) * 1000);
 
-    return Promise.all([
-      this.dispute.update({
+    return this.dispute.update({
         status: DisputeStatus.Closed,
         resolvedAt,
         decision,
-      }),
-      incrementAdminDisputeStatisticJob({
-        adminId: this.dispute.assignedAdminId,
-        resolutionTimeInSeconds: (resolvedAt.getTime() - this.dispute.acceptedAt.getTime()) / 1000,
-      }),
-    ]);
+    });
   }
 
   public statusDoesMatch(...statuses: DisputeStatus[]): boolean {
@@ -37,7 +31,12 @@ export class QuestDisputeModelController {
       return null;
     }
 
-    const dispute = await QuestDispute.findOne({ where: { questId: quest.id } });
+    const dispute = await QuestDispute.findOne({
+      where: {
+        questId: quest.id,
+        status: { [Op.ne]: DisputeStatus.Closed },
+      }
+    });
 
     if (!dispute) {
       return null;

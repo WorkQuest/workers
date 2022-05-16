@@ -38,6 +38,7 @@ import {
   QuestArbitrationAcceptWorkStatus,
   QuestArbitrationRejectWorkStatus,
 } from "@workquest/database-models/lib/models";
+import { incrementAdminDisputeStatisticJob } from "../../jobs/incrementAdminDisputeStatistic";
 
 export class QuestController implements IController {
   constructor(
@@ -532,7 +533,7 @@ export class QuestController implements IController {
     }
 
     await questModelController.freezeQuestForDispute();
-    await questDisputeModelController.setCreatedStatus();
+    await questDisputeModelController.confirmDispute();
 
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
@@ -550,6 +551,7 @@ export class QuestController implements IController {
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
+    const questChatModelController = new QuestChatModelController(questModelController);
 
     const [questArbitrationAcceptWorkEvent, isCreated] = await QuestArbitrationAcceptWorkEvent.findOrCreate({
       where: {
@@ -602,12 +604,33 @@ export class QuestController implements IController {
 
     await questModelController.completeQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.AcceptWork, timestamp);
+    await questChatModelController.closeAllChats();
 
-    await this.clients.notificationsBroker.sendNotification({
-      recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
-      action: QuestNotificationActions.DisputeDecision,
-      data: questDisputeModelController.dispute,
-    });
+    await this.clients.questCacheProvider.remove(contractAddress);
+
+    await Promise.all([
+      addUpdateReviewStatisticsJob({ userId: questModelController.quest.userId }),
+      addUpdateReviewStatisticsJob({ userId: questModelController.quest.assignedWorkerId }),
+      updateQuestsStatisticJob({ userId: questModelController.quest.userId, role: UserRole.Employer }),
+      updateQuestsStatisticJob({ userId: questModelController.quest.assignedWorkerId, role: UserRole.Worker }),
+      incrementAdminDisputeStatisticJob({
+        adminId: questDisputeModelController.dispute.assignedAdminId,
+        resolutionTimeInSeconds: (
+          questDisputeModelController.dispute.resolvedAt.getTime() -
+          questDisputeModelController.dispute.acceptedAt.getTime()
+        ) / 1000,
+      }),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
+        action: QuestNotificationActions.QuestStatusUpdated,
+        data: questModelController.quest
+      }),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
+        action: QuestNotificationActions.DisputeDecision,
+        data: questDisputeModelController.dispute,
+      }),
+    ]);
   }
 
   protected async arbitrationRejectWorkEventHandler(eventsData: EventData) {
@@ -619,6 +642,7 @@ export class QuestController implements IController {
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
+    const questChatModelController = new QuestChatModelController(questModelController);
 
     const [questArbitrationRejectWorkEvent, isCreated] = await QuestArbitrationRejectWorkEvent.findOrCreate({
       where: {
@@ -669,14 +693,31 @@ export class QuestController implements IController {
       return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.QuestNotFound });
     }
 
-    await questModelController.completeQuest();
+    await questModelController.closeQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.RejectWork, timestamp);
+    await questChatModelController.closeAllChats();
 
-    await this.clients.notificationsBroker.sendNotification({
-      recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
-      action: QuestNotificationActions.DisputeDecision,
-      data: questDisputeModelController.dispute,
-    });
+    await this.clients.questCacheProvider.remove(contractAddress);
+
+    await Promise.all([
+      incrementAdminDisputeStatisticJob({
+        adminId: questDisputeModelController.dispute.assignedAdminId,
+        resolutionTimeInSeconds: (
+          questDisputeModelController.dispute.resolvedAt.getTime() -
+          questDisputeModelController.dispute.acceptedAt.getTime()
+        ) / 1000,
+      }),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
+        action: QuestNotificationActions.QuestStatusUpdated,
+        data: questModelController.quest
+      }),
+      this.clients.notificationsBroker.sendNotification({
+        recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
+        action: QuestNotificationActions.DisputeDecision,
+        data: questDisputeModelController.dispute,
+      }),
+    ]);
   }
 
   protected async arbitrationReworkEventHandler(eventsData: EventData) {
