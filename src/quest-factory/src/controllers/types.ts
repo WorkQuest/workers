@@ -3,7 +3,7 @@ export enum QuestFactoryEvent {
 }
 
 export enum QuestFactoryNotificationActions {
-  QuestStatusUpdated = 'questStatusUpdated'
+  QuestStatusUpdated = 'QuestStatusUpdated'
 }
 
 export * from '../../../types';
