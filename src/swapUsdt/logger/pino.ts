@@ -1,5 +1,5 @@
 import pino from 'pino';
-import configBridge from "../config/config.SwapUsdt";
+import configBridge from "../config/config.swapUsdt";
 
 export const Logger = pino({
   level: configBridge.logLevel,

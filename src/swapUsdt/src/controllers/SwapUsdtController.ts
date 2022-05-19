@@ -104,12 +104,21 @@ export class SwapUsdtController implements IController {
       return;
     }
 
+    const wqtPrice = await this.getTokensPriceInUsd(eventsData.returnValues.timestamp)
+
+    if (!wqtPrice) {
+      Logger.warn('The oracle provider did not receive data on the current price',
+        eventsData.event,
+        transactionHash,
+      );
+      return;
+    }
+
     // @ts-ignore
-    const amountWqt = new BigNumber(eventsData.returnValues.amount).shiftedBy(+12) /
-      await this.getTokensPriceInUsd(eventsData.returnValues.timestamp)
+    const amountWqt = new BigNumber(eventsData.returnValues.amount).shiftedBy(+12) / wqtPrice
 
     const ratio = await Commission.findOne({
-      where: { commission: { "title": CommissionTitle.CommissionSwapWQT } }
+      where: { "commission.title": CommissionTitle.CommissionSwapWQT }
     })
 
     await sendFirstWqtJob({

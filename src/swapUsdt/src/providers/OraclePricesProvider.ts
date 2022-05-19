@@ -1,5 +1,5 @@
-import axios, {AxiosInstance} from 'axios';
-import { TokenPriceProvider} from "./types";
+import axios, { AxiosInstance } from 'axios';
+import { TokenPriceProvider } from "./types";
 
 export class OraclePricesProvider implements TokenPriceProvider {
 
@@ -10,11 +10,15 @@ export class OraclePricesProvider implements TokenPriceProvider {
   }
 
   public async coinPriceInUSD(timestamp: number | string): Promise<number> {
-    const result = await this.api.get(`/v1/oracle/WQT/price?timestamp=${timestamp}`, {
-        timeout: 10000,
-      },
-    );
+    try {
+      const result = await this.api.get(`/v1/oracle/WQT/price?timestamp=${ timestamp }`, {
+          timeout: 10000,
+        },
+      );
 
-    return result.data.result;
+      return result.data.result;
+    } catch (error) {
+      return null
+    }
   }
 }

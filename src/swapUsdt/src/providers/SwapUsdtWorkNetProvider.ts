@@ -1,6 +1,6 @@
 import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
-import configBridge from "../../config/config.SwapUsdt";
+import configBridgeUSDT from "../../config/config.swapUsdt";
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, SwapUsdtWorkNetClients } from "./types";
 
@@ -19,14 +19,14 @@ export class SwapUsdtWorkNetProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const SwapUsdtAddress = configBridge
+    const swapUsdtAddress = configBridgeUSDT
       .defaultWqConfigNetwork()
       .contractAddress
       .toLowerCase();
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === SwapUsdtAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === swapUsdtAddress)
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {

@@ -4,7 +4,7 @@ import path from "path";
 import { run } from 'graphile-worker';
 import { Logger } from "./logger/pino";
 import configDatabase from ".//config/config.common";
-import configSwapUsdt from "./config/config.SwapUsdt";
+import configSwapUsdt from "./config/config.swapUsdt";
 import { SwapUsdtProvider } from "./src/providers/SwapUsdtProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { NotificationBroker } from "../brokers/src/NotificationBroker";
@@ -119,29 +119,31 @@ export async function init() {
   const ethSwapUsdtProvider = new SwapUsdtProvider(ethClients, SwapUsdtEthContract);
   const polygonSwapUsdtProvider = new SwapUsdtProvider(polygonClients, SwapUsdtPolygonContract);
 
+  const oracleProvider = new OraclePricesProvider(configSwapUsdt.oracleLink)
+
   const wqBridgeController = new SwapUsdtController(
     wqClients,
     configSwapUsdt.workQuestNetwork as BlockchainNetworks,
     wqSwapUsdtProvider,
-    new OraclePricesProvider(configSwapUsdt.oracleLink),
+    oracleProvider,
   );
   const bscBridgeController = new SwapUsdtController(
     bscClients,
     configSwapUsdt.bscNetwork as BlockchainNetworks,
     bscSwapUsdtProvider,
-    new OraclePricesProvider(configSwapUsdt.oracleLink),
+    oracleProvider,
   );
   const ethBridgeController = new SwapUsdtController(
     ethClients,
     configSwapUsdt.ethereumNetwork as BlockchainNetworks,
     ethSwapUsdtProvider,
-    new OraclePricesProvider(configSwapUsdt.oracleLink),
+    oracleProvider,
   );
   const polygonBridgeController = new SwapUsdtController(
     polygonClients,
     configSwapUsdt.polygonscanNetwork as BlockchainNetworks,
     polygonSwapUsdtProvider,
-    new OraclePricesProvider(configSwapUsdt.oracleLink),
+    oracleProvider,
   );
 
   const blockInfos = new Map<string, number>();

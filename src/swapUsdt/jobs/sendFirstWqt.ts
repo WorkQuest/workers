@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import { ethers } from 'ethers';
-import configBridgeUSDT from "../config/config.SwapUsdt";
+import configBridgeUSDT from "../config/config.swapUsdt";
 import BigNumber from "bignumber.js";
 import { addJob } from "../../utils/scheduler";
 import { SwapUsdtSendWqt } from "@workquest/database-models/lib/models";
@@ -34,13 +34,14 @@ export default async function (payload: SendFirstWqtPayload) {
     );
     return;
   }
+
   await sendWqt.update({
     status: swapUsdtStatus.SwapProcessed
-  })
+  });
 
   const faucetWallet = await ethers.utils.HDNode.fromMnemonic(configBridgeUSDT.mnemonic).derivePath('m/44\'/60\'/0\'/0/0');
 
-  const web3 = new Web3(new Web3.providers.HttpProvider('https://dev-node-ams3.workquest.co/'));
+  const web3 = new Web3(new Web3.providers.HttpProvider(configBridgeUSDT.nodeRpcProvider));
 
   const account = web3.eth.accounts.privateKeyToAccount(faucetWallet.privateKey);
   web3.eth.accounts.wallet.add(account);
@@ -55,7 +56,6 @@ export default async function (payload: SendFirstWqtPayload) {
   const txObject = {
     from: faucetWallet.address,
     gasPrice,
-    gas: undefined,
     to: payload.recipientWallet,
     value: amountValue,
     nonce: nonce
@@ -67,7 +67,7 @@ export default async function (payload: SendFirstWqtPayload) {
 
   const sendWqtAmount = new BigNumber(txFee).toFormat({ decimalSeparator: '' }).toString()
 
-  txObject.gas = gasLimit
+  txObject['gas'] = gasLimit
   txObject.value = sendWqtAmount
 
   const sendTrans = await web3.eth.sendTransaction(txObject, async (error, hash) => {
@@ -75,9 +75,9 @@ export default async function (payload: SendFirstWqtPayload) {
       await sendWqt.update({
         status: swapUsdtStatus.SwapError
       })
-      return;
     }
   })
+
   await sendWqt.update({
     transactionHash: sendTrans.transactionHash,
     blockNumber: sendTrans.blockNumber,
