@@ -12,6 +12,7 @@ export default {
   wqtTokenContractAddress: process.env.WQT_TOKEN_CONTRACT_ADRESS,
   gasLimitWqtTransfer: process.env.GAS_LIMIT_TRANSFER_WQT,
   oracleLink: process.env.ORACLE_LINK,
+  privateKey: process.env.SWAP_USDT_CONTRACT_PRIVATE_KEY,
   workQuestDevNetwork: {
     contractAddress: process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_CONTRACT_ADDRESS,
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
@@ -67,5 +68,4 @@ export default {
     // @ts-ignore
     return this.default[this.default.polygonscanNetwork];
   },
-  privateKey: process.env.BRIDGE_CONTRACT_PRIVATE_KEY,
 };

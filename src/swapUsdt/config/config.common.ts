@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.bridge' });
+config({ path: __dirname + '/../../../.env.swapUsdt' });
 
 export default {
   database: {

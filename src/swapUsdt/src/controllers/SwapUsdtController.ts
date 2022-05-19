@@ -1,16 +1,20 @@
 import { Op } from "sequelize";
+import BigNumber from "bignumber.js";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
 import { IContractProvider } from "../../../types";
-import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
 import { IController, SwapUsdtEvents } from "./types";
+import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
 import {
+  Commission,
+  CommissionTitle,
+  SwapUsdtSendWqt,
   BlockchainNetworks,
-  SwapUsdtParserBlockInfo,
   SwapUsdtSwapTokenEvent,
+  SwapUsdtParserBlockInfo,
 } from "@workquest/database-models/lib/models";
-import { sendFirstWqt } from "../../jobs/sendFirstWqt";
-import BigNumber from "bignumber.js";
+import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
+import { swapUsdtStatus } from "@workquest/database-models/lib/models/SwapUsdt/types";
 
 export class SwapUsdtController implements IController {
   constructor(
@@ -81,18 +85,41 @@ export class SwapUsdtController implements IController {
       );
       return;
     }
-    //TODO нужно придумать вычисление получше не пройдёт тут такое!!!!!
+
+    const [, isRegistered] = await SwapUsdtSendWqt.findOrCreate({
+      where: { txHashSwapInitialized: transactionHash },
+      defaults: {
+        txHashSwapInitialized: transactionHash,
+        userId: eventsData.returnValues.userId,
+        network: this.network,
+        status: swapUsdtStatus.SwapCreated
+      }
+    })
+
+    if (!isRegistered) {
+      Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") is skipped because the payment happened earlier',
+        eventsData.event,
+        transactionHash,
+      );
+      return;
+    }
+
     // @ts-ignore
     const amountWqt = new BigNumber(eventsData.returnValues.amount).shiftedBy(+12) /
       await this.getTokensPriceInUsd(eventsData.returnValues.timestamp)
 
-    await sendFirstWqt({
-      recipientWallet: recipient,
-      network: this.network,
-      userId: eventsData.returnValues.userId,
-      amount: amountWqt,
-      txSwap: transactionHash,
+    const ratio = await Commission.findOne({
+      where: { commission: { "title": CommissionTitle.CommissionSwapWQT } }
     })
+
+    await sendFirstWqtJob({
+      txHashSwapInitialized: transactionHash,
+      recipientWallet: recipient,
+      amount: amountWqt,
+      ratio: ratio.commission.value
+    })
+
+
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 

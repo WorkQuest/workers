@@ -1,6 +1,7 @@
 import fs from "fs";
 import Web3 from "web3";
 import path from "path";
+import { run } from 'graphile-worker';
 import { Logger } from "./logger/pino";
 import configDatabase from ".//config/config.common";
 import configSwapUsdt from "./config/config.SwapUsdt";
@@ -22,6 +23,13 @@ const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
   await initDatabase(configDatabase.database.link, false, true);
+
+  await run({
+    connectionString: configDatabase.database.link,
+    concurrency: 1,
+    pollInterval: 1000,
+    taskDirectory: `${__dirname}/jobs`, // Папка с исполняемыми тасками.
+  });
 
   const networks = [
     configSwapUsdt.bscNetwork,
