@@ -6,6 +6,12 @@ export type onEventCallBack = {
   (eventData): void;
 };
 
+export type defaultConfigValues = {
+  contractAddress: string,
+  linkRpcProvider: string,
+  parseEventsFromHeight: string,
+}
+
 export interface IContractCacheProvider<Payload> {
   get(contractAddress: string): Promise<Payload | null>;
   set(contractAddress: string, payload: Payload): Promise<void>;

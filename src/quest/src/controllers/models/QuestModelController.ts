@@ -25,12 +25,20 @@ export class QuestModelController {
     return this.quest.update({ status: QuestStatus.ExecutionOfWork, startedAt: Date.now() });
   }
 
+  public restartQuest(): Promise<any> {
+    return this.quest.update({ status: QuestStatus.ExecutionOfWork });
+  }
+
   public finishWork(): Promise<any> {
     return this.quest.update({ status: QuestStatus.WaitingForEmployerConfirmationWork });
   }
 
   public completeQuest(): Promise<any> {
     return this.quest.update({ status: QuestStatus.Completed });
+  }
+
+  public freezeQuestForDispute(): Promise<any> {
+    return this.quest.update({ status: QuestStatus.Dispute });
   }
 
   public statusDoesMatch(...statuses: QuestStatus[]): boolean {
