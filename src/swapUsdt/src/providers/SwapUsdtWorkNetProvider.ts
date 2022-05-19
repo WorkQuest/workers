@@ -1,6 +1,6 @@
 import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
-import configBridgeUSDT from "../../config/config.swapUsdt";
+import configSwapUsdt from "../../config/config.swapUsdt";
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, SwapUsdtWorkNetClients } from "./types";
 
@@ -19,7 +19,7 @@ export class SwapUsdtWorkNetProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const swapUsdtAddress = configBridgeUSDT
+    const swapUsdtAddress = configSwapUsdt
       .defaultWqConfigNetwork()
       .contractAddress
       .toLowerCase();

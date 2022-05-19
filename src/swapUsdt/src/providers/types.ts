@@ -1,7 +1,6 @@
 import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 import { Clients } from '../../../types';
 import { NotificationBroker } from "../../../brokers/src/NotificationBroker";
-import { Coin } from "../../../Wqt-Weth/src/providers/types";
 
 export interface TokenPriceProvider {
   coinPriceInUSD(timestamp: number | string): Promise<number>;

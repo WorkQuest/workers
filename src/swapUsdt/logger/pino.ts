@@ -1,8 +1,8 @@
 import pino from 'pino';
-import configBridge from "../config/config.swapUsdt";
+import configSwapUsdt from "../config/config.swapUsdt";
 
 export const Logger = pino({
-  level: configBridge.logLevel,
+  level: configSwapUsdt.logLevel,
   transport: {
     target: 'pino-pretty',
     options: {

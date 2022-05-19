@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import { ethers } from 'ethers';
-import configBridgeUSDT from "../config/config.swapUsdt";
+import configSwapUsdt from "../config/config.swapUsdt";
 import BigNumber from "bignumber.js";
 import { addJob } from "../../utils/scheduler";
 import { SwapUsdtSendWqt } from "@workquest/database-models/lib/models";
@@ -39,9 +39,9 @@ export default async function (payload: SendFirstWqtPayload) {
     status: swapUsdtStatus.SwapProcessed
   });
 
-  const faucetWallet = await ethers.utils.HDNode.fromMnemonic(configBridgeUSDT.mnemonic).derivePath('m/44\'/60\'/0\'/0/0');
+  const faucetWallet = await ethers.utils.HDNode.fromMnemonic(configSwapUsdt.mnemonic).derivePath('m/44\'/60\'/0\'/0/0');
 
-  const web3 = new Web3(new Web3.providers.HttpProvider(configBridgeUSDT.nodeRpcProvider));
+  const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestDevNetwork.linkRpcProvider));
 
   const account = web3.eth.accounts.privateKeyToAccount(faucetWallet.privateKey);
   web3.eth.accounts.wallet.add(account);
