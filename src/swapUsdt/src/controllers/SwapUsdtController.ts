@@ -76,7 +76,7 @@ export class SwapUsdtController implements IController {
         userId: eventsData.returnValues.userId,
         symbol: eventsData.returnValues.symbol,
       }
-    })
+    });
 
     if (!isCreated) {
       Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
@@ -94,7 +94,7 @@ export class SwapUsdtController implements IController {
         network: this.network,
         status: swapUsdtStatus.SwapCreated
       }
-    })
+    });
 
     if (!isRegistered) {
       Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") is skipped because the payment happened earlier',
@@ -104,7 +104,7 @@ export class SwapUsdtController implements IController {
       return;
     }
 
-    const wqtPrice = await this.getTokensPriceInUsd(eventsData.returnValues.timestamp)
+    const wqtPrice = await this.getTokensPriceInUsd(eventsData.returnValues.timestamp);
 
     if (!wqtPrice) {
       Logger.warn('The oracle provider did not receive data on the current price',
@@ -114,27 +114,26 @@ export class SwapUsdtController implements IController {
       return;
     }
 
-    // @ts-ignore
-    const amountWqt = new BigNumber(eventsData.returnValues.amount).shiftedBy(+12) / wqtPrice
+    const amountWqt = new BigNumber(eventsData.returnValues.amount).shiftedBy(+12).div(new BigNumber(wqtPrice));
 
     const ratio = await Commission.findOne({
       where: { "commission.title": CommissionTitle.CommissionSwapWQT }
-    })
+    });
 
     await sendFirstWqtJob({
       txHashSwapInitialized: transactionHash,
       recipientWallet: recipient,
       amount: amountWqt,
       ratio: ratio.commission.value
-    })
+    });
 
 
     return this.updateBlockViewHeight(eventsData.blockNumber);
-  }
+  };
 
   private async getTokensPriceInUsd(timestamp: string | number): Promise<number> {
     return await this.tokenPriceProvider.coinPriceInUSD(timestamp);
-  }
+  };
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
@@ -156,5 +155,5 @@ export class SwapUsdtController implements IController {
     if (error) {
       throw error;
     }
-  }
+  };
 }

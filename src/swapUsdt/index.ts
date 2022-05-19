@@ -6,12 +6,10 @@ import { Logger } from "./logger/pino";
 import configDatabase from ".//config/config.common";
 import configSwapUsdt from "./config/config.swapUsdt";
 import { SwapUsdtProvider } from "./src/providers/SwapUsdtProvider";
-import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { SwapUsdtController } from "./src/controllers/SwapUsdtController";
 import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
-import { SwapUsdtWorkNetProvider } from "./src/providers/SwapUsdtWorkNetProvider";
-import { SwapUsdtEthClients, SwapUsdtWorkNetClients } from "./src/providers/types";
+import { SwapUsdtEthClients } from "./src/providers/types";
 import {
   initDatabase,
   BlockchainNetworks,
@@ -93,9 +91,6 @@ export async function init() {
   const web3Eth = new Web3(ethWsProvider);
   const web3Polygon = new Web3(polygonWsProvider);
 
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'SwapUsdt');
-  await transactionsBroker.init();
-
   const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'SwapUsdt');
   // await notificationsBroker.init();
 
@@ -109,24 +104,16 @@ export async function init() {
   Logger.debug('Ethereum network contract address: "%s"', ethDefaultConfig.contractAddress);
   Logger.debug('Polygon network contract address: "%s"', polygonDefaultConfig.contractAddress);
 
-  const wqClients: SwapUsdtWorkNetClients = { web3: web3Wq, transactionsBroker, notificationsBroker };
   const bscClients: SwapUsdtEthClients = { web3: web3Bsc, webSocketProvider: bscWsProvider, notificationsBroker };
   const ethClients: SwapUsdtEthClients = { web3: web3Eth, webSocketProvider: ethWsProvider, notificationsBroker };
   const polygonClients: SwapUsdtEthClients = { web3: web3Polygon, webSocketProvider: polygonWsProvider, notificationsBroker };
 
-  const wqSwapUsdtProvider = new SwapUsdtWorkNetProvider(wqClients, SwapUsdtWqContract);
   const bscSwapUsdtProvider = new SwapUsdtProvider(bscClients, SwapUsdtBscContract);
   const ethSwapUsdtProvider = new SwapUsdtProvider(ethClients, SwapUsdtEthContract);
   const polygonSwapUsdtProvider = new SwapUsdtProvider(polygonClients, SwapUsdtPolygonContract);
 
   const oracleProvider = new OraclePricesProvider(configSwapUsdt.oracleLink)
 
-  const wqBridgeController = new SwapUsdtController(
-    wqClients,
-    configSwapUsdt.workQuestNetwork as BlockchainNetworks,
-    wqSwapUsdtProvider,
-    oracleProvider,
-  );
   const bscBridgeController = new SwapUsdtController(
     bscClients,
     configSwapUsdt.bscNetwork as BlockchainNetworks,
@@ -164,13 +151,12 @@ export async function init() {
   }
 
   await Promise.all([
-    wqBridgeController.collectAllUncollectedEvents(blockInfos.get(configSwapUsdt.workQuestNetwork)),
     bscBridgeController.collectAllUncollectedEvents(blockInfos.get(configSwapUsdt.bscNetwork)),
     ethBridgeController.collectAllUncollectedEvents(blockInfos.get(configSwapUsdt.ethereumNetwork)),
     polygonBridgeController.collectAllUncollectedEvents(blockInfos.get(configSwapUsdt.polygonscanNetwork)),
   ]);
 
-  await wqSwapUsdtProvider.startListener();
+  await
   bscSwapUsdtProvider.startListener();
   ethSwapUsdtProvider.startListener();
   polygonSwapUsdtProvider.startListener();

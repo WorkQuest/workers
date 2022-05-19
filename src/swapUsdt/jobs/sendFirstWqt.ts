@@ -9,10 +9,10 @@ import { swapUsdtStatus } from "@workquest/database-models/lib/models/SwapUsdt/t
 
 
 export interface SendFirstWqtPayload {
-  recipientWallet: string;
-  amount: number;
-  ratio: number;
-  txHashSwapInitialized: string;
+  readonly recipientWallet: string;
+  readonly amount: BigNumber;
+  readonly ratio: number;
+  readonly txHashSwapInitialized: string;
 }
 
 export async function sendFirstWqtJob(payload: SendFirstWqtPayload) {
@@ -30,7 +30,7 @@ export default async function (payload: SendFirstWqtPayload) {
   );
 
   if (!sendWqt) {
-    Logger.warn('Can`t find Swap initialized event handler: event "%s" (tx hash "%s") is skipped because the payment happened earlier',
+    Logger.warn('Job to send first wqt can`t find the swap, so it`s skipped, no match',
     );
     return;
   }
@@ -49,22 +49,19 @@ export default async function (payload: SendFirstWqtPayload) {
 
   const gasPrice = await web3.eth.getGasPrice();
 
-  const nonce = await web3.eth.getTransactionCount(faucetWallet.address);
-
-  const amountValue = new BigNumber(payload.amount).shiftedBy(+18).toFormat({ decimalSeparator: '' }).toString();
+  const amountValue = new BigNumber(payload.amount).shiftedBy(+18).toFixed(0)
 
   const txObject = {
     from: faucetWallet.address,
     gasPrice,
     to: payload.recipientWallet,
-    value: amountValue,
-    nonce: nonce
+    value: amountValue.toString(),
   };
 
   const gasLimit = await web3.eth.estimateGas(txObject);
 
-  // @ts-ignore
-  const txFee = (amountValue - (Number(gasPrice) * gasLimit)) - ((amountValue * payload.ratio) / 100);
+  const txFee = new BigNumber(amountValue).minus((Number(gasPrice) * gasLimit)).minus(new BigNumber(amountValue)
+    .multipliedBy(payload.ratio).div(100)).shiftedBy(-18).toFixed(18);
 
   const sendWqtAmount = new BigNumber(txFee).toFormat({ decimalSeparator: '' }).toString();
 
@@ -74,7 +71,8 @@ export default async function (payload: SendFirstWqtPayload) {
   const sendTrans = await web3.eth.sendTransaction(txObject, async (error, hash) => {
     if (error) {
       await sendWqt.update({
-        status: swapUsdtStatus.SwapError
+        status: swapUsdtStatus.SwapError,
+        statusMessage: error.message
       });
     }
   });
@@ -84,7 +82,7 @@ export default async function (payload: SendFirstWqtPayload) {
     blockNumber: sendTrans.blockNumber,
     ratio: payload.ratio,
     amount: sendWqtAmount,
-    status: swapUsdtStatus.SwapCreated,
+    status: swapUsdtStatus.SwapCompleted,
     gasUsed: sendTrans.gasUsed
   });
 };

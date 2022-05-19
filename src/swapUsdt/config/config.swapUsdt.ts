@@ -7,15 +7,13 @@ export default {
   workQuestNetwork: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
   ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork
-  polygonscanNetwork: process.env.POLYGONSCAN_BLOCKCHAIN_NETWORK,//polygonscanMainNetwork, mumbaiTestNetwork
+  polygonscanNetwork: process.env.POLYGONSCAN_BLOCKCHAIN_NETWORK,//PolygonscanMainNetwork, MumbaiTestNetwork
   mnemonic: process.env.BRIDGE_USDT_MNEMONIC_WALLET_ADDRESS,
-  wqtTokenContractAddress: process.env.WQT_TOKEN_CONTRACT_ADRESS,
   gasLimitWqtTransfer: process.env.GAS_LIMIT_TRANSFER_WQT,
   oracleLink: process.env.ORACLE_LINK,
   privateKey: process.env.SWAP_USDT_CONTRACT_PRIVATE_KEY,
   workQuestDevNetwork: {
     contractAddress: process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_CONTRACT_ADDRESS,
-    linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
     parseEventsFromHeight: parseInt(process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT) || 0,
   },
