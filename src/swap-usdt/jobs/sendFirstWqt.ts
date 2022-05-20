@@ -1,15 +1,18 @@
 import Web3 from "web3";
 import { ethers } from 'ethers';
-import BigNumber from "bignumber.js";
 import { Logger } from "../logger/pino";
+import BigNumber from "bignumber.js";
 import { addJob } from "../../utils/scheduler";
 import configSwapUsdt from "../config/config.swapUsdt";
-import { SwapUsdtSendWqt } from "@workquest/database-models/lib/models";
-
+import {
+  FirstWqtTransmissionData,
+  TransmissionStatusFirstWqt
+} from "@workquest/database-models/lib/models";
+import {Transaction} from "@workquest/database-models/src/models/transaction-features/Transaction";
 
 export interface SendFirstWqtPayload {
   readonly recipientWallet: string;
-  readonly amount: BigNumber;
+  readonly amount: string;
   readonly ratio: number;
   readonly txHashSwapInitialized: string;
 }
@@ -19,25 +22,20 @@ export async function sendFirstWqtJob(payload: SendFirstWqtPayload) {
 }
 
 export default async function (payload: SendFirstWqtPayload) {
-  const sendWqt = await SwapUsdtSendWqt.findOne(
-    {
-      where: {
-        txHashSwapInitialized: payload.txHashSwapInitialized.trim(),
-        status: swapUsdtStatus.SwapCreated
-      }
-    }
-  );
-
-  if (!sendWqt) {
+  const transmissionData = await FirstWqtTransmissionData.findOne({
+    where: { txHashSwapInitialized: payload.txHashSwapInitialized }
+  });
+  if (!transmissionData) {
     Logger.warn('Job to send first wqt can`t find the swap, so it`s skipped, no match',
     );
     return;
   }
-
-  await sendWqt.update({
-    status: swapUsdtStatus.SwapProcessed
-  });
-
+  if (transmissionData.status !== TransmissionStatusFirstWqt.Pending) {
+    Logger.warn('Job to send first wqt can`t send transaction, because status not pending ',
+    );
+    return;
+  }
+  await transmissionData.update({ status: TransmissionStatusFirstWqt.InProcess });
   const faucetWallet = await ethers.utils.HDNode.fromMnemonic(configSwapUsdt.mnemonic).derivePath('m/44\'/60\'/0\'/0/0');
 
   const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestDevNetwork.linkRpcProvider));
@@ -48,18 +46,16 @@ export default async function (payload: SendFirstWqtPayload) {
 
   const gasPrice = await web3.eth.getGasPrice();
 
-  const amountValue = new BigNumber(payload.amount).shiftedBy(+18).toFixed(0)
-
   const txObject = {
     from: faucetWallet.address,
     gasPrice,
     to: payload.recipientWallet,
-    value: amountValue.toString(),
+    value: payload.amount.toString(),
   };
 
   const gasLimit = await web3.eth.estimateGas(txObject);
 
-  const txFee = new BigNumber(amountValue).minus((Number(gasPrice) * gasLimit)).minus(new BigNumber(amountValue)
+  const txFee = new BigNumber(payload.amount).minus((Number(gasPrice) * gasLimit)).minus(new BigNumber(payload.amount)
     .multipliedBy(payload.ratio).div(100)).shiftedBy(-18).toFixed(18);
 
   const sendWqtAmount = new BigNumber(txFee).toFormat({ decimalSeparator: '' }).toString();
@@ -69,19 +65,28 @@ export default async function (payload: SendFirstWqtPayload) {
 
   const sendTrans = await web3.eth.sendTransaction(txObject, async (error, hash) => {
     if (error) {
-      await sendWqt.update({
-        status: swapUsdtStatus.SwapError,
-        statusMessage: error.message
+      await transmissionData.update({
+        status: TransmissionStatusFirstWqt.TransactionError,
+        error: error.message
       });
     }
   });
 
-  await sendWqt.update({
-    transactionHash: sendTrans.transactionHash,
-    blockNumber: sendTrans.blockNumber,
-    ratio: payload.ratio,
-    amount: sendWqtAmount,
-    status: swapUsdtStatus.SwapCompleted,
-    gasUsed: sendTrans.gasUsed
+  await transmissionData.update({
+    transactionHashTransmissionWqt: sendTrans.transactionHash,
+    status: TransmissionStatusFirstWqt.Success
   });
+
+  await Transaction.findOrCreate({
+    where: { hash :sendTrans.transactionHash },
+    defaults: {
+      hash: sendTrans.transactionHash,
+      // from: sendTrans.,
+      // to: ,
+      // blockNumber: ,
+      // amount: ,
+      // gasUsed: ,
+      // network: ,
+    }
+  })
 };

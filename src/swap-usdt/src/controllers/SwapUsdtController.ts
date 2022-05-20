@@ -6,14 +6,12 @@ import { IContractProvider } from "../../../types";
 import { IController, SwapUsdtEvents } from "./types";
 import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
 import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
-import { swapUsdtStatus } from "@workquest/database-models/lib/models/SwapUsdt/types";
 import {
-  Commission,
+  CommissionSettings,
   CommissionTitle,
-  SwapUsdtSendWqt,
   BlockchainNetworks,
-  SwapUsdtSwapTokenEvent,
-  BridgeSwapUsdtParserBlockInfo,
+  BridgeSwapUsdtParserBlockInfo, BridgeSwapUsdtTokenEvent,
+  FirstWqtTransmissionData, TransmissionStatusFirstWqt
 } from "@workquest/database-models/lib/models";
 
 export class SwapUsdtController implements IController {
@@ -60,7 +58,7 @@ export class SwapUsdtController implements IController {
       eventsData.returnValues.timestamp, eventsData
     );
 
-    const [_, isCreated] = await SwapUsdtSwapTokenEvent.findOrCreate({
+    const [_, isCreated] = await BridgeSwapUsdtTokenEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         transactionHash,
@@ -86,13 +84,11 @@ export class SwapUsdtController implements IController {
       return;
     }
 
-    const [, isRegistered] = await SwapUsdtSendWqt.findOrCreate({
+    const [, isRegistered] = await FirstWqtTransmissionData.findOrCreate({
       where: { txHashSwapInitialized: transactionHash },
       defaults: {
         txHashSwapInitialized: transactionHash,
-        userId: eventsData.returnValues.userId,
-        network: this.network,
-        status: swapUsdtStatus.SwapCreated
+        status: TransmissionStatusFirstWqt.Pending
       }
     });
 
@@ -116,14 +112,14 @@ export class SwapUsdtController implements IController {
 
     const amountWqt = new BigNumber(eventsData.returnValues.amount).shiftedBy(+12).div(new BigNumber(wqtPrice));
 
-    const ratio = await Commission.findOne({
-      where: { "commission.title": CommissionTitle.CommissionSwapWQT }
+    const ratio = await CommissionSettings.findOne({
+      where: { title: CommissionTitle.CommissionSwapWQT }
     });
 
     await sendFirstWqtJob({
       txHashSwapInitialized: transactionHash,
       recipientWallet: recipient,
-      amount: amountWqt,
+      amount: new BigNumber(amountWqt).shiftedBy(+18).toFixed(0),
       ratio: ratio.commission.value
     });
 
