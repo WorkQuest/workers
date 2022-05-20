@@ -13,10 +13,10 @@ import { SwapUsdtEthClients } from "./src/providers/types";
 import {
   initDatabase,
   BlockchainNetworks,
-  SwapUsdtParserBlockInfo,
+  BridgeSwapUsdtParserBlockInfo,
 } from "@workquest/database-models/lib/models";
 
-const abiFilePath = path.join(__dirname, '../../src/swapUsdt/abi/SwapUsdt.json');
+const abiFilePath = path.join(__dirname, '../../src/swap-usdt/abi/SwapUsdt.json');
 const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
@@ -26,20 +26,19 @@ export async function init() {
     connectionString: configDatabase.database.link,
     concurrency: 1,
     pollInterval: 1000,
+    schema: 'worker_token_swap_txs',
     taskDirectory: `${__dirname}/jobs`, // Папка с исполняемыми тасками.
   });
 
-  const networks = [
-    configSwapUsdt.bscNetwork,
-    configSwapUsdt.ethereumNetwork,
-    configSwapUsdt.workQuestNetwork,
-    configSwapUsdt.polygonscanNetwork
-  ];
+  const networksPayload = {
+    [configSwapUsdt.bscNetwork]: {},
+    [configSwapUsdt.ethereumNetwork]: {},
+    [configSwapUsdt.polygonscanNetwork]: {},
+  }
 
-  Logger.debug('Binance smart chain network "%s"', configSwapUsdt.bscNetwork);
   Logger.debug('Ethereum network "%s"', configSwapUsdt.ethereumNetwork);
-  Logger.debug('WorkQuest network "%s"', configSwapUsdt.workQuestNetwork);
   Logger.debug('Polygon network "%s"', configSwapUsdt.polygonscanNetwork);
+  Logger.debug('Binance smart chain network "%s"', configSwapUsdt.bscNetwork);
 
   const wqDefaultConfig = configSwapUsdt.defaultWqConfigNetwork();
   const bscDefaultConfig = configSwapUsdt.defaultBscConfigNetwork();
@@ -47,8 +46,6 @@ export async function init() {
   const polygonDefaultConfig = configSwapUsdt.defaultPolygonConfigNetwork();
 
   Logger.debug('WorkQuest network: link Rpc provider "%s"', wqDefaultConfig.linkRpcProvider);
-
-  const wqRpcProvider = new Web3.providers.HttpProvider(wqDefaultConfig.linkRpcProvider);
 
   const bscWsProvider = new Web3.providers.WebsocketProvider(bscDefaultConfig.linkWsProvider, {
     clientConfig: {
@@ -86,20 +83,16 @@ export async function init() {
     },
   })
 
-  const web3Wq = new Web3(wqRpcProvider);
   const web3Bsc = new Web3(bscWsProvider);
   const web3Eth = new Web3(ethWsProvider);
   const web3Polygon = new Web3(polygonWsProvider);
 
   const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'SwapUsdt');
-  // await notificationsBroker.init();
 
-  const SwapUsdtWqContract = new web3Wq.eth.Contract(abi, wqDefaultConfig.contractAddress);
   const SwapUsdtBscContract = new web3Bsc.eth.Contract(abi, bscDefaultConfig.contractAddress);
   const SwapUsdtEthContract = new web3Eth.eth.Contract(abi, ethDefaultConfig.contractAddress);
   const SwapUsdtPolygonContract = new web3Polygon.eth.Contract(abi, polygonDefaultConfig.contractAddress);
 
-  Logger.debug('WorkQuest network contract address: "%s"', wqDefaultConfig.contractAddress);
   Logger.debug('Binance smart chain contract address: "%s"', bscDefaultConfig.contractAddress);
   Logger.debug('Ethereum network contract address: "%s"', ethDefaultConfig.contractAddress);
   Logger.debug('Polygon network contract address: "%s"', polygonDefaultConfig.contractAddress);
@@ -133,30 +126,21 @@ export async function init() {
     oracleProvider,
   );
 
-  const blockInfos = new Map<string, number>();
-
-  for (const network of networks) {
+  for (const network in networksPayload) {
     const [swapUsdtBlockInfo] = await SwapUsdtParserBlockInfo.findOrCreate({
       where: { network },
       defaults: { network, lastParsedBlock: configSwapUsdt[network].parseEventsFromHeight }
     });
 
-    if (swapUsdtBlockInfo.lastParsedBlock < configSwapUsdt[network].parseEventsFromHeight) {
-      await swapUsdtBlockInfo.update({
-        lastParsedBlock: configSwapUsdt[network].parseEventsFromHeight,
-      });
-    }
-
-    blockInfos.set(network, swapUsdtBlockInfo.lastParsedBlock);
+    networksPayload[network]['lastParsedBlock'] = swapUsdtBlockInfo.lastParsedBlock;
   }
 
   await Promise.all([
-    bscBridgeController.collectAllUncollectedEvents(blockInfos.get(configSwapUsdt.bscNetwork)),
-    ethBridgeController.collectAllUncollectedEvents(blockInfos.get(configSwapUsdt.ethereumNetwork)),
-    polygonBridgeController.collectAllUncollectedEvents(blockInfos.get(configSwapUsdt.polygonscanNetwork)),
+    bscBridgeController.collectAllUncollectedEvents(networksPayload[configSwapUsdt.bscNetwork]['lastParsedBlock']),
+    ethBridgeController.collectAllUncollectedEvents(networksPayload[configSwapUsdt.ethereumNetwork]['lastParsedBlock']),
+    polygonBridgeController.collectAllUncollectedEvents(networksPayload[configSwapUsdt.polygonscanNetwork]['lastParsedBlock']),
   ]);
 
-  await
   bscSwapUsdtProvider.startListener();
   ethSwapUsdtProvider.startListener();
   polygonSwapUsdtProvider.startListener();

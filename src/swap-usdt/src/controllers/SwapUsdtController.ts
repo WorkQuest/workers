@@ -4,17 +4,17 @@ import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
 import { IContractProvider } from "../../../types";
 import { IController, SwapUsdtEvents } from "./types";
+import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
 import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
+import { swapUsdtStatus } from "@workquest/database-models/lib/models/SwapUsdt/types";
 import {
   Commission,
   CommissionTitle,
   SwapUsdtSendWqt,
   BlockchainNetworks,
   SwapUsdtSwapTokenEvent,
-  SwapUsdtParserBlockInfo,
+  BridgeSwapUsdtParserBlockInfo,
 } from "@workquest/database-models/lib/models";
-import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
-import { swapUsdtStatus } from "@workquest/database-models/lib/models/SwapUsdt/types";
 
 export class SwapUsdtController implements IController {
   constructor(
@@ -43,7 +43,7 @@ export class SwapUsdtController implements IController {
   protected updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return SwapUsdtParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    return BridgeSwapUsdtParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },

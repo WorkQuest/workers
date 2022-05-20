@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.swapUsdt' });
+config({ path: __dirname + '/../../../.env.swap-usdt' });
 
 export default {
   logLevel: 'debug',
@@ -13,9 +13,7 @@ export default {
   oracleLink: process.env.ORACLE_LINK,
   privateKey: process.env.SWAP_USDT_CONTRACT_PRIVATE_KEY,
   workQuestDevNetwork: {
-    contractAddress: process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_CONTRACT_ADDRESS,
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
-    parseEventsFromHeight: parseInt(process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT) || 0,
   },
   workQuestTestNetwork: {},
   workQuestMainNetwork: {},

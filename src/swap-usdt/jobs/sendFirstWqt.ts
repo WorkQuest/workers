@@ -1,11 +1,10 @@
 import Web3 from "web3";
 import { ethers } from 'ethers';
-import configSwapUsdt from "../config/config.swapUsdt";
 import BigNumber from "bignumber.js";
-import { addJob } from "../../utils/scheduler";
-import { SwapUsdtSendWqt } from "@workquest/database-models/lib/models";
 import { Logger } from "../logger/pino";
-import { swapUsdtStatus } from "@workquest/database-models/lib/models/SwapUsdt/types";
+import { addJob } from "../../utils/scheduler";
+import configSwapUsdt from "../config/config.swapUsdt";
+import { SwapUsdtSendWqt } from "@workquest/database-models/lib/models";
 
 
 export interface SendFirstWqtPayload {

@@ -26,8 +26,8 @@
     "fetcher:compile": "tsc && node ./build/fetchers",
     "raiseView:start": "nodemon -e ts --exec \"npm run raise-view:compile\"",
     "raiseView:compile": "tsc && node ./build/raise-view",
-    "swapUsdt:start": "nodemon -e ts --exec \"npm run swapUsdt:compile\"",
-    "swapUsdt:compile": "tsc && node ./build/swapUsdt/index.js"
+    "swapUsdt:start": "nodemon -e ts --exec \"npm run swap-Usdt:compile\"",
+    "swapUsdt:compile": "tsc && node ./build/swap-usdt/index.js"
   },
   "jest": {
     "transform": {
@@ -48,7 +48,7 @@
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
     "@sentry/node": "^6.19.2",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#ac23270ae27bb46f719a8f7a77e0f1d1fb0151db",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#96e623974d4a772dc8ac4a6aa9ab06fd2473d739",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",

@@ -26,7 +26,7 @@
     "./src/referral-program/abi/*.json",
     "./src/saving-product/abi/*.json",
     "./src/raise-view/abi/*.json",
-    "./src/swapUsdt/abi/*.json"
+    "./src/swap-usdt/abi/*.json"
   ],
   "rootDir":  ["src"]
 }
