@@ -7,11 +7,13 @@ import { IController, SwapUsdtEvents } from "./types";
 import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
 import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
 import {
-  CommissionSettings,
   CommissionTitle,
   BlockchainNetworks,
-  BridgeSwapUsdtParserBlockInfo, BridgeSwapUsdtTokenEvent,
-  FirstWqtTransmissionData, TransmissionStatusFirstWqt
+  CommissionSettings,
+  BridgeSwapUsdtTokenEvent,
+  FirstWqtTransmissionData,
+  TransmissionStatusFirstWqt,
+  BridgeSwapUsdtParserBlockInfo,
 } from "@workquest/database-models/lib/models";
 
 export class SwapUsdtController implements IController {
@@ -58,16 +60,16 @@ export class SwapUsdtController implements IController {
       eventsData.returnValues.timestamp, eventsData
     );
 
-    const [_, isCreated] = await BridgeSwapUsdtTokenEvent.findOrCreate({
+    const [_, isEventCreated] = await BridgeSwapUsdtTokenEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
+        recipient,
         transactionHash,
-        blockNumber: eventsData.blockNumber,
         network: this.network,
+        blockNumber: eventsData.blockNumber,
         event: SwapUsdtEvents.SwapInitialized,
         nonce: eventsData.returnValues.nonce,
         timestamp: eventsData.returnValues.timestamp,
-        recipient,
         amount: eventsData.returnValues.amount,
         chainTo: eventsData.returnValues.chainTo,
         chainFrom: eventsData.returnValues.chainFrom,
@@ -76,7 +78,7 @@ export class SwapUsdtController implements IController {
       }
     });
 
-    if (!isCreated) {
+    if (!isEventCreated) {
       Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
@@ -84,15 +86,15 @@ export class SwapUsdtController implements IController {
       return;
     }
 
-    const [, isRegistered] = await FirstWqtTransmissionData.findOrCreate({
+    const [, isProcessCreated] = await FirstWqtTransmissionData.findOrCreate({
       where: { txHashSwapInitialized: transactionHash },
       defaults: {
         txHashSwapInitialized: transactionHash,
-        status: TransmissionStatusFirstWqt.Pending
+        status: TransmissionStatusFirstWqt.Pending,
       }
     });
 
-    if (!isRegistered) {
+    if (!isProcessCreated) {
       Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") is skipped because the payment happened earlier',
         eventsData.event,
         transactionHash,
@@ -110,25 +112,24 @@ export class SwapUsdtController implements IController {
       return;
     }
 
-    const amountWqt = new BigNumber(eventsData.returnValues.amount).shiftedBy(+12).div(new BigNumber(wqtPrice));
+    const amountWqt = new BigNumber(eventsData.returnValues.amount)
+      .shiftedBy(12)
+      .div(wqtPrice)
 
-    const ratio = await CommissionSettings.findOne({
-      where: { title: CommissionTitle.CommissionSwapWQT }
-    });
+    const ratio = await CommissionSettings.findByPk(CommissionTitle.CommissionSwapWQT);
 
     await sendFirstWqtJob({
+      recipientAddress: recipient,
+      ratio: ratio.commission.value,
       txHashSwapInitialized: transactionHash,
-      recipientWallet: recipient,
       amount: new BigNumber(amountWqt).shiftedBy(+18).toFixed(0),
-      ratio: ratio.commission.value
     });
-
 
     return this.updateBlockViewHeight(eventsData.blockNumber);
   };
 
-  private async getTokensPriceInUsd(timestamp: string | number): Promise<number> {
-    return await this.tokenPriceProvider.coinPriceInUSD(timestamp);
+  private getTokensPriceInUsd(timestamp: string | number): Promise<number> {
+    return this.tokenPriceProvider.coinPriceInUSD(timestamp);
   };
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
