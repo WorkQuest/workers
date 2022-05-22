@@ -69,6 +69,8 @@ export default async function (payload: SendFirstWqtPayload) {
       value: amountValueToUserMinusPlatformFee,
     };
 
+    await transmissionData.update({ gasPriceAtMoment: gasPrice });
+
     web3.eth.sendTransaction(transactionConfig)
       .then(async receipt => {
         const transaction = await Transaction.create({
