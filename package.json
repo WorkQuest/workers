@@ -25,7 +25,9 @@
     "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
     "fetcher:compile": "tsc && node ./build/fetchers",
     "raiseView:start": "nodemon -e ts --exec \"npm run raise-view:compile\"",
-    "raiseView:compile": "tsc && node ./build/raise-view"
+    "raiseView:compile": "tsc && node ./build/raise-view",
+    "bridgeUsdt:start": "nodemon -e ts --exec \"npm run bridgeUsdt:compile\"",
+    "bridgeUsdt:compile": "tsc && node ./build/bridge-usdt/index.js"
   },
   "jest": {
     "transform": {
@@ -46,12 +48,14 @@
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
     "@sentry/node": "^6.19.2",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#7c57b0840ddf1fc61049add7d7573b72cc6aaa07",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#e02e128e309929d2aa98b40aa64abd14490ff28c",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
     "dotenv": "^14.3.0",
     "ethereum-block-by-date": "^1.4.2",
+    "ethers": "^5.5.1",
+    "graphile-worker": "^0.13.0",
     "jest": "^27.5.1",
     "node-cron": "^3.0.0",
     "nodemon": "^2.0.15",
