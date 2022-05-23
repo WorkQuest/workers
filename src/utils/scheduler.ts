@@ -4,7 +4,7 @@ export async function addJob(taskName: string, payload?: any, userOptions: any =
   try {
     const pool = new Pool({ connectionString: process.env.DB_LINK });
     const args = ['$1::text'];
-    const options = { ...{ max_attempts: 25 }, ...userOptions };
+    const options = { ...{ max_attempts: 1 }, ...userOptions };
     const values = [taskName];
     if (payload) {
       args.push('payload := $2');
@@ -26,7 +26,7 @@ export async function addJob(taskName: string, payload?: any, userOptions: any =
         }
       });
     }
-    const query = `SELECT graphile_worker.add_job(${args.join(', ')});`;
+    const query = `SELECT worker_token_swap_txs.add_job(${args.join(', ')});`;
     await pool.query(query, values);
     await pool.end();
   } catch (e) {

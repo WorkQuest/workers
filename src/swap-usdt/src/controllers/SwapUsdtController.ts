@@ -86,9 +86,9 @@ export class SwapUsdtController implements IController {
       return;
     }
 
-    const isProcessCreated = !!FirstWqtTransmissionData.findOne({ where: { txHashSwapInitialized: transactionHash } });
+    const isProcessCreated = !!await FirstWqtTransmissionData.findOne({ where: { txHashSwapInitialized: transactionHash } });
 
-    if (!isProcessCreated) {
+    if (isProcessCreated) {
       Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") is skipped because the payment happened earlier',
         eventsData.event,
         transactionHash,
@@ -97,8 +97,6 @@ export class SwapUsdtController implements IController {
     }
 
     const transmissionData = await FirstWqtTransmissionData.create({
-      // amount: amountWqt,
-      // platformCommissionCoefficient: ratio,
       txHashSwapInitialized: transactionHash,
       status: TransmissionStatusFirstWqt.Pending,
     });
@@ -120,13 +118,13 @@ export class SwapUsdtController implements IController {
       .shiftedBy(12)
       .div(wqtPrice)
       .shiftedBy(18)
-      .toFixed()
+      .toFixed(0)
 
     const ratio = await CommissionSettings.findByPk(CommissionTitle.CommissionSwapWQT);
 
     await transmissionData.update({
       amount: amountWqt,
-      platformCommissionCoefficient: ratio,
+      platformCommissionCoefficient: ratio.commission.value,
     });
 
     await sendFirstWqtJob({

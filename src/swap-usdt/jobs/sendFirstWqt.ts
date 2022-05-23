@@ -18,6 +18,10 @@ export interface SendFirstWqtPayload {
   readonly txHashSwapInitialized: string;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function sendFirstWqtJob(payload: SendFirstWqtPayload) {
   return addJob('sendFirstWqt', payload);
 }
@@ -59,7 +63,7 @@ export default async function (payload: SendFirstWqtPayload) {
 
     const amountValueToUserMinusPlatformFee = amountValueToUser
       .minus(platformCommissionWithTxFee)
-      .toFixed()
+      .toFixed(0)
 
     const transactionConfig = {
       gasPrice,
@@ -73,24 +77,28 @@ export default async function (payload: SendFirstWqtPayload) {
 
     web3.eth.sendTransaction(transactionConfig)
       .then(async receipt => {
-        const transaction = await Transaction.create({
-          hash: receipt.transactionHash.toLowerCase(),
-          to: receipt.to.toLowerCase(),
-          from: receipt.from.toLowerCase(),
-          status: receipt.status,
-          gasUsed: receipt.gasUsed,
-          amount: transactionConfig.value,
-          blockNumber: receipt.blockNumber,
-          network: configSwapUsdt.workQuestNetwork,
-        });
+        try {
+          const transaction = await Transaction.create({
+            hash: receipt.transactionHash.toLowerCase(),
+            to: receipt.to.toLowerCase(),
+            from: receipt.from.toLowerCase(),
+            status: receipt.status ? 0 : 1,
+            gasUsed: receipt.gasUsed,
+            amount: amountValueToUserMinusPlatformFee,
+            blockNumber: receipt.blockNumber,
+            network: configSwapUsdt.workQuestNetwork,
+          });
 
-        transmissionData.transactionHashTransmissionWqt = transaction.hash;
+          transmissionData.transactionHashTransmissionWqt = transaction.hash;
 
-        if (!receipt.status) {
-          transmissionData.status = TransmissionStatusFirstWqt.TransactionError;
+          if (!receipt.status) {
+            transmissionData.status = TransmissionStatusFirstWqt.TransactionError;
+          }
+
+          await transaction.save();
+        } catch (err) {
+          console.log(err)
         }
-
-        await transaction.save();
       })
       .catch(async error => {
         await transmissionData.update({
@@ -98,7 +106,10 @@ export default async function (payload: SendFirstWqtPayload) {
           status: TransmissionStatusFirstWqt.BroadcastError,
         });
       })
+
+    await sleep(5000)
   } catch (error) {
+    console.log(error)
     await FirstWqtTransmissionData.update({
       error: error.toString(),
       status: TransmissionStatusFirstWqt.UnknownError,
@@ -107,5 +118,6 @@ export default async function (payload: SendFirstWqtPayload) {
         txHashSwapInitialized: payload.txHashSwapInitialized
       }
     });
+    await sleep(5000)
   }
 };

@@ -25,7 +25,7 @@ export async function init() {
   await run({
     connectionString: configDatabase.database.link,
     concurrency: 1,
-    pollInterval: 1000,
+    pollInterval: 60000,
     schema: 'worker_token_swap_txs',
     taskDirectory: `${__dirname}/jobs`, // Папка с исполняемыми тасками.
   });
