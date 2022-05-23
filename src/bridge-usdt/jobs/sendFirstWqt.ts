@@ -104,10 +104,10 @@ export default async function (payload: SendFirstWqtPayload) {
       })
 
     await sleep(5000)
-  } catch (error) {
-    console.log(error)
+  } catch (err) {
+    console.log(err)
     await FirstWqtTransmissionData.update({
-      error: error.toString(),
+      error: err.toString(),
       status: TransmissionStatusFirstWqt.UnknownError,
     }, {
       where: {
