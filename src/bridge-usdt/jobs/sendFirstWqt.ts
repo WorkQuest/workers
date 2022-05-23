@@ -77,28 +77,24 @@ export default async function (payload: SendFirstWqtPayload) {
 
     web3.eth.sendTransaction(transactionConfig)
       .then(async receipt => {
-        try {
-          const transaction = await Transaction.create({
-            hash: receipt.transactionHash.toLowerCase(),
-            to: receipt.to.toLowerCase(),
-            from: receipt.from.toLowerCase(),
-            status: receipt.status ? 0 : 1,
-            gasUsed: receipt.gasUsed,
-            amount: amountValueToUserMinusPlatformFee,
-            blockNumber: receipt.blockNumber,
-            network: configSwapUsdt.workQuestNetwork,
-          });
+        const transaction = await Transaction.create({
+          hash: receipt.transactionHash.toLowerCase(),
+          to: receipt.to.toLowerCase(),
+          from: receipt.from.toLowerCase(),
+          status: receipt.status ? 0 : 1,
+          gasUsed: receipt.gasUsed,
+          amount: amountValueToUserMinusPlatformFee,
+          blockNumber: receipt.blockNumber,
+          network: configSwapUsdt.workQuestNetwork,
+        });
 
-          transmissionData.transactionHashTransmissionWqt = transaction.hash;
+        transmissionData.transactionHashTransmissionWqt = transaction.hash;
 
-          if (!receipt.status) {
-            transmissionData.status = TransmissionStatusFirstWqt.TransactionError;
-          }
-
-          await transaction.save();
-        } catch (err) {
-          console.log(err)
+        if (!receipt.status) {
+          transmissionData.status = TransmissionStatusFirstWqt.TransactionError;
         }
+
+        await transaction.save();
       })
       .catch(async error => {
         await transmissionData.update({

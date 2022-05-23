@@ -37,7 +37,7 @@ npm-debug.log
 .env.fetcher
 .env.savingProduct
 .env.WqtWeth
-.env.swap-usdt
+.env.bridgeUsdt
 
 # build directory
 build/

@@ -93,6 +93,11 @@
     src: ./{{ wqt_weth_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ wqt_weth_env }}'
 
+- name: Copy or generate bridge-usdt env file
+  template:
+    src: ./{{ bridge_usdt_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ bridge_usdt_env }}'
+
 - name: Start backend process
   shell: pm2 reload app.json
   args:

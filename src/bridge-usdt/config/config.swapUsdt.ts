@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.swap-usdt' });
+config({ path: __dirname + '/../../../.env.bridgeUsdt' });
 
 export default {
   logLevel: 'debug',
