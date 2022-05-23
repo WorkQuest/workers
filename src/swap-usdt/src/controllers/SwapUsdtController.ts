@@ -96,6 +96,13 @@ export class SwapUsdtController implements IController {
       return;
     }
 
+    const transmissionData = await FirstWqtTransmissionData.create({
+      // amount: amountWqt,
+      // platformCommissionCoefficient: ratio,
+      txHashSwapInitialized: transactionHash,
+      status: TransmissionStatusFirstWqt.Pending,
+    });
+
     const wqtPrice = await this.getTokensPriceInUsd(eventsData.returnValues.timestamp);
 
     if (!wqtPrice) {
@@ -103,22 +110,23 @@ export class SwapUsdtController implements IController {
         eventsData.event,
         transactionHash,
       );
+
+      await transmissionData.update({ status: TransmissionStatusFirstWqt.NoPriceWqtAtMoment });
+
       return;
     }
 
     const amountWqt = new BigNumber(eventsData.returnValues.amount)
       .shiftedBy(12)
       .div(wqtPrice)
-      .shiftedBy(+18)
+      .shiftedBy(18)
       .toFixed()
 
     const ratio = await CommissionSettings.findByPk(CommissionTitle.CommissionSwapWQT);
 
-    await FirstWqtTransmissionData.create({
+    await transmissionData.update({
       amount: amountWqt,
       platformCommissionCoefficient: ratio,
-      txHashSwapInitialized: transactionHash,
-      status: TransmissionStatusFirstWqt.Pending,
     });
 
     await sendFirstWqtJob({

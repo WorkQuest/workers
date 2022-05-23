@@ -127,7 +127,7 @@ export async function init() {
   );
 
   for (const network in networksPayload) {
-    const [swapUsdtBlockInfo] = await SwapUsdtParserBlockInfo.findOrCreate({
+    const [swapUsdtBlockInfo] = await BridgeSwapUsdtParserBlockInfo.findOrCreate({
       where: { network },
       defaults: { network, lastParsedBlock: configSwapUsdt[network].parseEventsFromHeight }
     });
