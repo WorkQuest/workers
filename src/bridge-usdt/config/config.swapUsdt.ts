@@ -8,7 +8,7 @@ export default {
   bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
   ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork
   polygonscanNetwork: process.env.POLYGONSCAN_BLOCKCHAIN_NETWORK,//PolygonscanMainNetwork, MumbaiTestNetwork
-  mnemonic: (process.env.BRIDGE_USDT_MNEMONIC_WALLET_ADDRESS).replace('_',' '),
+  mnemonic: (process.env.BRIDGE_USDT_MNEMONIC_WALLET_ADDRESS).replace(/_/g,' '),
   oracleLink: process.env.ORACLE_LINK,
   privateKey: process.env.SWAP_USDT_CONTRACT_PRIVATE_KEY,
   workQuestDevNetwork: {
