@@ -2,7 +2,7 @@ import Web3 from "web3";
 import { ethers } from 'ethers';
 import BigNumber from "bignumber.js";
 import { Logger } from "../logger/pino";
-import { addJob } from "../../utils/scheduler";
+import { addJob } from "../utils/scheduler";
 import configSwapUsdt from "../config/config.swapUsdt";
 import {
   Transaction,
