@@ -3,6 +3,7 @@ import { EventData } from 'web3-eth-contract';
 import { ReferralClients } from "../providers/types";
 import { IController, ReferralEvent, IContractProvider } from './types';
 import {
+  User,
   Wallet,
   RewardStatus,
   ReferralStatus,
@@ -12,7 +13,7 @@ import {
   ReferralProgramParseBlock,
   ReferralProgramEventPaidReferral,
   ReferralProgramEventRewardClaimed,
-  ReferralProgramEventRegisteredAffiliate,
+  ReferralProgramEventRegisteredAffiliate, Media,
 } from '@workquest/database-models/lib/models';
 
 export class ReferralController implements IController {
@@ -54,7 +55,7 @@ export class ReferralController implements IController {
   protected async registeredAffiliateEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
-    const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
+    const affiliateAddress = eventsData.returnValues.affiliate.toLowerCase();
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
@@ -91,7 +92,7 @@ export class ReferralController implements IController {
       recipients: [referralAddress],
     });
 
-    const [referralWallet, ] = await Promise.all([
+    const [referralWallet,] = await Promise.all([
       Wallet.findOne({
         where: { address: referralAddress },
       }),
@@ -116,7 +117,7 @@ export class ReferralController implements IController {
   protected async paidReferralEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
-    const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
+    const affiliateAddress = eventsData.returnValues.affiliate.toLowerCase();
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
@@ -147,13 +148,29 @@ export class ReferralController implements IController {
       return;
     }
 
+    const userInfo = await User.unscoped().findOne({
+      attributes: ['id', "firstName", "lastName"],
+      include: [{
+        model: Wallet,
+        where: { address: referralAddress },
+        as: 'wallet',
+        required: true,
+        attributes: []
+      }, {
+        model: Media.scope('urlOnly'),
+        as: 'avatar',
+      }]
+    })
+
+    eventsData['timestamp'] = timestamp
+
     await this.clients.notificationsBroker.sendNotification({
-      data: eventsData,
+      data: { referral: userInfo, event: eventsData },
       action: eventsData.event,
       recipients: [affiliateAddress],
     });
 
-    const [referralWallet, ] = await Promise.all([
+    const [referralWallet,] = await Promise.all([
       Wallet.findOne({
         where: { address: referralAddress },
       }),
@@ -177,7 +194,7 @@ export class ReferralController implements IController {
 
   protected async rewardClaimedEventHandler(eventsData: EventData) {
     const transactionHash = eventsData.transactionHash.toLowerCase();
-    const affiliateAddress = eventsData.returnValues.affiliat.toLowerCase();
+    const affiliateAddress = eventsData.returnValues.affiliate.toLowerCase();
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
@@ -213,7 +230,7 @@ export class ReferralController implements IController {
       recipients: [affiliateAddress],
     });
 
-    const [affiliateWallet, ] = await Promise.all([
+    const [affiliateWallet,] = await Promise.all([
       Wallet.findOne({
         where: { address: affiliateAddress },
       }),
