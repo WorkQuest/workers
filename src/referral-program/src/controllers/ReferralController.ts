@@ -157,7 +157,7 @@ export class ReferralController implements IController {
         required: true,
         attributes: []
       }, {
-        model: Media,
+        model: Media.scope('urlOnly'),
         as: 'avatar',
       }]
     })
