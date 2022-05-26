@@ -1,6 +1,4 @@
 import Web3 from 'web3';
-import * as fs from 'fs';
-import * as path from 'path';
 import { Logger } from "./logger/pino";
 import configDatabase from './config/config.database';
 import configReferral from './config/config.referral';
@@ -8,30 +6,27 @@ import { ReferralClients } from "./src/providers/types";
 import { ReferralController } from "./src/controllers/ReferralController";
 import { ReferralProvider } from "./src/providers/ReferralProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
+import { Store, Networks, WorkQuestNetworkContracts } from '@workquest/contract-data-pools';
 import {
   initDatabase,
   BlockchainNetworks,
   ReferralProgramParseBlock,
 } from '@workquest/database-models/lib/models';
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
-
-const abiFilePath = path.join(__dirname, '/abi/WQReferral.json');
-const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
   await initDatabase(configDatabase.dbLink, true, false);
 
   const network = configReferral.network as BlockchainNetworks;
+  const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Referral];
 
   const {
     linkRpcProvider,
-    contractAddress,
-    parseEventsFromHeight,
   } = configReferral.defaultConfigNetwork();
 
   Logger.debug('Referral Program starts on "%s" network', configReferral.network);
   Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
-  Logger.debug('WorkQuest network contract address: "%s"', contractAddress);
+  Logger.debug('WorkQuest network contract address: "%s"', store.address);
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
@@ -45,14 +40,14 @@ export async function init() {
 
   const clients: ReferralClients = { web3, transactionsBroker, notificationsBroker };
 
-  const referralContract = new web3.eth.Contract(abi, contractAddress);
+  const referralContract = new web3.eth.Contract(store.getAbi().abi, store.address);
 
   const referralProvider = new ReferralProvider(clients, referralContract);
   const referralController = new ReferralController(clients, network, referralProvider);
 
   const [referralBlockInfo, _] = await ReferralProgramParseBlock.findOrCreate({
     where: { network },
-    defaults: { network, lastParsedBlock: parseEventsFromHeight },
+    defaults: { network, lastParsedBlock: store.deploymentHeight },
   });
 
   await referralController.collectAllUncollectedEvents(referralBlockInfo.lastParsedBlock);

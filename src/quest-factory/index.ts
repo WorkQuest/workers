@@ -1,6 +1,4 @@
 import Web3 from 'web3';
-import * as fs from 'fs';
-import * as path from 'path';
 import { createClient } from 'redis';
 import { Logger } from "./logger/pino";
 import configDatabase from './config/config.database';
@@ -11,24 +9,23 @@ import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { QuestFactoryProvider } from "./src/providers/QuestFactoryProvider";
 import { QuestCacheProvider } from "../quest/src/providers/QuestCacheProvider";
 import { QuestFactoryController } from './src/controllers/QuestFactoryController';
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 import {
   initDatabase,
   BlockchainNetworks,
   QuestFactoryBlockInfo,
 } from '@workquest/database-models/lib/models';
 
-const abiFilePath = path.join(__dirname, '../../src/quest-factory/abi/WorkQuestFactory.json');
-const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
-
 export async function init() {
   Logger.info('Start worker "Quest factory". Network: "%s"', configQuestFactory.network);
 
   await initDatabase(configDatabase.dbLink, false, true);
+  const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest];
 
   const { number, url } = configDatabase.redis.defaultConfigNetwork();
-  const { linkRpcProvider, contractAddress, parseEventsFromHeight } = configQuestFactory.defaultConfigNetwork();
+  const { linkRpcProvider } = configQuestFactory.defaultConfigNetwork();
 
-  Logger.info('Listening on contract address: "%s"', contractAddress);
+  Logger.info('Listening on contract address: "%s"', store.address);
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
 
   const redisClient = createClient({ url, database: number });
@@ -41,7 +38,7 @@ export async function init() {
   await redisClient.connect();
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-  const questFactoryContract = new web3.eth.Contract(abi, contractAddress);
+  const questFactoryContract = new web3.eth.Contract(store.getAbi().abi, store.address);
 
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
   await transactionsBroker.init()
@@ -56,12 +53,12 @@ export async function init() {
     where: { network: BlockchainNetworks.workQuestDevNetwork },
     defaults: {
       network: BlockchainNetworks.workQuestDevNetwork,
-      lastParsedBlock: parseEventsFromHeight,
+      lastParsedBlock: store.deploymentHeight,
     },
   });
 
-  if (questFactoryInfo.lastParsedBlock < parseEventsFromHeight) {
-    questFactoryInfo.lastParsedBlock = parseEventsFromHeight;
+  if (questFactoryInfo.lastParsedBlock < store.deploymentHeight) {
+    questFactoryInfo.lastParsedBlock = store.deploymentHeight;
 
     await questFactoryInfo.save();
   }

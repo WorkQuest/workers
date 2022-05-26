@@ -7,6 +7,7 @@ import {
   IContractProvider,
   QuestFactoryClients,
 } from "./types";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 
 export class QuestFactoryProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -26,14 +27,11 @@ export class QuestFactoryProvider implements IContractProvider {
     Logger.info('Quest-factory queue listener provider: received messages from the queue');
     Logger.debug('Quest-factory queue listener provider: received messages from the queue with payload %o', payload);
 
-    const factoryAddress = configQuestFactory
-      .defaultConfigNetwork()
-      .contractAddress
-      .toLowerCase()
+    const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.QuestFactory];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === factoryAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === store.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
     Logger.info('Quest-factory queue listener provider: number of contract transactions "%s"', tracedTxs.length);

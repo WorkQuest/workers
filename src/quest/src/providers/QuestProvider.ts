@@ -1,12 +1,10 @@
-import fs from "fs";
-import path from "path";
-import { EventData } from "web3-eth-contract";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 import { onEventCallBack, IContractProvider, QuestClients } from "./types";
+import { EventData } from "web3-eth-contract";
 import { Logger } from "../../logger/pino";
-import {Transaction} from "web3-eth";
+import { Transaction } from "web3-eth";
 
-const abiFilePath = path.join(__dirname, '/../../abi/WorkQuest.json');
-const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
+const abi = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest].getAbi().abi;
 
 const asyncFilter = async (arr, predicate) => {
   const results = await Promise.all(arr.map(predicate));

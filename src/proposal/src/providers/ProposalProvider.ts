@@ -1,8 +1,8 @@
 import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
 import { Contract, EventData } from "web3-eth-contract";
-import configProposal from "../../config/config.proposal";
 import { onEventCallBack, IContractProvider, ProposalClients } from "./types";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 
 export class ProposalProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -19,14 +19,11 @@ export class ProposalProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const proposalAddress = configProposal
-      .defaultConfigNetwork()
-      .contractAddress
-      .toLowerCase();
+    const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.DAOVoting];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === proposalAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === store.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {

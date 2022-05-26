@@ -24,7 +24,7 @@
     "quest:compile": "tsc && node ./build/quest/index.js",
     "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
     "fetcher:compile": "tsc && node ./build/fetchers",
-    "raiseView:start": "nodemon -e ts --exec \"npm run raise-view:compile\"",
+    "raiseView:start": "nodemon -e ts --exec \"npm run raiseView:compile\"",
     "raiseView:compile": "tsc && node ./build/raise-view",
     "bridgeUsdt:start": "nodemon -e ts --exec \"npm run bridgeUsdt:compile\"",
     "bridgeUsdt:compile": "tsc && node ./build/bridge-usdt/index.js"

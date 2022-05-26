@@ -1,8 +1,8 @@
 import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
 import { Contract, EventData } from "web3-eth-contract";
-import configReferral from "../../config/config.referral";
 import { onEventCallBack, IContractProvider, ReferralClients } from "./types";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 
 export class ReferralProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -19,14 +19,11 @@ export class ReferralProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const referralProgramAddress = configReferral
-      .defaultConfigNetwork()
-      .contractAddress
-      .toLowerCase();
+    const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Referral];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === referralProgramAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === store.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {

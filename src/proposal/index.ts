@@ -1,5 +1,3 @@
-import * as path from 'path';
-import * as fs from 'fs';
 import Web3 from 'web3';
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
@@ -9,22 +7,20 @@ import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest
 import { ProposalClients } from "./src/providers/types";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { Logger } from "./logger/pino";
-
-const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
-const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 
 export async function init() {
   await initDatabase(configDatabase.dbLink, false, true);
 
+  const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.DAOVoting];
+
   const {
     linkRpcProvider,
-    contractAddress,
-    parseEventsFromHeight,
   } = configProposal.defaultConfigNetwork();
 
   Logger.debug('Proposal starts on "%s" network', configProposal.network);
   Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
-  Logger.debug('WorkQuest network contract address: "%s"', contractAddress);
+  Logger.debug('WorkQuest network contract address: "%s"', store.address);
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
@@ -35,7 +31,7 @@ export async function init() {
 
   const clients: ProposalClients = { web3, transactionsBroker };
 
-  const proposalContract = new web3.eth.Contract(abi, contractAddress);
+  const proposalContract = new web3.eth.Contract(store.getAbi().abi, store.address);
 
   const proposalProvider = new ProposalProvider(clients, proposalContract);
   const proposalController = new ProposalController(clients, configProposal.network as BlockchainNetworks, proposalProvider);
@@ -44,13 +40,13 @@ export async function init() {
     where: { network: configProposal.network as BlockchainNetworks },
     defaults: {
       network: configProposal.network as BlockchainNetworks,
-      lastParsedBlock: parseEventsFromHeight,
+      lastParsedBlock: store.deploymentHeight,
     },
   });
 
-  if (proposalBlockInfo.lastParsedBlock < parseEventsFromHeight) {
+  if (proposalBlockInfo.lastParsedBlock < store.deploymentHeight) {
     await proposalBlockInfo.update({
-      lastParsedBlock: parseEventsFromHeight
+      lastParsedBlock: store.deploymentHeight
     });
   }
 
