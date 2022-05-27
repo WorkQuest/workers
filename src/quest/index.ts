@@ -9,6 +9,7 @@ import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { QuestController } from "./src/controllers/QuestController";
 import { QuestCacheProvider } from "./src/providers/QuestCacheProvider";
 import { QuestProvider } from "./src/providers/QuestProvider";
+import { CommunicationBroker } from "../brokers/src/CommunicationBroker";
 import {
   initDatabase,
   QuestBlockInfo,
@@ -42,8 +43,11 @@ export async function init() {
   const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'quest');
   await notificationsBroker.init();
 
+  const communicationBroker = new CommunicationBroker(configDatabase.mqLink);
+  await communicationBroker.init();
+
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
-  const clients: QuestClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker };
+  const clients: QuestClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker, communicationBroker };
 
   const [questBlockInfo] = await QuestBlockInfo.findOrCreate({
     where: { network: configQuest.network },
