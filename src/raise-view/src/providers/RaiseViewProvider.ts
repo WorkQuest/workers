@@ -27,11 +27,11 @@ export class RaiseViewProvider implements IContractProvider {
     Logger.info('Raise-view listener: message "onEventFromBroker"');
     Logger.debug('Raise-view listener: message "onEventFromBroker" with payload %o', payload);
 
-    const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Promotion];
+    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Promotion];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === store.address.toLowerCase())
+      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
     Logger.info('Raise-view listener provider: number of contract transactions "%s"', tracedTxs.length);

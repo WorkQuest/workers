@@ -19,11 +19,11 @@ export class ProposalProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.DAOVoting];
+    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.DAOVoting];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === store.address.toLowerCase())
+      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {

@@ -19,7 +19,7 @@ export async function init() {
   await initDatabase(configDatabase.database.link, false, false);
 
   const networks = [configBridge.bscNetwork, configBridge.ethereumNetwork, configBridge.workQuestNetwork];
-  const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Bridge];
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Bridge];
 
   Logger.debug('Binance smart chain network "%s"', configBridge.bscNetwork);
   Logger.debug('Ethereum network "%s"', configBridge.ethereumNetwork);
@@ -67,11 +67,11 @@ export async function init() {
   const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge');
   await notificationsBroker.init();
 
-  const bridgeWqContract = new web3Wq.eth.Contract(store.getAbi().abi, store.address);
-  const bridgeBscContract = new web3Bsc.eth.Contract(store.getAbi().abi, bscDefaultConfig.contractAddress);
-  const bridgeEthContract = new web3Eth.eth.Contract(store.getAbi().abi, ethDefaultConfig.contractAddress);
+  const bridgeWqContract = new web3Wq.eth.Contract(contractData.getAbi().abi, contractData.address);
+  const bridgeBscContract = new web3Bsc.eth.Contract(contractData.getAbi().abi, bscDefaultConfig.contractAddress);
+  const bridgeEthContract = new web3Eth.eth.Contract(contractData.getAbi().abi, ethDefaultConfig.contractAddress);
 
-  Logger.debug('WorkQuest network contract address: "%s"', store.address);
+  Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
   Logger.debug('Binance smart chain contract address: "%s"', bscDefaultConfig.contractAddress);
   Logger.debug('Ethereum network contract address: "%s"', ethDefaultConfig.contractAddress);
 

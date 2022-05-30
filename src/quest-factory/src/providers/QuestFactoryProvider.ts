@@ -27,11 +27,11 @@ export class QuestFactoryProvider implements IContractProvider {
     Logger.info('Quest-factory queue listener provider: received messages from the queue');
     Logger.debug('Quest-factory queue listener provider: received messages from the queue with payload %o', payload);
 
-    const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.QuestFactory];
+    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.QuestFactory];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === store.address.toLowerCase())
+      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
     Logger.info('Quest-factory queue listener provider: number of contract transactions "%s"', tracedTxs.length);

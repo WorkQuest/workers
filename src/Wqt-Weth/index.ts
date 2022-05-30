@@ -1,6 +1,4 @@
 import Web3 from 'web3';
-import * as fs from 'fs';
-import * as path from 'path';
 import configWqtWeth from './config/config.WqtWeth';
 import configDatabase from './config/config.database';
 import { WqtWethClients } from "./src/providers/types";
@@ -8,16 +6,16 @@ import { WqtWethProvider } from './src/providers/WqtWethProvider';
 import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { WqtWethController } from './src/controllers/WqtWethController';
 import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
+import {EthNetworkContracts, Networks, Store} from "@workquest/contract-data-pools";
 import {
   initDatabase,
   WqtWethBlockInfo,
   BlockchainNetworks,
 } from '@workquest/database-models/lib/models';
 
-const abiFilePath = path.join(__dirname, '/abi/WqtWeth.json');
-const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
-
 export async function init() {
+  const contractData = Store[Networks.Eth][EthNetworkContracts.WqtWeth];
+
   await initDatabase(configDatabase.dbLink, false, true);
 
   const websocketProvider = new Web3.providers.WebsocketProvider(configWqtWeth.wsProvider, {
@@ -32,7 +30,7 @@ export async function init() {
   await notificationsBroker.init();
 
   const web3 = new Web3(websocketProvider);
-  const wqtWethContract = new web3.eth.Contract(abi, configWqtWeth.contractAddress);
+  const wqtWethContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const clients: WqtWethClients = { web3, notificationsBroker };
   const wqtWethProvider = new WqtWethProvider(clients, wqtWethContract);
@@ -48,7 +46,7 @@ export async function init() {
     where: { network: BlockchainNetworks.ethMainNetwork },
     defaults: {
       network: BlockchainNetworks.ethMainNetwork,
-      lastParsedBlock: configWqtWeth.parseEventsFromHeight,
+      lastParsedBlock: contractData.deploymentHeight,
     },
   });
 
