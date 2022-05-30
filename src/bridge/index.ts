@@ -98,4 +98,4 @@ export async function init() {
   await Promise.all([bridgeEthListener.start(), bridgeBscListener.start()]);
 }
 
-init().catch(console.error);
+init().catch(e => { throw e; });
