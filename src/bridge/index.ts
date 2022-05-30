@@ -28,7 +28,7 @@ export async function init() {
   console.log('Start bridge'); // TODO add pino
 
   await initDatabase(config.database.link, false, false);
-  BridgeMessageBroker.initMessageBroker();
+  // BridgeMessageBroker.initMessageBroker();
 
   const web3Eth = new Web3(
     new Web3.providers.WebsocketProvider(urlEthProvider, {
