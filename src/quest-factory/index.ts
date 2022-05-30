@@ -20,12 +20,13 @@ export async function init() {
   Logger.info('Start worker "Quest factory". Network: "%s"', configQuestFactory.network);
 
   await initDatabase(configDatabase.dbLink, false, true);
-  const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest];
+
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest];
 
   const { number, url } = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider } = configQuestFactory.defaultConfigNetwork();
 
-  Logger.info('Listening on contract address: "%s"', store.address);
+  Logger.info('Listening on contract address: "%s"', contractData.address);
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
 
   const redisClient = createClient({ url, database: number });
@@ -38,7 +39,7 @@ export async function init() {
   await redisClient.connect();
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-  const questFactoryContract = new web3.eth.Contract(store.getAbi().abi, store.address);
+  const questFactoryContract = new web3.eth.Contract(contractData.getAbi().abi, contractData.address);
 
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
   await transactionsBroker.init()
@@ -53,15 +54,9 @@ export async function init() {
     where: { network: BlockchainNetworks.workQuestDevNetwork },
     defaults: {
       network: BlockchainNetworks.workQuestDevNetwork,
-      lastParsedBlock: store.deploymentHeight,
+      lastParsedBlock: contractData.deploymentHeight,
     },
   });
-
-  if (questFactoryInfo.lastParsedBlock < store.deploymentHeight) {
-    questFactoryInfo.lastParsedBlock = store.deploymentHeight;
-
-    await questFactoryInfo.save();
-  }
 
   const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract);
   const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);

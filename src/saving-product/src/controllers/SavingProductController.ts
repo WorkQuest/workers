@@ -8,7 +8,7 @@ import {
   SavingProductClaimedEvent,
   SavingProductBorrowedEvent,
   SavingProductReceivedEvent,
-  SavingProductRefundedEvent
+  SavingProductRefundedEvent,
 } from "@workquest/database-models/lib/models";
 
 export class SavingProductController implements IController {

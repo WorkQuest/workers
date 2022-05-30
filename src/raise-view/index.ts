@@ -18,7 +18,7 @@ export async function init() {
 
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Promotion];
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Promotion];
 
   const { linkRpcProvider } = configRaiseView.defaultConfigNetwork();
 
@@ -26,7 +26,7 @@ export async function init() {
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-  const raiseViewContract = new web3.eth.Contract(store.getAbi().abi, store.address);
+  const raiseViewContract = new web3.eth.Contract(contractData.getAbi().abi, contractData.address);
 
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'raise-view');
   await transactionsBroker.init();
@@ -37,15 +37,9 @@ export async function init() {
     where: { network: BlockchainNetworks.workQuestDevNetwork },
     defaults: {
       network: BlockchainNetworks.workQuestDevNetwork,
-      lastParsedBlock: store.deploymentHeight,
+      lastParsedBlock: contractData.deploymentHeight,
     },
   });
-
-  if (raiseViewBlockInfo.lastParsedBlock < store.deploymentHeight) {
-    raiseViewBlockInfo.lastParsedBlock = store.deploymentHeight;
-
-    await raiseViewBlockInfo.save();
-  }
 
   const raiseViewProvider = new RaiseViewProvider(clients, raiseViewContract);
   const raiseViewController = new RaiseViewController(clients, raiseViewProvider, configRaiseView.network as BlockchainNetworks);

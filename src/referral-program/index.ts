@@ -18,7 +18,7 @@ export async function init() {
   await initDatabase(configDatabase.dbLink, true, false);
 
   const network = configReferral.network as BlockchainNetworks;
-  const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Referral];
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Referral];
 
   const {
     linkRpcProvider,
@@ -26,7 +26,7 @@ export async function init() {
 
   Logger.debug('Referral Program starts on "%s" network', configReferral.network);
   Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
-  Logger.debug('WorkQuest network contract address: "%s"', store.address);
+  Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
@@ -40,14 +40,14 @@ export async function init() {
 
   const clients: ReferralClients = { web3, transactionsBroker, notificationsBroker };
 
-  const referralContract = new web3.eth.Contract(store.getAbi().abi, store.address);
+  const referralContract = new web3.eth.Contract(contractData.getAbi().abi, contractData.address);
 
   const referralProvider = new ReferralProvider(clients, referralContract);
   const referralController = new ReferralController(clients, network, referralProvider);
 
   const [referralBlockInfo, _] = await ReferralProgramParseBlock.findOrCreate({
     where: { network },
-    defaults: { network, lastParsedBlock: store.deploymentHeight },
+    defaults: { network, lastParsedBlock: contractData.deploymentHeight },
   });
 
   await referralController.collectAllUncollectedEvents(referralBlockInfo.lastParsedBlock);

@@ -17,7 +17,7 @@ export async function init() {
   await initDatabase(configDatabase.dbLink, false, true);
 
   const network = configSavings.network as BlockchainNetworks;
-  const store = Store[Networks.WorkQuest][WorkQuestNetworkContracts.SavingProduct];
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.SavingProduct];
 
   const {
     linkRpcProvider,
@@ -25,7 +25,7 @@ export async function init() {
 
   Logger.debug('Saving Product starts on "%s" network', configSavings.network);
   Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
-  Logger.debug('WorkQuest network contract address: "%s"', store.address);
+  Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
@@ -36,14 +36,14 @@ export async function init() {
 
   const clients: SavingProductClients = { web3, transactionsBroker };
 
-  const savingProductContract = new web3.eth.Contract(store.getAbi().abi, store.address);
+  const savingProductContract = new web3.eth.Contract(contractData.getAbi().abi, contractData.address);
 
   const savingProductProvider = new SavingProductProvider(clients, savingProductContract);
   const savingProductController = new SavingProductController(clients, network, savingProductProvider);
 
   const [savingProductBlockInfo] = await SavingProductParseBlock.findOrCreate({
     where: { network },
-    defaults: { network, lastParsedBlock: store.deploymentHeight },
+    defaults: { network, lastParsedBlock: contractData.deploymentHeight },
   });
 
   await savingProductController.collectAllUncollectedEvents(savingProductBlockInfo.lastParsedBlock);
