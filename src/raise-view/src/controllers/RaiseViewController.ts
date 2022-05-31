@@ -137,7 +137,7 @@ export class RaiseViewController implements IController {
 
     await Promise.all([
       updateQuestRaiseViewStatusJob({
-        userId: quest.userId,
+        questId: quest.id,
         runAt: RaiseViewController.toEndedAt(period),
       }),
       questRaiseView.update({

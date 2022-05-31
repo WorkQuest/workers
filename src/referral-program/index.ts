@@ -8,6 +8,7 @@ import { ReferralProvider } from "./src/providers/ReferralProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { Store, Networks, WorkQuestNetworkContracts } from '@workquest/contract-data-pools';
+import { CommunicationBroker } from "../brokers/src/CommunicationBroker";
 import {
   initDatabase,
   BlockchainNetworks,
@@ -38,7 +39,10 @@ export async function init() {
   const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'referral')
   await notificationsBroker.init();
 
-  const clients: ReferralClients = { web3, transactionsBroker, notificationsBroker };
+  const communicationBroker = new CommunicationBroker(configDatabase.mqLink);
+  await communicationBroker.init();
+
+  const clients: ReferralClients = { web3, transactionsBroker, notificationsBroker, communicationBroker };
 
   const referralContract = new web3.eth.Contract(contractData.getAbi().abi, contractData.address);
 

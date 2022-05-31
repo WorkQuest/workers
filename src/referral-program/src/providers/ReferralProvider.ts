@@ -16,6 +16,7 @@ export class ReferralProvider implements IContractProvider {
 
   private async initBrokerListener() {
     await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
+    await this.clients.communicationBroker.initConsumer(this.onEventFromCommunicationBroker.bind(this));
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
@@ -33,6 +34,17 @@ export class ReferralProvider implements IContractProvider {
     const eventsData = await this.contract.getPastEvents('allEvents', {
       toBlock: tracedTxs[tracedTxs.length - 1].blockNumber,
       fromBlock: tracedTxs[0].blockNumber,
+    });
+
+    return Promise.all(
+      eventsData.map(async data => this.onEventData(data))
+    );
+  }
+
+  private async onEventFromCommunicationBroker(payload: { blockNumber: number }) {
+    const eventsData = await this.contract.getPastEvents('allEvents', {
+      toBlock: payload.blockNumber,
+      fromBlock: payload.blockNumber,
     });
 
     return Promise.all(

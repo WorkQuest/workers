@@ -1,7 +1,7 @@
 import { addJob } from "../../utils/scheduler";
 
 export interface Data {
-  userId: string;
+  questId: string;
   runAt: Date;
 }
 
