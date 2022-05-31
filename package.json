@@ -24,7 +24,7 @@
     "quest:compile": "tsc && node ./build/quest/index.js",
     "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
     "fetcher:compile": "tsc && node ./build/fetchers",
-    "raiseView:start": "nodemon -e ts --exec \"npm run raise-view:compile\"",
+    "raiseView:start": "nodemon -e ts --exec \"npm run raiseView:compile\"",
     "raiseView:compile": "tsc && node ./build/raise-view",
     "bridgeUsdt:start": "nodemon -e ts --exec \"npm run bridgeUsdt:compile\"",
     "bridgeUsdt:compile": "tsc && node ./build/bridge-usdt/index.js"
@@ -48,6 +48,7 @@
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
     "@sentry/node": "^6.19.2",
+    "@workquest/contract-data-pools": "github:WorkQuest/contract-data-pools#devnet",
     "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#61a07099310786478befd912f628861ebac157b5",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",

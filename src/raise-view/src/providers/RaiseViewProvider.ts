@@ -7,6 +7,7 @@ import {
   IContractProvider,
   RaiseViewClients,
 } from "./types";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 
 export class RaiseViewProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -26,14 +27,11 @@ export class RaiseViewProvider implements IContractProvider {
     Logger.info('Raise-view listener: message "onEventFromBroker"');
     Logger.debug('Raise-view listener: message "onEventFromBroker" with payload %o', payload);
 
-    const raiseViewAddress = configRaiseView
-      .defaultConfigNetwork()
-      .contractAddress
-      .toLowerCase()
+    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Promotion];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === raiseViewAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
     Logger.info('Raise-view listener provider: number of contract transactions "%s"', tracedTxs.length);
