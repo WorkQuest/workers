@@ -6,10 +6,10 @@ import { addJob } from "../utils/scheduler";
 import configSwapUsdt from "../config/config.swapUsdt";
 import {
   Transaction,
+  TransactionStatus,
   FirstWqtTransmissionData,
   TransmissionStatusFirstWqt,
 } from "@workquest/database-models/lib/models";
-
 
 export interface SendFirstWqtPayload {
   readonly ratio: number;
@@ -37,13 +37,13 @@ export default async function (payload: SendFirstWqtPayload) {
       );
       return;
     }
-    if (transmissionData.status !== TransmissionStatusFirstWqt.Pending) {
+    if (transmissionData.status !== TransactionStatus.Pending) {
       Logger.warn('Job to send first wqt can`t send transaction, because status not pending ',
       );
       return;
     }
 
-    await transmissionData.update({ status: TransmissionStatusFirstWqt.InProcess });
+    await transmissionData.update({ status: TransactionStatus.InProcess });
 
     const faucetWallet = await ethers.utils.HDNode.fromMnemonic(configSwapUsdt.mnemonic).derivePath('m/44\'/60\'/0\'/0/0');
     const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestDevNetwork.linkRpcProvider));
@@ -91,7 +91,7 @@ export default async function (payload: SendFirstWqtPayload) {
         transmissionData.transactionHashTransmissionWqt = transaction.hash;
 
         if (!receipt.status) {
-          transmissionData.status = TransmissionStatusFirstWqt.TransactionError;
+          transmissionData.status = TransactionStatus.TransactionError;
         }
 
         await transaction.save();
@@ -99,7 +99,7 @@ export default async function (payload: SendFirstWqtPayload) {
       .catch(async error => {
         await transmissionData.update({
           error: error.toString(),
-          status: TransmissionStatusFirstWqt.BroadcastError,
+          status: TransactionStatus.BroadcastError,
         });
       })
 
@@ -108,7 +108,7 @@ export default async function (payload: SendFirstWqtPayload) {
     console.log(err)
     await FirstWqtTransmissionData.update({
       error: err.toString(),
-      status: TransmissionStatusFirstWqt.UnknownError,
+      status: TransactionStatus.UnknownError,
     }, {
       where: {
         txHashSwapInitialized: payload.txHashSwapInitialized

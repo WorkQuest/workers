@@ -9,6 +9,7 @@ import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
 import {
   CommissionTitle,
   BlockchainNetworks,
+  TransactionStatus,
   CommissionSettings,
   BridgeSwapUsdtTokenEvent,
   FirstWqtTransmissionData,
@@ -98,7 +99,7 @@ export class SwapUsdtController implements IController {
 
     const transmissionData = await FirstWqtTransmissionData.create({
       txHashSwapInitialized: transactionHash,
-      status: TransmissionStatusFirstWqt.Pending,
+      status: TransactionStatus.Pending,
     });
 
     const wqtPrice = await this.getTokensPriceInUsd(eventsData.returnValues.timestamp);
