@@ -58,7 +58,7 @@ export async function init() {
       delay: 1000, // ms
       onTimeout: false,
     },
-  })
+  });
 
   const web3Wq = new Web3(wqRpcProvider);
   const web3Bsc = new Web3(bscWsProvider);
@@ -70,9 +70,9 @@ export async function init() {
   const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge');
   await notificationsBroker.init();
 
-  const bridgeWqContract = new web3Wq.eth.Contract(contractWorkNetData.address, contractWorkNetData.getAbi());
-  const bridgeBscContract = new web3Bsc.eth.Contract(contractBnbData.address, contractBnbData.getAbi());
-  const bridgeEthContract = new web3Eth.eth.Contract(contractEthData.address, contractEthData.getAbi());
+  const bridgeWqContract = new web3Wq.eth.Contract(contractWorkNetData.getAbi(), contractWorkNetData.address);
+  const bridgeBscContract = new web3Bsc.eth.Contract(contractBnbData.getAbi(), contractBnbData.address);
+  const bridgeEthContract = new web3Eth.eth.Contract(contractEthData.getAbi(), contractEthData.address);
 
   Logger.debug('WorkQuest network contract address: "%s"', contractWorkNetData.address);
   Logger.debug('Binance smart chain contract address: "%s"', bscDefaultConfig.contractAddress);

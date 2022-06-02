@@ -30,7 +30,7 @@ export async function init() {
   await notificationsBroker.init();
 
   const web3 = new Web3(websocketProvider);
-  const wqtWethContract = new web3.eth.Contract(contractData.address, contractData.getAbi());
+  const wqtWethContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const clients: WqtWethClients = { web3, notificationsBroker };
   const wqtWethProvider = new WqtWethProvider(clients, wqtWethContract);

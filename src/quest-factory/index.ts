@@ -39,7 +39,7 @@ export async function init() {
   await redisClient.connect();
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-  const questFactoryContract = new web3.eth.Contract(contractData.address, contractData.getAbi());
+  const questFactoryContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
   await transactionsBroker.init()

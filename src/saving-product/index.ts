@@ -36,7 +36,7 @@ export async function init() {
 
   const clients: SavingProductClients = { web3, transactionsBroker };
 
-  const savingProductContract = new web3.eth.Contract(contractData.address, contractData.getAbi());
+  const savingProductContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const savingProductProvider = new SavingProductProvider(clients, savingProductContract);
   const savingProductController = new SavingProductController(clients, network, savingProductProvider);

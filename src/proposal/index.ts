@@ -31,7 +31,7 @@ export async function init() {
 
   const clients: ProposalClients = { web3, transactionsBroker };
 
-  const proposalContract = new web3.eth.Contract(contractData.address, contractData.getAbi());
+  const proposalContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const proposalProvider = new ProposalProvider(clients, proposalContract);
   const proposalController = new ProposalController(clients, configProposal.network as BlockchainNetworks, proposalProvider);
