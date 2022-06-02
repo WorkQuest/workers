@@ -26,7 +26,7 @@ export async function init() {
   Logger.debug('Link Rpc provider: "%s"', linkRpcProvider);
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-  const raiseViewContract = new web3.eth.Contract(contractData.getAbi().abi, contractData.address);
+  const raiseViewContract = new web3.eth.Contract(contractData.address, contractData.getAbi());
 
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'raise-view');
   await transactionsBroker.init();

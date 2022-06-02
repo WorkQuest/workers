@@ -4,7 +4,7 @@ import { EventData } from "web3-eth-contract";
 import { Logger } from "../../logger/pino";
 import { Transaction } from "web3-eth";
 
-const abi = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest].getAbi().abi;
+const abi = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest].getAbi();
 
 const asyncFilter = async (arr, predicate) => {
   const results = await Promise.all(arr.map(predicate));

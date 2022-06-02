@@ -44,7 +44,7 @@ export async function init() {
 
   const clients: ReferralClients = { web3, transactionsBroker, notificationsBroker, communicationBroker };
 
-  const referralContract = new web3.eth.Contract(contractData.getAbi().abi, contractData.address);
+  const referralContract = new web3.eth.Contract(contractData.address, contractData.getAbi());
 
   const referralProvider = new ReferralProvider(clients, referralContract);
   const referralController = new ReferralController(clients, network, referralProvider);

@@ -19,7 +19,7 @@ export class BridgeWorkNetProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Bridge];
+    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WqtBridge];
 
     const tracedTxs = payload
       .transactions

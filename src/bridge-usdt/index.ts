@@ -95,9 +95,9 @@ export async function init() {
 
   const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'SwapUsdt');
 
-  const SwapUsdtBscContract = new web3Bsc.eth.Contract(contractBnbData.getAbi(), contractBnbData.address);
-  const SwapUsdtEthContract = new web3Eth.eth.Contract(contractEthData.getAbi(), contractEthData.address);
-  const SwapUsdtPolygonContract = new web3Polygon.eth.Contract(contractPolygonScanData.getAbi(), contractPolygonScanData.address);
+  const SwapUsdtBscContract = new web3Bsc.eth.Contract(contractBnbData.address, contractBnbData.getAbi());
+  const SwapUsdtEthContract = new web3Eth.eth.Contract(contractEthData.address, contractEthData.getAbi());
+  const SwapUsdtPolygonContract = new web3Polygon.eth.Contract(contractPolygonScanData.address, contractPolygonScanData.getAbi());
 
   Logger.debug('Binance smart chain contract address: "%s"', contractBnbData.address);
   Logger.debug('Ethereum network contract address: "%s"', contractEthData.address);

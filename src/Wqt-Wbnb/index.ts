@@ -31,7 +31,7 @@ export async function init() {
   await notificationsBroker.init();
 
   const web3 = new Web3(websocketProvider);
-  const wqtWbnbContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
+  const wqtWbnbContract = new web3.eth.Contract(contractData.address, contractData.getAbi());
 
   const clients: WqtWbnbClients = { web3, notificationsBroker };
   const wqtWbnbProvider = new WqtWbnbProvider(clients, wqtWbnbContract);

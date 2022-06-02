@@ -39,7 +39,7 @@ export async function init() {
 
   const clients: PensionFundClients = { web3, transactionsBroker, notificationsBroker };
 
-  const pensionFundContract = new web3.eth.Contract(contractData.getAbi().abi, contractData.address);
+  const pensionFundContract = new web3.eth.Contract(contractData.address, contractData.getAbi());
 
   const pensionFundProvider = new PensionFundProvider(clients, pensionFundContract);
   const pensionFundController = new PensionFundController(clients, configPensionFund.network as BlockchainNetworks, pensionFundProvider);
