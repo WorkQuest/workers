@@ -21,7 +21,7 @@ export async function init() {
 
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest];
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.QuestFactory];
 
   const { number, url } = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider } = configQuestFactory.defaultConfigNetwork();
