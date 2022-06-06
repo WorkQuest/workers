@@ -613,7 +613,7 @@ export class QuestController implements IController {
       return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.DisputeNotFound });
     }
 
-    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
       Logger.warn('Arbitration accept work event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
