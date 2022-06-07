@@ -1,8 +1,8 @@
 import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
-import configBridge from "../../config/config.bridge";
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider, BridgeWorkNetClients } from "./types";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 
 export class BridgeWorkNetProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -19,14 +19,11 @@ export class BridgeWorkNetProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const bridgeAddress = configBridge
-      .defaultWqConfigNetwork()
-      .contractAddress
-      .toLowerCase();
+    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WqtBridge];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === bridgeAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {

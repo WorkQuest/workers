@@ -1,35 +1,31 @@
 import Web3 from 'web3';
-import * as fs from 'fs';
-import * as path from 'path';
 import { Logger } from "./logger/pino";
 import configDatabase from './config/config.database';
 import { PensionFundClients } from "./src/providers/types";
 import configPensionFund from './config/config.pensionFund';
-import { PensionFundController } from "./src/controllers/PensionFundController";
-import { PensionFundProvider } from "./src/providers/PensionFundProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
+import { PensionFundProvider } from "./src/providers/PensionFundProvider";
+import { PensionFundController } from "./src/controllers/PensionFundController";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 import {
   initDatabase,
   BlockchainNetworks,
   PensionFundBlockInfo,
 } from '@workquest/database-models/lib/models';
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
-
-const abiFilePath = path.join(__dirname, '/abi/WQPensionFund.json');
-const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
 
 export async function init() {
-  await initDatabase(configDatabase.dbLink, true, false);
+  await initDatabase(configDatabase.dbLink, false, false);
+
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.PensionFund];
 
   const {
-    linkRpcProvider,
-    contractAddress,
-    parseEventsFromHeight,
+    linkRpcProvider
   } = configPensionFund.defaultConfigNetwork();
 
-  Logger.debug('Pension Fund starts on "%s" network', configPensionFund.network);
+  Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
   Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
-  Logger.debug('WorkQuest network contract address: "%s"', contractAddress);
+  Logger.debug('Pension Fund starts on "%s" network', configPensionFund.network);
 
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
 
@@ -43,7 +39,7 @@ export async function init() {
 
   const clients: PensionFundClients = { web3, transactionsBroker, notificationsBroker };
 
-  const pensionFundContract = new web3.eth.Contract(abi, contractAddress);
+  const pensionFundContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const pensionFundProvider = new PensionFundProvider(clients, pensionFundContract);
   const pensionFundController = new PensionFundController(clients, configPensionFund.network as BlockchainNetworks, pensionFundProvider);
@@ -52,7 +48,7 @@ export async function init() {
     where: { network: configPensionFund.network },
     defaults: {
       network: configPensionFund.network,
-      lastParsedBlock: parseEventsFromHeight,
+      lastParsedBlock: contractData.deploymentHeight,
     },
   });
 

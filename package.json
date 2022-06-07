@@ -24,8 +24,10 @@
     "quest:compile": "tsc && node ./build/quest/index.js",
     "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
     "fetcher:compile": "tsc && node ./build/fetchers",
-    "raiseView:start": "nodemon -e ts --exec \"npm run raise-view:compile\"",
-    "raiseView:compile": "tsc && node ./build/raise-view"
+    "raiseView:start": "nodemon -e ts --exec \"npm run raiseView:compile\"",
+    "raiseView:compile": "tsc && node ./build/raise-view",
+    "bridgeUsdt:start": "nodemon -e ts --exec \"npm run bridgeUsdt:compile\"",
+    "bridgeUsdt:compile": "tsc && node ./build/bridge-usdt/index.js"
   },
   "jest": {
     "transform": {
@@ -46,12 +48,15 @@
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.27.1",
     "@sentry/node": "^6.19.2",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#8de510acb56ab4b5a1ae2cd4cd8d4155b3f24bf6",
+    "@workquest/contract-data-pools": "github:WorkQuest/contract-data-pools#devnet",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#c3d94db2b8264c1807bb70f963228cf39e4847b7",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
     "dotenv": "^14.3.0",
     "ethereum-block-by-date": "^1.4.2",
+    "ethers": "^5.5.1",
+    "graphile-worker": "^0.13.0",
     "jest": "^27.5.1",
     "node-cron": "^3.0.0",
     "nodemon": "^2.0.15",
@@ -62,7 +67,8 @@
     "proxyquire": "^2.1.3",
     "redis": "4.0.4",
     "reflect-metadata": "^0.1.13",
-    "sequelize": "^6.6.2",
+    "sequelize": "6.6.2",
+    "sequelize-typescript": "2.0.0",
     "sinon": "^13.0.1",
     "web3": "^1.7.0"
   },

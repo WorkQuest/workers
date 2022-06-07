@@ -3,7 +3,7 @@ import { Logger } from "../../logger/pino";
 import { PensionFundClients } from "./types";
 import { Contract, EventData } from "web3-eth-contract";
 import { onEventCallBack, IContractProvider } from "./types";
-import configPensionFund from "../../config/config.pensionFund";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 
 export class PensionFundProvider implements IContractProvider {
   private readonly onEventCallBacks: onEventCallBack[] = [];
@@ -20,14 +20,11 @@ export class PensionFundProvider implements IContractProvider {
   }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const pensionFundAddress = configPensionFund
-      .defaultConfigNetwork()
-      .contractAddress
-      .toLowerCase();
+    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.PensionFund];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === pensionFundAddress)
+      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {

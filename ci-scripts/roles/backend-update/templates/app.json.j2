@@ -115,6 +115,17 @@
       "env": {
         "ENV": "prod"
       }
+    },
+    {
+      "name": "{{ PM2_BRIDGE_USDT_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/bridge-usdt/index.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
     }
   ]
 }

@@ -1,6 +1,4 @@
-import fs from "fs";
 import Web3 from "web3";
-import path from "path";
 import { Logger } from "./logger/pino";
 import configBridge from "./config/config.bridge";
 import configDatabase from "../bridge/config/config.common";
@@ -10,19 +8,21 @@ import { BridgeEthClients, BridgeWorkNetClients } from "./src/providers/types";
 import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { NotificationBroker } from "../brokers/src/NotificationBroker";
+import { Networks, Store, WorkQuestNetworkContracts, BnbNetworkContracts, EthNetworkContracts } from "@workquest/contract-data-pools";
 import {
   initDatabase,
   BlockchainNetworks,
   BridgeParserBlockInfo,
 } from "@workquest/database-models/lib/models";
 
-const abiFilePath = path.join(__dirname, '../../src/bridge/abi/WQBridge.json');
-const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
-
 export async function init() {
   await initDatabase(configDatabase.database.link, false, false);
 
   const networks = [configBridge.bscNetwork, configBridge.ethereumNetwork, configBridge.workQuestNetwork];
+
+  const contractEthData = Store[Networks.Eth][EthNetworkContracts.WqtBridge];
+  const contractBnbData = Store[Networks.Bnb][BnbNetworkContracts.WqtBridge];
+  const contractWorkNetData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WqtBridge];
 
   Logger.debug('Binance smart chain network "%s"', configBridge.bscNetwork);
   Logger.debug('Ethereum network "%s"', configBridge.ethereumNetwork);
@@ -58,7 +58,7 @@ export async function init() {
       delay: 1000, // ms
       onTimeout: false,
     },
-  })
+  });
 
   const web3Wq = new Web3(wqRpcProvider);
   const web3Bsc = new Web3(bscWsProvider);
@@ -70,11 +70,11 @@ export async function init() {
   const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge');
   await notificationsBroker.init();
 
-  const bridgeWqContract = new web3Wq.eth.Contract(abi, wqDefaultConfig.contractAddress);
-  const bridgeBscContract = new web3Bsc.eth.Contract(abi, bscDefaultConfig.contractAddress);
-  const bridgeEthContract = new web3Eth.eth.Contract(abi, ethDefaultConfig.contractAddress);
+  const bridgeWqContract = new web3Wq.eth.Contract(contractWorkNetData.getAbi(), contractWorkNetData.address);
+  const bridgeBscContract = new web3Bsc.eth.Contract(contractBnbData.getAbi(), contractBnbData.address);
+  const bridgeEthContract = new web3Eth.eth.Contract(contractEthData.getAbi(), contractEthData.address);
 
-  Logger.debug('WorkQuest network contract address: "%s"', wqDefaultConfig.contractAddress);
+  Logger.debug('WorkQuest network contract address: "%s"', contractWorkNetData.address);
   Logger.debug('Binance smart chain contract address: "%s"', bscDefaultConfig.contractAddress);
   Logger.debug('Ethereum network contract address: "%s"', ethDefaultConfig.contractAddress);
 

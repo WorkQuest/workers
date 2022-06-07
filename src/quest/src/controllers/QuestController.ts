@@ -36,7 +36,7 @@ import {
   QuestArbitrationRejectWorkEvent,
   QuestArbitrationAcceptWorkEvent,
   QuestArbitrationAcceptWorkStatus,
-  QuestArbitrationRejectWorkStatus,
+  QuestArbitrationRejectWorkStatus, QuestsResponseType,
 } from "@workquest/database-models/lib/models";
 import { incrementAdminDisputeStatisticJob } from "../../jobs/incrementAdminDisputeStatistic";
 
@@ -148,10 +148,34 @@ export class QuestController implements IController {
     });
 
     const responses = await questResponsesModelController.getActiveResponses();
-    const responseWorkerIds = responses.map(questResponse => questResponse.workerId);
+    const responseWorkerIds = responses.map(response => {
+      return {
+        workerId: response.workerId,
+        responseType: response.type
+      }
+    });
+
+    const invitedWorkerIds = responseWorkerIds
+      .filter(response => response.responseType === QuestsResponseType.Invite)
+      .map(response => response.workerId);
+    const respondedWorkerIds = responseWorkerIds
+      .filter(response => response.responseType === QuestsResponseType.Response)
+      .map(response => response.workerId);
 
     await this.clients.notificationsBroker.sendNotification({
-      recipients: [questModelController.quest.userId, ...responseWorkerIds],
+      recipients: invitedWorkerIds,
+      action: QuestNotificationActions.QuestEdited,
+      data: { ...questModelController.quest, responseType: QuestsResponseType.Invite },
+    });
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: respondedWorkerIds,
+      action: QuestNotificationActions.QuestEdited,
+      data: { ...questModelController.quest, responseType: QuestsResponseType.Response },
+    });
+
+    await this.clients.notificationsBroker.sendNotification({
+      recipients: [questModelController.quest.userId],
       action: QuestNotificationActions.QuestEdited,
       data: questModelController.quest,
     });
@@ -473,6 +497,9 @@ export class QuestController implements IController {
       addUpdateReviewStatisticsJob({ userId: questModelController.quest.assignedWorkerId }),
       updateQuestsStatisticJob({ userId: questModelController.quest.userId, role: UserRole.Employer }),
       updateQuestsStatisticJob({ userId: questModelController.quest.assignedWorkerId, role: UserRole.Worker }),
+      this.clients.communicationBroker.sendMessage({
+        blockNumber: eventsData.blockNumber
+      }),
       this.clients.notificationsBroker.sendNotification({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
         action: QuestNotificationActions.QuestStatusUpdated,
@@ -586,7 +613,7 @@ export class QuestController implements IController {
       return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.DisputeNotFound });
     }
 
-    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
       Logger.warn('Arbitration accept work event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
