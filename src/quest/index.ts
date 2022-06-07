@@ -9,8 +9,8 @@ import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { QuestController } from "./src/controllers/QuestController";
 import { QuestCacheProvider } from "./src/providers/QuestCacheProvider";
-import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
 import { CommunicationBroker } from "../brokers/src/CommunicationBroker";
+import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
 import {
   initDatabase,
   QuestBlockInfo,
