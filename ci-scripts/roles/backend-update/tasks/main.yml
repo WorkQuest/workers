@@ -23,15 +23,15 @@
     global: yes
   become: yes
 
-- name: Install packages based on package.json
-  shell: npm i
-  args:
-    chdir: '{{ WORKERS_BIN }}'
+#- name: Install packages based on package.json
+#  shell: npm i
+#  args:
+#    chdir: '{{ WORKERS_BIN }}'
 
-- name: Build code
-  shell: npm run build
-  args:
-   chdir: '{{ WORKERS_BIN }}'
+#- name: Build code
+#  shell: npm run build
+#  args:
+#   chdir: '{{ WORKERS_BIN }}'
 
 - name: Copy or generate app.json file
   template:
