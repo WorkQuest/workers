@@ -46,7 +46,6 @@
     ]
   },
   "dependencies": {
-    "@cosmjs/tendermint-rpc": "^0.27.1",
     "@sentry/node": "^6.19.2",
     "@workquest/contract-data-pools": "github:WorkQuest/contract-data-pools#testnet",
     "@workquest/database-models": "ssh://git@github.com:WorkQuest/database-models.git#54abf28969fe1b7e33a6552e669e531d8eb7d5ca",
@@ -57,7 +56,6 @@
     "ethers": "^5.5.1",
     "graphile-worker": "^0.13.0",
     "jest": "^27.5.1",
-    "node-cron": "^3.0.0",
     "nodemon": "^2.0.15",
     "pg": "^8.7.1",
     "pg-hstore": "^2.3.4",
