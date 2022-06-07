@@ -54,7 +54,6 @@
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
     "dotenv": "^14.3.0",
-    "ethereum-block-by-date": "^1.4.2",
     "ethers": "^5.5.1",
     "graphile-worker": "^0.13.0",
     "jest": "^27.5.1",
