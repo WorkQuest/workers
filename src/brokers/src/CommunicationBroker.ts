@@ -20,7 +20,7 @@ export class CommunicationBroker extends BaseBrokerClient {
 
   private async initQueue() {
     await this.channel.assertQueue(this.queueName, {
-      durable: true,
+      durable: false,
     });
   }
 
