@@ -5,8 +5,8 @@ config({ path: __dirname + '/../../../.env.bridge' });
 export default {
   logLevel: 'debug',
   workQuestNetwork: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
-  bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
-  ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork
+  bscNetwork: 'bscMainNetwork', // bscMainNetwork, bscTestNetwork
+  ethereumNetwork: 'ethereumMainNetwork', // ethereumMainNetwork, rinkebyTestNetwork
 
   workQuestDevNetwork: {
     linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
