@@ -14,7 +14,9 @@ export class TransactionBroker extends BaseBrokerClient {
   }
 
   private async initQueue() {
-    await this.channel.assertQueue(this.queueName);
+    await this.channel.assertQueue(this.queueName, {
+      durable: true,
+    });
     await this.channel.bindQueue(this.queueName, 'transactions', '');
   }
 

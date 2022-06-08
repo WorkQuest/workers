@@ -19,7 +19,9 @@ export class CommunicationBroker extends BaseBrokerClient {
   }
 
   private async initQueue() {
-    await this.channel.assertQueue(this.queueName);
+    await this.channel.assertQueue(this.queueName, {
+      durable: true,
+    });
   }
 
   public async initConsumer(callback: Function): Promise<void> {
