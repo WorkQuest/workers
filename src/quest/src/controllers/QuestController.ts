@@ -1,44 +1,48 @@
 import { Op } from "sequelize";
-import { IController, QuestEvent, QuestNotificationActions } from "./types";
-import { EventData } from "web3-eth-contract";
 import { Logger } from "../../logger/pino";
+import { EventData } from "web3-eth-contract";
+import { addJob } from "../../../utils/scheduler";
+import { UserModelController } from "./models/UserModelController";
 import { IContractProvider, QuestClients } from "../providers/types";
 import { QuestModelController } from "./models/QuestModelController";
-import { UserModelController } from "./models/UserModelController";
-import { QuestResponsesModelController } from "./models/QuestResponsesModelController";
-import { QuestChatModelController } from "./models/QuestChatModelController";
-import { QuestDisputeModelController } from "./models/QuestDisputeModelController";
+import { IController, QuestEvent, QuestNotificationActions } from "./types";
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
+import { QuestChatModelController } from "./models/QuestChatModelController";
 import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
+import { QuestDisputeModelController } from "./models/QuestDisputeModelController";
+import { QuestResponsesModelController } from "./models/QuestResponsesModelController";
+import { incrementAdminDisputeStatisticJob } from "../../jobs/incrementAdminDisputeStatistic";
 import {
-  UserRole,
-  QuestStatus,
-  DisputeStatus,
-  QuestBlockInfo,
-  DisputeDecision,
-  QuestJobDoneEvent,
-  QuestJobDoneStatus,
-  BlockchainNetworks,
-  QuestAssignedEvent,
-  QuestJobEditedEvent,
-  QuestJobStartedEvent,
-  QuestJobEditedStatus,
-  QuestJobFinishedEvent,
-  QuestJobCancelledEvent,
-  QuestAssignedEventStatus,
-  QuestJobStartedEventStatus,
+  QuestArbitrationRejectWorkStatus,
+  QuestArbitrationAcceptWorkStatus,
+  DisputesPlatformStatisticFields,
+  QuestArbitrationAcceptWorkEvent,
+  QuestArbitrationRejectWorkEvent,
+  QuestArbitrationStartedStatus,
+  QuestsPlatformStatisticFields,
+  QuestArbitrationReworkStatus,
+  QuestJobCancelledEventStatus,
+  QuestArbitrationStartedEvent,
   QuestArbitrationReworkEvent,
   QuestJobFinishedEventStatus,
-  QuestArbitrationReworkStatus,
-  QuestArbitrationStartedEvent,
-  QuestJobCancelledEventStatus,
-  QuestArbitrationStartedStatus,
-  QuestArbitrationRejectWorkEvent,
-  QuestArbitrationAcceptWorkEvent,
-  QuestArbitrationAcceptWorkStatus,
-  QuestArbitrationRejectWorkStatus, QuestsResponseType,
+  QuestJobStartedEventStatus,
+  QuestAssignedEventStatus,
+  QuestJobCancelledEvent,
+  QuestJobFinishedEvent,
+  QuestJobStartedEvent,
+  QuestJobEditedStatus,
+  QuestJobEditedEvent,
+  BlockchainNetworks,
+  QuestAssignedEvent,
+  QuestsResponseType,
+  QuestJobDoneStatus,
+  QuestJobDoneEvent,
+  DisputeDecision,
+  QuestBlockInfo,
+  DisputeStatus,
+  QuestStatus,
+  UserRole,
 } from "@workquest/database-models/lib/models";
-import { incrementAdminDisputeStatisticJob } from "../../jobs/incrementAdminDisputeStatistic";
 
 export class QuestController implements IController {
   constructor(
@@ -79,6 +83,13 @@ export class QuestController implements IController {
     } else if (eventsData.event === QuestEvent.ArbitrationRework) {
       await this.arbitrationReworkEventHandler(eventsData);
     }
+  }
+
+  private writeActionStatistics(
+    incrementField: DisputesPlatformStatisticFields | QuestsPlatformStatisticFields,
+    statistic: 'quest' | 'dispute'
+  ) {
+    return addJob('writeActionStatistics', { incrementField, statistic });
   }
 
   protected updateBlockViewHeight(blockHeight: number): Promise<any> {
@@ -239,6 +250,7 @@ export class QuestController implements IController {
       this.clients.questCacheProvider.remove(contractAddress),
     ]);
 
+    await this.writeActionStatistics(QuestsPlatformStatisticFields.Closed, 'quest');
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.userId],
       action: QuestNotificationActions.QuestStatusUpdated,
@@ -304,6 +316,7 @@ export class QuestController implements IController {
     }
 
     await questModelController.assignWorkerOnQuest(workerModelController.user);
+    await this.writeActionStatistics(QuestsPlatformStatisticFields.WaitingForConfirmFromWorkerOnAssign, 'quest');
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.userId, workerModelController.user.id],
       action: QuestNotificationActions.QuestStatusUpdated,
@@ -370,6 +383,7 @@ export class QuestController implements IController {
       questChatModelController.closeAllWorkChatsExceptAssignedWorker(),
     ]);
 
+    await this.writeActionStatistics(QuestsPlatformStatisticFields.ExecutionOfWork, 'quest'),
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
       action: QuestNotificationActions.QuestStatusUpdated,
@@ -429,6 +443,7 @@ export class QuestController implements IController {
     }
 
     await questModelController.finishWork();
+    await this.writeActionStatistics(QuestsPlatformStatisticFields.WaitingForEmployerConfirmationWork, 'quest');
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
       action: QuestNotificationActions.QuestStatusUpdated,
@@ -500,6 +515,7 @@ export class QuestController implements IController {
       this.clients.communicationBroker.sendMessage({
         blockNumber: eventsData.blockNumber
       }),
+      this.writeActionStatistics(QuestsPlatformStatisticFields.Completed, 'quest'),
       this.clients.notificationsBroker.sendNotification({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
         action: QuestNotificationActions.QuestStatusUpdated,
@@ -562,6 +578,8 @@ export class QuestController implements IController {
     await questModelController.freezeQuestForDispute();
     await questDisputeModelController.confirmDispute();
 
+    await this.writeActionStatistics(DisputesPlatformStatisticFields.Created, 'dispute');
+    await this.writeActionStatistics(QuestsPlatformStatisticFields.Dispute, 'quest');
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
       action: QuestNotificationActions.OpenDispute,
@@ -647,6 +665,7 @@ export class QuestController implements IController {
           questDisputeModelController.dispute.acceptedAt.getTime()
         ) / 1000,
       }),
+      this.writeActionStatistics(DisputesPlatformStatisticFields.Resolved, 'dispute'),
       this.clients.notificationsBroker.sendNotification({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
         action: QuestNotificationActions.QuestStatusUpdated,
@@ -734,6 +753,7 @@ export class QuestController implements IController {
           questDisputeModelController.dispute.acceptedAt.getTime()
         ) / 1000,
       }),
+      this.writeActionStatistics(DisputesPlatformStatisticFields.Resolved, 'dispute'),
       this.clients.notificationsBroker.sendNotification({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
         action: QuestNotificationActions.QuestStatusUpdated,
@@ -809,6 +829,7 @@ export class QuestController implements IController {
     await questModelController.restartQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.Rework, timestamp);
 
+    await this.writeActionStatistics(DisputesPlatformStatisticFields.Resolved, 'dispute');
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
       action: QuestNotificationActions.DisputeDecision,
