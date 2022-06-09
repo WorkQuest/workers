@@ -1,4 +1,9 @@
 import { IController } from '../../../types';
+import {
+  DisputesPlatformStatisticFields, DisputeStatus,
+  QuestsPlatformStatisticFields,
+  QuestStatus
+} from "@workquest/database-models/lib/models";
 
 export enum QuestEvent {
   WorkQuestCreated = 'WorkQuestCreated',                /** (Only for view) Replicates the event from the quest factory. QuestStatus.Pending -> QuestStatus.Recruitment. */
@@ -26,6 +31,13 @@ export enum QuestNotificationActions {
 
   OpenDispute = 'OpenDispute',
   DisputeDecision = 'DisputeDecision'
+}
+
+export type StatisticPayload = {
+  incrementField: QuestsPlatformStatisticFields | DisputesPlatformStatisticFields,
+  statistic?: 'quest' | 'dispute',
+  type?: 'increment' | 'decrement',
+  oldStatus?: QuestStatus | DisputeStatus,
 }
 
 export {

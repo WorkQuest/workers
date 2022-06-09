@@ -2,7 +2,7 @@ import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import { addJob } from "../../../utils/scheduler";
-import { IController, RaiseViewEvent } from './types';
+import { IController, RaiseViewEvent, StatisticPayload } from './types';
 import { IContractProvider, RaiseViewClients } from '../providers/types';
 import { updateUserRaiseViewStatusJob } from "../../jobs/updateUserRaiseViewStatus";
 import { updateQuestRaiseViewStatusJob } from "../../jobs/updateQuestRaiseViewStatus";
@@ -34,57 +34,41 @@ export class RaiseViewController implements IController {
     });
   }
 
-  private async writeUserStatistic(tariff: UserRaiseType, amount: string) {
-    let statisticTariff: RaiseViewsPlatformStatisticFields;
+  private async writeUserStatistic(payload: StatisticPayload) {
+    const tariffs = {
+      Bronze: RaiseViewsPlatformStatisticFields.ProfilesBronze,
+      Silver: RaiseViewsPlatformStatisticFields.ProfilesSilver,
+      Gold: RaiseViewsPlatformStatisticFields.ProfilesGold,
+      GoldPlus: RaiseViewsPlatformStatisticFields.ProfilesGoldPlus
+    };
 
-    switch (tariff) {
-      case UserRaiseType.Bronze:
-        statisticTariff = RaiseViewsPlatformStatisticFields.ProfilesBronze;
-        break;
-      case UserRaiseType.Silver:
-        statisticTariff = RaiseViewsPlatformStatisticFields.ProfilesSilver;
-        break;
-      case UserRaiseType.Gold:
-        statisticTariff = RaiseViewsPlatformStatisticFields.ProfilesGold;
-        break;
-      case UserRaiseType.GoldPlus:
-        statisticTariff = RaiseViewsPlatformStatisticFields.ProfilesGoldPlus;
-        break;
-      default:
-        return;
+    if (payload.oldTariff) {
+      await addJob('writeActionStatistics', { incrementField: tariffs[UserRaiseType[payload.oldTariff]], statistic: 'raiseView', type: 'decrement' });
     }
 
     await Promise.all([
-      addJob('writeActionStatistics', { incrementField: statisticTariff, statistic: 'raiseView' }),
-      addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.ProfilesSum, statistic: 'raiseView', by: amount }),
       addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.ProfilesTotal, statistic: 'raiseView' }),
+      addJob('writeActionStatistics', { incrementField: tariffs[UserRaiseType[payload.newTariff]], statistic: 'raiseView', type: 'increment' }),
+      addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.ProfilesSum, statistic: 'raiseView', by: payload.amount }),
     ]);
   }
 
-  private async writeQuestStatistic(tariff: QuestRaiseType, amount: string) {
-    let statisticTariff: RaiseViewsPlatformStatisticFields;
+  private async writeQuestStatistic(payload: StatisticPayload) {
+    const tariffs = {
+      Bronze: RaiseViewsPlatformStatisticFields.QuestsBronze,
+      Silver: RaiseViewsPlatformStatisticFields.QuestsSilver,
+      Gold: RaiseViewsPlatformStatisticFields.QuestsGold,
+      GoldPlus: RaiseViewsPlatformStatisticFields.QuestsGoldPlus,
+    };
 
-    switch (tariff) {
-      case QuestRaiseType.Bronze:
-        statisticTariff = RaiseViewsPlatformStatisticFields.QuestsBronze;
-        break;
-      case QuestRaiseType.Silver:
-        statisticTariff = RaiseViewsPlatformStatisticFields.QuestsSilver;
-        break;
-      case QuestRaiseType.Gold:
-        statisticTariff = RaiseViewsPlatformStatisticFields.QuestsGold;
-        break;
-      case QuestRaiseType.GoldPlus:
-        statisticTariff = RaiseViewsPlatformStatisticFields.QuestsGoldPlus;
-        break;
-      default:
-        return;
+    if (payload.oldTariff) {
+      await addJob('writeActionStatistics', { incrementField: tariffs[QuestRaiseType[payload.oldTariff]], statistic: 'raiseView', type: 'decrement' });
     }
 
     await Promise.all([
-      addJob('writeActionStatistics', { incrementField: statisticTariff, statistic: 'raiseView' }),
-      addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.QuestsSum, statistic: 'raiseView', by: amount }),
       addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.QuestsTotal, statistic: 'raiseView' }),
+      addJob('writeActionStatistics', { incrementField: tariffs[QuestRaiseType[payload.newTariff]], statistic: 'raiseView', type: 'increment' }),
+      addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.QuestsSum, statistic: 'raiseView', by: payload.amount }),
     ]);
   }
 
@@ -194,6 +178,12 @@ export class RaiseViewController implements IController {
       );
     }
 
+    await this.writeQuestStatistic({
+      oldTariff: questRaiseView.type,
+      newTariff: tariff,
+      amount
+    });
+
     await Promise.all([
       updateQuestRaiseViewStatusJob({
         questId: quest.id,
@@ -205,7 +195,6 @@ export class RaiseViewController implements IController {
         status: QuestRaiseStatus.Paid,
         endedAt: RaiseViewController.toEndedAt(period),
       }),
-      this.writeQuestStatistic(promotedQuestEvent.tariff, amount),
     ]);
 
     Logger.debug('Promoted quest event handler: create "%s"', transactionHash);
@@ -294,6 +283,12 @@ export class RaiseViewController implements IController {
       );
     }
 
+    await this.writeUserStatistic({
+      oldTariff: userRaiseView.type,
+      newTariff: tariff,
+      amount
+    });
+
     await Promise.all([
       userRaiseView.update({
         type: tariff,
@@ -305,7 +300,6 @@ export class RaiseViewController implements IController {
         userId: user.id,
         runAt: RaiseViewController.toEndedAt(period),
       }),
-      this.writeUserStatistic(promotedUserEvent.tariff, amount),
     ]);
 
     Logger.debug('Promoted user event handler: create "%s"', transactionHash);

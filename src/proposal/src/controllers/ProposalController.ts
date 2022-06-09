@@ -3,6 +3,7 @@ import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
 import { IController, ProposalEvents } from "./types";
 import { Clients, IContractProvider } from "../providers/types";
+import { addJob } from "../../../utils/scheduler";
 import {
   BlockchainNetworks,
   DaoPlatformStatisticFields,
@@ -14,7 +15,6 @@ import {
   ProposalStatus,
   ProposalVoteCastEvent,
 } from "@workquest/database-models/lib/models";
-import { addJob } from "../../../utils/scheduler";
 
 export class ProposalController implements IController {
   constructor (
