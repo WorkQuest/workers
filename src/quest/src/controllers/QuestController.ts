@@ -781,7 +781,7 @@ export class QuestController implements IController {
       return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.DisputeNotFound });
     }
 
-    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
       Logger.warn('Arbitration reject work event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
@@ -872,7 +872,7 @@ export class QuestController implements IController {
       return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.DisputeNotFound });
     }
 
-    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
       Logger.warn('Arbitration rework event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
