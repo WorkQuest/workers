@@ -150,7 +150,6 @@ export class QuestController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
-    const questResponsesModelController = new QuestResponsesModelController(questModelController);
 
     const [questJobEditedEvent, isCreated] = await QuestJobEditedEvent.findOrCreate({
       where: {
@@ -198,7 +197,7 @@ export class QuestController implements IController {
       price: eventsData.returnValues.cost,
     });
 
-    const questsResponseWorkerIds = await QuestsResponse.findAll({
+    const questsResponseWorkerIds = await QuestsResponse.unscoped().findAll({
       attributes: [
         [fn('array_agg', col('"workerId"')), 'workerIds'],
         'type'
