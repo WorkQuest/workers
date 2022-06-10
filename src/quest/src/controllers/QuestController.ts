@@ -206,10 +206,10 @@ export class QuestController implements IController {
     });
 
     const invitedWorkerIds = responseWorkerIds
-      .filter(response => response.responseType === QuestsResponseType.Invite)
+      .filter((response, i) => response.responseType === QuestsResponseType.Invite && respondedWorkerIds.indexOf(i) === i)
       .map(response => response.workerId);
     const respondedWorkerIds = responseWorkerIds
-      .filter(response => response.responseType === QuestsResponseType.Response)
+      .filter((response, i) => response.responseType === QuestsResponseType.Response && respondedWorkerIds.indexOf(i) === i)
       .map(response => response.workerId);
 
     await this.clients.notificationsBroker.sendNotification({
