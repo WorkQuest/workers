@@ -215,13 +215,13 @@ export class QuestController implements IController {
     await this.clients.notificationsBroker.sendNotification({
       recipients: invitedWorkerIds,
       action: QuestNotificationActions.QuestEdited,
-      data: { ...questModelController.quest, responseType: QuestsResponseType.Invite },
+      data: { ...questModelController.quest.toJSON(), responseType: QuestsResponseType.Invite },
     });
 
     await this.clients.notificationsBroker.sendNotification({
       recipients: respondedWorkerIds,
       action: QuestNotificationActions.QuestEdited,
-      data: { ...questModelController.quest, responseType: QuestsResponseType.Response },
+      data: { ...questModelController.quest.toJSON(), responseType: QuestsResponseType.Response },
     });
 
     await this.clients.notificationsBroker.sendNotification({
