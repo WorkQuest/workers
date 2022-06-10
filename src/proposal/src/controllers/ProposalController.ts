@@ -1,16 +1,18 @@
-import {Op} from "sequelize";
+import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
-import {IController, ProposalEvents} from "./types";
-import {Clients, IContractProvider} from "../providers/types";
+import { IController, ProposalEvents } from "./types";
+import { Clients, IContractProvider } from "../providers/types";
+import { addJob } from "../../../utils/scheduler";
 import {
-  Proposal,
-  Discussion,
-  ProposalStatus,
-  ProposalParseBlock,
   BlockchainNetworks,
+  DaoPlatformStatisticFields,
+  Discussion,
+  Proposal,
   ProposalCreatedEvent,
   ProposalExecutedEvent,
+  ProposalParseBlock,
+  ProposalStatus,
   ProposalVoteCastEvent,
 } from "@workquest/database-models/lib/models";
 
@@ -39,6 +41,10 @@ export class ProposalController implements IController {
     } else if (eventsData.event === ProposalEvents.ProposalExecuted) {
       return this.proposalExecutedEventHandler(eventsData);
     }
+  }
+
+  private writeDaoStatistic(incrementField: DaoPlatformStatisticFields, by?: string | number) {
+    return addJob('writeActionStatistics', { incrementField, statistic: 'dao', by });
   }
 
   protected updateBlockViewHeight(blockHeight: number) {
@@ -144,7 +150,7 @@ export class ProposalController implements IController {
       where: { contractProposalId: eventsData.returnValues.proposalId },
     });
 
-    const [_, isCreated] = await ProposalVoteCastEvent.findOrCreate({
+    const [voteCastEvent, isCreated] = await ProposalVoteCastEvent.findOrCreate({
       where: {
         transactionHash,
         network: this.network,
@@ -177,6 +183,14 @@ export class ProposalController implements IController {
 
       return this.updateBlockViewHeight(eventsData.blockNumber);
     }
+
+    const incrementField = voteCastEvent.support
+      ? DaoPlatformStatisticFields.VotesFor
+      : DaoPlatformStatisticFields.VotesAgain;
+
+    await this.writeDaoStatistic(incrementField);
+    await this.writeDaoStatistic(DaoPlatformStatisticFields.Votes);
+    await this.writeDaoStatistic(DaoPlatformStatisticFields.DelegatedValue, voteCastEvent.votes)
 
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
