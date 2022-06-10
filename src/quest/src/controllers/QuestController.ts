@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { col, fn, Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
 import { addJob } from "../../../utils/scheduler";
@@ -39,7 +39,8 @@ import {
   QuestJobStartedEvent,
   QuestJobStartedEventStatus,
   QuestsPlatformStatisticFields,
-  QuestsResponseType,
+  QuestsResponse,
+  QuestsResponseStatus,
   QuestStatus,
   UserRole,
 } from "@workquest/database-models/lib/models";
@@ -197,32 +198,28 @@ export class QuestController implements IController {
       price: eventsData.returnValues.cost,
     });
 
-    const responses = await questResponsesModelController.getActiveResponses();
-    const responseWorkerIds = responses.map(response => {
-      return {
-        workerId: response.workerId,
-        responseType: response.type
+    const questsResponseWorkerIds = await QuestsResponse.findAll({
+      attributes: [
+        [fn('array_agg', col('"workerId"')), 'workerIds'],
+        'type'
+      ],
+      where: {
+        questId: questModelController.quest.id,
+        status: QuestsResponseStatus.Open,
+      },
+      group: ['type'],
+      order: [['type', 'ASC']]
+    });
+
+    if (questsResponseWorkerIds.length !== 0) {
+      for (const response of questsResponseWorkerIds) {
+        await this.clients.notificationsBroker.sendNotification({
+          action: QuestNotificationActions.QuestEdited,
+          recipients: response.getDataValue('workerIds'),
+          data: { ...questModelController.quest.toJSON(), responseType: response.type },
+        });
       }
-    });
-
-    const invitedWorkerIds = responseWorkerIds
-      .filter((response, i) => response.responseType === QuestsResponseType.Invite && respondedWorkerIds.indexOf(i) === i)
-      .map(response => response.workerId);
-    const respondedWorkerIds = responseWorkerIds
-      .filter((response, i) => response.responseType === QuestsResponseType.Response && respondedWorkerIds.indexOf(i) === i)
-      .map(response => response.workerId);
-
-    await this.clients.notificationsBroker.sendNotification({
-      recipients: invitedWorkerIds,
-      action: QuestNotificationActions.QuestEdited,
-      data: { ...questModelController.quest.toJSON(), responseType: QuestsResponseType.Invite },
-    });
-
-    await this.clients.notificationsBroker.sendNotification({
-      recipients: respondedWorkerIds,
-      action: QuestNotificationActions.QuestEdited,
-      data: { ...questModelController.quest.toJSON(), responseType: QuestsResponseType.Response },
-    });
+    }
 
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.userId],
