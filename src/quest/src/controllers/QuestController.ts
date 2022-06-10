@@ -100,6 +100,12 @@ export class QuestController implements IController {
         }),
       ]);
     }
+
+    return addJob('writeActionStatistics', {
+      incrementField: payload.incrementField,
+      statistic: 'quest',
+      type: 'increment'
+    });
   }
 
   private writeDisputeActionStatistics(payload: StatisticPayload) {
@@ -117,6 +123,12 @@ export class QuestController implements IController {
         }),
       ]);
     }
+
+    return addJob('writeActionStatistics', {
+      incrementField: payload.incrementField,
+      statistic: 'dispute',
+      type: 'increment'
+    });
   }
 
   protected updateBlockViewHeight(blockHeight: number): Promise<any> {
