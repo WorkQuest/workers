@@ -1,22 +1,26 @@
-import {Op} from "sequelize";
-import {Logger} from "../../logger/pino";
+import { Op } from "sequelize";
+import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
-import { IController, RaiseViewEvent } from './types';
-import { RaiseViewClients, IContractProvider } from '../providers/types';
+import { addJob } from "../../../utils/scheduler";
+import { IController, RaiseViewEvent, StatisticPayload } from './types';
+import { IContractProvider, RaiseViewClients } from '../providers/types';
 import { updateUserRaiseViewStatusJob } from "../../jobs/updateUserRaiseViewStatus";
 import { updateQuestRaiseViewStatusJob } from "../../jobs/updateQuestRaiseViewStatus";
 import {
-  User,
-  Quest,
-  Wallet,
-  UserRaiseView,
-  QuestRaiseView,
-  UserRaiseStatus,
-  QuestRaiseStatus,
+  RaiseViewsPlatformStatisticFields,
+  RaiseViewPromotedQuestEvent,
+  RaiseViewPromotedUserEvent,
   RaiseViewBlockInfo,
   BlockchainNetworks,
-  RaiseViewPromotedUserEvent,
-  RaiseViewPromotedQuestEvent,
+  QuestRaiseStatus,
+  UserRaiseStatus,
+  QuestRaiseView,
+  QuestRaiseType,
+  UserRaiseView,
+  UserRaiseType,
+  Wallet,
+  Quest,
+  User,
 } from '@workquest/database-models/lib/models';
 
 export class RaiseViewController implements IController {
@@ -28,6 +32,44 @@ export class RaiseViewController implements IController {
     this.contractProvider.subscribeOnEvents(async (eventData) => {
       return this.onEvent(eventData);
     });
+  }
+
+  private async writeUserStatistic(payload: StatisticPayload) {
+    const tariffs = {
+      Bronze: RaiseViewsPlatformStatisticFields.ProfilesBronze,
+      Silver: RaiseViewsPlatformStatisticFields.ProfilesSilver,
+      Gold: RaiseViewsPlatformStatisticFields.ProfilesGold,
+      GoldPlus: RaiseViewsPlatformStatisticFields.ProfilesGoldPlus
+    };
+
+    if (payload.oldTariff) {
+      await addJob('writeActionStatistics', { incrementField: tariffs[UserRaiseType[payload.oldTariff]], statistic: 'raiseView', type: 'decrement' });
+    }
+
+    await Promise.all([
+      addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.ProfilesTotal, statistic: 'raiseView' }),
+      addJob('writeActionStatistics', { incrementField: tariffs[UserRaiseType[payload.newTariff]], statistic: 'raiseView', type: 'increment' }),
+      addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.ProfilesSum, statistic: 'raiseView', by: payload.amount }),
+    ]);
+  }
+
+  private async writeQuestStatistic(payload: StatisticPayload) {
+    const tariffs = {
+      Bronze: RaiseViewsPlatformStatisticFields.QuestsBronze,
+      Silver: RaiseViewsPlatformStatisticFields.QuestsSilver,
+      Gold: RaiseViewsPlatformStatisticFields.QuestsGold,
+      GoldPlus: RaiseViewsPlatformStatisticFields.QuestsGoldPlus,
+    };
+
+    if (payload.oldTariff) {
+      await addJob('writeActionStatistics', { incrementField: tariffs[QuestRaiseType[payload.oldTariff]], statistic: 'raiseView', type: 'decrement' });
+    }
+
+    await Promise.all([
+      addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.QuestsTotal, statistic: 'raiseView' }),
+      addJob('writeActionStatistics', { incrementField: tariffs[QuestRaiseType[payload.newTariff]], statistic: 'raiseView', type: 'increment' }),
+      addJob('writeActionStatistics', { incrementField: RaiseViewsPlatformStatisticFields.QuestsSum, statistic: 'raiseView', by: payload.amount }),
+    ]);
   }
 
   public static toEndedAt(period: number): Date {
@@ -65,6 +107,7 @@ export class RaiseViewController implements IController {
     const tariff = eventsData.returnValues.tariff;
     const period = eventsData.returnValues.period;
     const promotedAt = eventsData.returnValues.promotedAt;
+    const amount = eventsData.returnValues.amount;
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const questContractAddress = eventsData.returnValues.quest.toLowerCase();
@@ -78,7 +121,7 @@ export class RaiseViewController implements IController {
 
     Logger.debug('Promoted quest event handler: quest data %o', quest);
 
-    const [,isCreated] = await RaiseViewPromotedQuestEvent.findOrCreate({
+    const [promotedQuestEvent, isCreated] = await RaiseViewPromotedQuestEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         tariff,
@@ -135,6 +178,12 @@ export class RaiseViewController implements IController {
       );
     }
 
+    await this.writeQuestStatistic({
+      oldTariff: questRaiseView.type,
+      newTariff: tariff,
+      amount
+    });
+
     await Promise.all([
       updateQuestRaiseViewStatusJob({
         questId: quest.id,
@@ -157,6 +206,7 @@ export class RaiseViewController implements IController {
     const tariff = eventsData.returnValues.tariff;
     const period = eventsData.returnValues.period;
     const promotedAt = eventsData.returnValues.promotedAt;
+    const amount = eventsData.returnValues.amount;
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const userWalletAddress = eventsData.returnValues.user.toLowerCase();
@@ -176,7 +226,7 @@ export class RaiseViewController implements IController {
 
     Logger.debug('Promoted user event handler: quest data %o', user);
 
-    const [, isCreated] = await RaiseViewPromotedUserEvent.findOrCreate({
+    const [promotedUserEvent, isCreated] = await RaiseViewPromotedUserEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         tariff,
@@ -232,6 +282,12 @@ export class RaiseViewController implements IController {
         transactionHash,
       );
     }
+
+    await this.writeUserStatistic({
+      oldTariff: userRaiseView.type,
+      newTariff: tariff,
+      amount
+    });
 
     await Promise.all([
       userRaiseView.update({

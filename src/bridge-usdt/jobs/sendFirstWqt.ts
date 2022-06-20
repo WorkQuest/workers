@@ -1,5 +1,4 @@
 import Web3 from "web3";
-import { ethers } from 'ethers';
 import BigNumber from "bignumber.js";
 import { Logger } from "../logger/pino";
 import { addJob } from "../utils/scheduler";
@@ -8,7 +7,6 @@ import {
   Transaction,
   TransactionStatus,
   FirstWqtTransmissionData,
-  TransmissionStatusFirstWqt,
 } from "@workquest/database-models/lib/models";
 
 export interface SendFirstWqtPayload {
@@ -45,9 +43,8 @@ export default async function (payload: SendFirstWqtPayload) {
 
     await transmissionData.update({ status: TransactionStatus.InProcess });
 
-    const faucetWallet = await ethers.utils.HDNode.fromMnemonic(configSwapUsdt.mnemonic).derivePath('m/44\'/60\'/0\'/0/0');
     const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestDevNetwork.linkRpcProvider));
-    const account = web3.eth.accounts.privateKeyToAccount(faucetWallet.privateKey);
+    const account = web3.eth.accounts.privateKeyToAccount(configSwapUsdt.faucetPrivateKey);
     web3.eth.accounts.wallet.add(account);
     web3.eth.defaultAccount = account.address;
 
@@ -68,7 +65,7 @@ export default async function (payload: SendFirstWqtPayload) {
     const transactionConfig = {
       gasPrice,
       gas: gasLimit,
-      from: faucetWallet.address,
+      from: configSwapUsdt.faucetWalletAddress,
       to: payload.recipientAddress,
       value: amountValueToUserMinusPlatformFee,
     };

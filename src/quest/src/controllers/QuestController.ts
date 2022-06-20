@@ -1,44 +1,49 @@
-import { Op } from "sequelize";
-import { IController, QuestEvent, QuestNotificationActions } from "./types";
-import { EventData } from "web3-eth-contract";
+import { col, fn, Op } from "sequelize";
 import { Logger } from "../../logger/pino";
+import { EventData } from "web3-eth-contract";
+import { addJob } from "../../../utils/scheduler";
+import { UserModelController } from "./models/UserModelController";
 import { IContractProvider, QuestClients } from "../providers/types";
 import { QuestModelController } from "./models/QuestModelController";
-import { UserModelController } from "./models/UserModelController";
-import { QuestResponsesModelController } from "./models/QuestResponsesModelController";
-import { QuestChatModelController } from "./models/QuestChatModelController";
-import { QuestDisputeModelController } from "./models/QuestDisputeModelController";
+import { IController, QuestEvent, QuestNotificationActions, StatisticPayload } from "./types";
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
+import { QuestChatModelController } from "./models/QuestChatModelController";
 import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
+import { QuestDisputeModelController } from "./models/QuestDisputeModelController";
+import { QuestResponsesModelController } from "./models/QuestResponsesModelController";
+import { incrementAdminDisputeStatisticJob } from "../../jobs/incrementAdminDisputeStatistic";
 import {
-  UserRole,
-  QuestStatus,
-  DisputeStatus,
-  QuestBlockInfo,
-  DisputeDecision,
-  QuestJobDoneEvent,
-  QuestJobDoneStatus,
   BlockchainNetworks,
-  QuestAssignedEvent,
-  QuestJobEditedEvent,
-  QuestJobStartedEvent,
-  QuestJobEditedStatus,
-  QuestJobFinishedEvent,
-  QuestJobCancelledEvent,
-  QuestAssignedEventStatus,
-  QuestJobStartedEventStatus,
-  QuestArbitrationReworkEvent,
-  QuestJobFinishedEventStatus,
-  QuestArbitrationReworkStatus,
-  QuestArbitrationStartedEvent,
-  QuestJobCancelledEventStatus,
-  QuestArbitrationStartedStatus,
-  QuestArbitrationRejectWorkEvent,
+  DisputeDecision,
+  DisputesPlatformStatisticFields,
+  DisputeStatus,
   QuestArbitrationAcceptWorkEvent,
   QuestArbitrationAcceptWorkStatus,
-  QuestArbitrationRejectWorkStatus, QuestsResponseType,
+  QuestArbitrationRejectWorkEvent,
+  QuestArbitrationRejectWorkStatus,
+  QuestArbitrationReworkEvent,
+  QuestArbitrationReworkStatus,
+  QuestArbitrationStartedEvent,
+  QuestArbitrationStartedStatus,
+  QuestAssignedEvent,
+  QuestAssignedEventStatus,
+  QuestBlockInfo,
+  QuestJobCancelledEvent,
+  QuestJobCancelledEventStatus,
+  QuestJobDoneEvent,
+  QuestJobDoneStatus,
+  QuestJobEditedEvent,
+  QuestJobEditedStatus,
+  QuestJobFinishedEvent,
+  QuestJobFinishedEventStatus,
+  QuestJobStartedEvent,
+  QuestJobStartedEventStatus,
+  QuestsPlatformStatisticFields,
+  QuestsResponse,
+  QuestsResponseStatus,
+  QuestStatus,
+  UserRole,
 } from "@workquest/database-models/lib/models";
-import { incrementAdminDisputeStatisticJob } from "../../jobs/incrementAdminDisputeStatistic";
 
 export class QuestController implements IController {
   constructor(
@@ -81,6 +86,52 @@ export class QuestController implements IController {
     }
   }
 
+  private writeQuestActionStatistics(payload: StatisticPayload) {
+    if (payload.oldStatus) {
+      return Promise.all([
+        addJob('writeActionStatistics', {
+          incrementField: payload.incrementField,
+          statistic: 'quest',
+          type: 'increment'
+        }),
+        addJob('writeActionStatistics', {
+          incrementField: QuestsPlatformStatisticFields[QuestStatus[payload.oldStatus]],
+          statistic: 'quest',
+          type: 'decrement'
+        }),
+      ]);
+    }
+
+    return addJob('writeActionStatistics', {
+      incrementField: payload.incrementField,
+      statistic: 'quest',
+      type: 'increment'
+    });
+  }
+
+  private writeDisputeActionStatistics(payload: StatisticPayload) {
+    if (payload.oldStatus) {
+      return Promise.all([
+        addJob('writeActionStatistics', {
+          incrementField: payload.incrementField,
+          statistic: 'dispute',
+          type: 'increment'
+        }),
+        addJob('writeActionStatistics', {
+          incrementField: DisputesPlatformStatisticFields[DisputeStatus[payload.oldStatus]],
+          statistic: 'dispute',
+          type: 'decrement'
+        }),
+      ]);
+    }
+
+    return addJob('writeActionStatistics', {
+      incrementField: payload.incrementField,
+      statistic: 'dispute',
+      type: 'increment'
+    });
+  }
+
   protected updateBlockViewHeight(blockHeight: number): Promise<any> {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
@@ -99,7 +150,6 @@ export class QuestController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
-    const questResponsesModelController = new QuestResponsesModelController(questModelController);
 
     const [questJobEditedEvent, isCreated] = await QuestJobEditedEvent.findOrCreate({
       where: {
@@ -147,32 +197,28 @@ export class QuestController implements IController {
       price: eventsData.returnValues.cost,
     });
 
-    const responses = await questResponsesModelController.getActiveResponses();
-    const responseWorkerIds = responses.map(response => {
-      return {
-        workerId: response.workerId,
-        responseType: response.type
+    const questsResponseWorkerIds = await QuestsResponse.unscoped().findAll({
+      attributes: [
+        [fn('array_agg', col('"workerId"')), 'workerIds'],
+        'type'
+      ],
+      where: {
+        questId: questModelController.quest.id,
+        status: QuestsResponseStatus.Open,
+      },
+      group: ['type'],
+      order: [['type', 'ASC']]
+    });
+
+    if (questsResponseWorkerIds.length !== 0) {
+      for (const response of questsResponseWorkerIds) {
+        await this.clients.notificationsBroker.sendNotification({
+          action: QuestNotificationActions.QuestEdited,
+          recipients: response.getDataValue('workerIds'),
+          data: { ...questModelController.quest.toJSON(), responseType: response.type },
+        });
       }
-    });
-
-    const invitedWorkerIds = responseWorkerIds
-      .filter(response => response.responseType === QuestsResponseType.Invite)
-      .map(response => response.workerId);
-    const respondedWorkerIds = responseWorkerIds
-      .filter(response => response.responseType === QuestsResponseType.Response)
-      .map(response => response.workerId);
-
-    await this.clients.notificationsBroker.sendNotification({
-      recipients: invitedWorkerIds,
-      action: QuestNotificationActions.QuestEdited,
-      data: { ...questModelController.quest, responseType: QuestsResponseType.Invite },
-    });
-
-    await this.clients.notificationsBroker.sendNotification({
-      recipients: respondedWorkerIds,
-      action: QuestNotificationActions.QuestEdited,
-      data: { ...questModelController.quest, responseType: QuestsResponseType.Response },
-    });
+    }
 
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.userId],
@@ -231,6 +277,11 @@ export class QuestController implements IController {
 
       return questJobCancelledEvent.update({ status: QuestJobCancelledEventStatus.QuestStatusDoesNotMatch });
     }
+
+    await this.writeQuestActionStatistics({
+      incrementField: QuestsPlatformStatisticFields.Closed,
+      oldStatus: questModelController.quest.status,
+    });
 
     await Promise.all([
       questModelController.closeQuest(),
@@ -303,6 +354,11 @@ export class QuestController implements IController {
       return questAssignedEvent.update({ status: QuestAssignedEventStatus.QuestStatusDoesNotMatch });
     }
 
+    await this.writeQuestActionStatistics({
+      incrementField: QuestsPlatformStatisticFields.WaitingForConfirmFromWorkerOnAssign,
+      oldStatus: questModelController.quest.status,
+    });
+
     await questModelController.assignWorkerOnQuest(workerModelController.user);
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.userId, workerModelController.user.id],
@@ -363,6 +419,11 @@ export class QuestController implements IController {
 
       return questJobStartedEvent.update({ status: QuestJobStartedEventStatus.QuestStatusDoesNotMatch });
     }
+
+    await this.writeQuestActionStatistics({
+      incrementField: QuestsPlatformStatisticFields.ExecutionOfWork,
+      oldStatus: questModelController.quest.status,
+    });
 
     await Promise.all([
       questModelController.startQuest(),
@@ -428,6 +489,11 @@ export class QuestController implements IController {
       return questJobDoneEvent.update({ status: QuestJobDoneStatus.QuestStatusDoesNotMatch });
     }
 
+    await this.writeQuestActionStatistics({
+      incrementField: QuestsPlatformStatisticFields.WaitingForEmployerConfirmationWork,
+      oldStatus: questModelController.quest.status,
+    });
+
     await questModelController.finishWork();
     await this.clients.notificationsBroker.sendNotification({
       recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
@@ -486,6 +552,11 @@ export class QuestController implements IController {
 
       return questJobFinishedEvent.update({ status: QuestJobFinishedEventStatus.QuestStatusDoesNotMatch });
     }
+
+    await this.writeQuestActionStatistics({
+      incrementField: QuestsPlatformStatisticFields.Completed,
+      oldStatus: questModelController.quest.status,
+    });
 
     await Promise.all([
       questModelController.completeQuest(),
@@ -559,6 +630,15 @@ export class QuestController implements IController {
       return questArbitrationStartedEvent.update({ status: QuestArbitrationStartedStatus.DisputeStatusDoesNotMatch });
     }
 
+    await this.writeQuestActionStatistics({
+      incrementField: QuestsPlatformStatisticFields.Dispute,
+      oldStatus: questModelController.quest.status,
+    });
+    await this.writeDisputeActionStatistics({
+      incrementField: DisputesPlatformStatisticFields.Created,
+      oldStatus: questDisputeModelController.dispute.status
+    });
+
     await questModelController.freezeQuestForDispute();
     await questDisputeModelController.confirmDispute();
 
@@ -628,6 +708,11 @@ export class QuestController implements IController {
 
       return questArbitrationAcceptWorkEvent.update({ status: QuestArbitrationAcceptWorkStatus.QuestNotFound });
     }
+
+    await this.writeDisputeActionStatistics({
+      incrementField: DisputesPlatformStatisticFields.Resolved,
+      oldStatus: questDisputeModelController.dispute.status
+    });
 
     await questModelController.completeQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.AcceptWork, timestamp);
@@ -704,7 +789,7 @@ export class QuestController implements IController {
       return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.DisputeNotFound });
     }
 
-    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
       Logger.warn('Arbitration reject work event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
@@ -719,6 +804,11 @@ export class QuestController implements IController {
 
       return questArbitrationRejectWorkEvent.update({ status: QuestArbitrationRejectWorkStatus.QuestNotFound });
     }
+
+    await this.writeDisputeActionStatistics({
+      incrementField: DisputesPlatformStatisticFields.Resolved,
+      oldStatus: questDisputeModelController.dispute.status
+    });
 
     await questModelController.closeQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.RejectWork, timestamp);
@@ -790,7 +880,7 @@ export class QuestController implements IController {
       return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.DisputeNotFound });
     }
 
-    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.InProgress)) {
+    if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
       Logger.warn('Arbitration rework event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
@@ -805,6 +895,11 @@ export class QuestController implements IController {
 
       return questArbitrationReworkEvent.update({ status: QuestArbitrationReworkStatus.QuestNotFound });
     }
+
+    await this.writeDisputeActionStatistics({
+      incrementField: DisputesPlatformStatisticFields.Resolved,
+      oldStatus: questDisputeModelController.dispute.status
+    });
 
     await questModelController.restartQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.Rework, timestamp);

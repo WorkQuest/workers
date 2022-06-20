@@ -11,8 +11,9 @@ import {
   QuestFactoryStatus,
   BlockchainNetworks,
   QuestFactoryBlockInfo,
-  QuestFactoryCreatedEvent,
+  QuestFactoryCreatedEvent, QuestsPlatformStatisticFields,
 } from '@workquest/database-models/lib/models';
+import { addJob } from "../../../utils/scheduler";
 
 export class QuestFactoryController implements IController {
   constructor(
@@ -116,6 +117,17 @@ export class QuestFactoryController implements IController {
 
       return;
     }
+
+    await addJob('writeActionStatistics', {
+      incrementedField: QuestsPlatformStatisticFields.Recruitment,
+      statistic: 'quest',
+    });
+
+    await addJob('writeActionStatistics', {
+      incrementedField: QuestsPlatformStatisticFields.Pending,
+      statistic: 'quest',
+      type: 'decrement'
+    });
 
     await Promise.all([
       quest.update({ contractAddress, status: QuestStatus.Recruitment }),
