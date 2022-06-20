@@ -710,7 +710,7 @@ export class QuestController implements IController {
     }
 
     await this.writeDisputeActionStatistics({
-      incrementField: DisputesPlatformStatisticFields.Resolved,
+      incrementField: DisputesPlatformStatisticFields.Closed,
       oldStatus: questDisputeModelController.dispute.status
     });
 
@@ -806,7 +806,7 @@ export class QuestController implements IController {
     }
 
     await this.writeDisputeActionStatistics({
-      incrementField: DisputesPlatformStatisticFields.Resolved,
+      incrementField: DisputesPlatformStatisticFields.Closed,
       oldStatus: questDisputeModelController.dispute.status
     });
 
@@ -897,7 +897,7 @@ export class QuestController implements IController {
     }
 
     await this.writeDisputeActionStatistics({
-      incrementField: DisputesPlatformStatisticFields.Resolved,
+      incrementField: DisputesPlatformStatisticFields.Closed,
       oldStatus: questDisputeModelController.dispute.status
     });
 
