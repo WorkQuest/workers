@@ -44,7 +44,8 @@ export default async function (payload: SendFirstWqtPayload) {
     await transmissionData.update({ status: TransactionStatus.InProcess });
 
     const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestDevNetwork.linkRpcProvider));
-    const account = web3.eth.accounts.privateKeyToAccount(configSwapUsdt.faucetPrivateKey);
+    const account = web3.eth.accounts.privateKeyToAccount(configSwapUsdt.accountSenderFirsWqt.privateKey);
+
     web3.eth.accounts.wallet.add(account);
     web3.eth.defaultAccount = account.address;
 
@@ -65,9 +66,9 @@ export default async function (payload: SendFirstWqtPayload) {
     const transactionConfig = {
       gasPrice,
       gas: gasLimit,
-      from: configSwapUsdt.faucetWalletAddress,
       to: payload.recipientAddress,
       value: amountValueToUserMinusPlatformFee,
+      from: configSwapUsdt.accountSenderFirsWqt.address,
     };
 
     await transmissionData.update({ gasPriceAtMoment: gasPrice });
