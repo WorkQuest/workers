@@ -8,6 +8,11 @@ export default {
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
   },
+  workQuestTestNetwork: {
+    linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
+  },
+  workQuestMainNetwork: {
+  },
   defaultConfigNetwork: (): { linkRpcProvider: string } => {
     // @ts-ignore
     return this.default[this.default.network];

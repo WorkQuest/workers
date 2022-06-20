@@ -13,7 +13,7 @@ export default {
   oracleLink: process.env.ORACLE_LINK,
   privateKey: process.env.SWAP_USDT_CONTRACT_PRIVATE_KEY,
   workQuestTestNetwork: {
-
+    linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
   },
   workQuestMainNetwork: {
 

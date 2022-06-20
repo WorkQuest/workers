@@ -9,7 +9,10 @@ export default {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
     linkMessageBroker: process.env.RABBIT_LINK
   },
-
+  workQuestTestNetwork: {
+    linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
+    linkMessageBroker: process.env.RABBIT_LINK
+  },
   defaultConfigNetwork: (): {
     linkRpcProvider: string,
     linkMessageBroker: string,
