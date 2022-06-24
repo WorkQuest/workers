@@ -160,14 +160,25 @@ export class ReferralController implements IController {
         model: Media.scope('urlOnly'),
         as: 'avatar',
       }]
-    })
+    });
+
+    const affiliateInfo = await User.unscoped().findOne({
+      attributes: ['id'],
+      include: [{
+        model: Wallet,
+        where: { address: referralAddress },
+        as: 'wallet',
+        required: true,
+        attributes: []
+      }],
+    });
 
     eventsData['timestamp'] = timestamp
 
     await this.clients.notificationsBroker.sendNotification({
       data: { referral: userInfo, event: eventsData },
       action: eventsData.event,
-      recipients: [affiliateAddress],
+      recipients: [affiliateAddress, affiliateInfo.id],
     });
 
     const [referralWallet,] = await Promise.all([
