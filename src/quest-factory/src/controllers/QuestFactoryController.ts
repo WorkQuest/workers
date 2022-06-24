@@ -1,6 +1,7 @@
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
+import { addJob } from "../../../utils/scheduler";
 import { IController, QuestFactoryEvent, QuestFactoryNotificationActions } from './types';
 import { QuestFactoryClients, IContractProvider } from '../providers/types';
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
@@ -13,7 +14,7 @@ import {
   QuestFactoryBlockInfo,
   QuestFactoryCreatedEvent, QuestsPlatformStatisticFields,
 } from '@workquest/database-models/lib/models';
-import { addJob } from "../../../utils/scheduler";
+import { sendNotificationAboutNewQuest } from "../../jobs/sendNotificationAboutNewQuest";
 
 export class QuestFactoryController implements IController {
   constructor(
@@ -133,6 +134,7 @@ export class QuestFactoryController implements IController {
       quest.update({ contractAddress, status: QuestStatus.Recruitment }),
       this.clients.questCacheProvider.set(contractAddress, { transactionHash, nonce }),
       updateQuestsStatisticJob({ userId: quest.userId, role: UserRole.Employer }),
+      sendNotificationAboutNewQuest(quest.id),
       this.clients.notificationsBroker.sendNotification({
         recipients: [quest.userId],
         action: QuestFactoryNotificationActions.QuestStatusUpdated,
