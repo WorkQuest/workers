@@ -62,7 +62,6 @@ jobs:
           ansible-playbook -i "${{ secrets.REMOTE_HOST }}" -e "ansible_user=${{ secrets.REMOTE_USER }} ansible_port=${{ secrets.REMOTE_PORT }} \
 
           DB_LINK=${{ secrets.DB_LINK }} \
-          SENTRY_LINK=${{ secrets.SENTRY_LINK }} \
           RABBIT_LINK=${{ secrets.RABBIT_LINK }} \
           ORACLE_LINK=${{ secrets.ORACLE_LINK }} \
           REDIS_LINK=${{ secrets.REDIS_LINK }} \
