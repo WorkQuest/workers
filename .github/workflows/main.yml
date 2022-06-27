@@ -102,7 +102,7 @@ jobs:
           PM2_RAISE_VIEW_WORKER_NAME=${{ secrets.PM2_RAISE_VIEW_WORKER_NAME }} \
           PM2_BRIDGE_USDT_WORKER_NAME=${{ secrets.PM2_BRIDGE_USDT_WORKER_NAME }} \
 
-          WORKERS_BIN=${{ secrets.WORKERS_BIN }} \
+          WORKERS_BIN=${{ secrets.BACKEND_BIN }} \
           SRC_DIR=${{ github.workspace }}/" backend-update.yml;
 
   deploy-develop:
