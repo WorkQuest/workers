@@ -9,4 +9,5 @@ export default {
   notificationMessageBroker: {
     link: process.env.NOTIFICATION_MESSAGE_BROKER_LINK,
   },
+  mqLink: process.env.RABBIT_LINK
 };

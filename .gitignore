@@ -12,6 +12,8 @@ scTopics
 # node-waf configuration
 .lock-wscript
 
+package-lock.json
+
 # Dependency directory
 node_modules
 
@@ -20,12 +22,22 @@ npm-debug.log
 
 # local env variables
 .env
+.env.borrowing
+.env.brokers
+.env.wqt
+.env.raiseView
 .env.bridge
 .env.liquidity
 .env.proposal
 .env.quest
 .env.WqtWbnb
 .env.pensionFund
+.env.referral
+.env.questFactory
+.env.fetcher
+.env.savingProduct
+.env.WqtWeth
+.env.bridgeUsdt
 
 # build directory
 build/
@@ -33,7 +45,7 @@ build/
 # lol macs
 .DS_Store/
 
-package-lock.json
+#package-lock.json
 # now pm2 app file is generating on deploy
 app.json
 .idea

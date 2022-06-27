@@ -3,7 +3,14 @@
 #BACKEND_BIN: '/home/centos/name-your-app'
 backend_bin_mode: '0640'
 bridge_env: .env.bridge
-liquidity_env: .env.liquidity
 pension_env: .env.pensionFund
 proposal_env: .env.proposal
 wqt_wbnb_env: .env.WqtWbnb
+referral_env: .env.referral
+quest_env: .env.quest
+quest_factory_env: .env.questFactory
+fetcher_env: .env.fetcher
+saving_product_env: .env.savingProduct
+raise_view_env: .env.raiseView
+wqt_weth_env: .env.WqtWeth
+bridge_usdt_env: .env.bridgeUsdt

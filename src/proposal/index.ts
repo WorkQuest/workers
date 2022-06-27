@@ -1,60 +1,56 @@
-import * as path from 'path';
-import * as fs from 'fs';
 import Web3 from 'web3';
+import { Logger } from "./logger/pino";
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
-import { ProposalContract } from './src/ProposalContract';
-import { ProposalEthListener } from './src/ProviderListener';
-import { ProposalProvider } from './src/ProposalProvider';
-import { initDatabase, BlockchainNetworks, ProposalParseBlock } from '@workquest/database-models/lib/models';
-
-const abiFilePath = path.join(__dirname, '../../src/proposal/abi/WQDAOVoting.json');
-const abi: any[] = JSON.parse(fs.readFileSync(abiFilePath).toString()).abi;
-
-// TODO Only test network
-const parseEthEventsFromHeight = configProposal.rinkebyTestNetwork.parseEventsFrom;
-const contractEthAddress = configProposal.rinkebyTestNetwork.contract;
-const urlEthProvider = configProposal.rinkebyTestNetwork.webSocketProvider;
+import { ProposalClients } from "./src/providers/types";
+import { ProposalProvider } from './src/providers/ProposalProvider';
+import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { ProposalController } from "./src/controllers/ProposalController";
+import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
+import { initDatabase, ProposalParseBlock, BlockchainNetworks } from '@workquest/database-models/lib/models';
 
 export async function init() {
-  console.log('Start listener proposal'); // TODO add pino
-
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const web3Eth = new Web3(
-    new Web3.providers.WebsocketProvider(urlEthProvider, {
-      clientConfig: {
-        keepalive: true,
-        keepaliveInterval: 60000, // ms
-      },
-      reconnect: {
-        auto: true,
-        delay: 1000, // ms
-        onTimeout: false,
-      },
-    }),
-  );
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.DAOVoting];
 
-  const [proposalInfo] = await ProposalParseBlock.findOrCreate({
-    where: { network: BlockchainNetworks.ethMainNetwork },
+  const {
+    linkRpcProvider,
+  } = configProposal.defaultConfigNetwork();
+
+  Logger.debug('Proposal starts on "%s" network', configProposal.network);
+  Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
+  Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
+
+  const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
+
+  const web3 = new Web3(rpcProvider);
+
+  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'proposal');
+  await transactionsBroker.init();
+
+  const clients: ProposalClients = { web3, transactionsBroker };
+
+  const proposalContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
+
+  const proposalProvider = new ProposalProvider(clients, proposalContract);
+  const proposalController = new ProposalController(clients, configProposal.network as BlockchainNetworks, proposalProvider);
+
+  const [proposalBlockInfo] = await ProposalParseBlock.findOrCreate({
+    where: { network: configProposal.network as BlockchainNetworks },
     defaults: {
-      network: BlockchainNetworks.ethMainNetwork,
-      lastParsedBlock: parseEthEventsFromHeight,
+      network: configProposal.network as BlockchainNetworks,
+      lastParsedBlock: contractData.deploymentHeight,
     },
   });
 
-  if (proposalInfo.lastParsedBlock < parseEthEventsFromHeight) {
-    proposalInfo.lastParsedBlock = parseEthEventsFromHeight;
+  await proposalController.collectAllUncollectedEvents(proposalBlockInfo.lastParsedBlock);
 
-    await proposalInfo.save();
-  }
-
-  const proposalEthProvider = new ProposalProvider(web3Eth, proposalInfo.lastParsedBlock);
-  const proposalEthContract = new ProposalContract(proposalEthProvider, contractEthAddress, abi);
-  const proposalEthListener = new ProposalEthListener(proposalEthContract, proposalInfo);
-
-  await proposalEthListener.parseProposalCreated();
-  await proposalEthListener.start();
+  await proposalProvider.startListener();
 }
 
-init().catch(console.error);
+init().catch(e => {
+  Logger.error(e, 'Worker "Proposal" is stopped with error');
+  process.exit(-1);
+});
+

@@ -10,19 +10,23 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "removeComments": true
+    "removeComments": true,
   },
-  "exclude": [
-    "node_modules",
-    "./src/pensionFund"
-  ],
+  "exclude": ["node_modules"],
   "include": [
     "./src/**/*.ts",
+    "./src/quest-factory/abi/*.json",
+    "./src/quest/abi/*.json",
     "./src/bridge/abi/*.json",
     "./src/proposal/abi/*.json",
-    "./src/dailyLiquidity/abi/*.json",
-    "./src/WqtWbnb/abi/*.json"
-//    "./src/pensionFund/abi/*.json"
+    "./src/daily-liquidity/abi/*.json",
+    "./src/Wqt-Wbnb/abi/*.json",
+    "./src/Wqt-Weth/abi/*.json",
+    "./src/pension-fund/abi/*.json",
+    "./src/referral-program/abi/*.json",
+    "./src/saving-product/abi/*.json",
+    "./src/raise-view/abi/*.json",
+    "./src/bridge-usdt/abi/*.json"
   ],
   "rootDir":  ["src"]
 }

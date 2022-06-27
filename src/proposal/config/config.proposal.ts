@@ -3,10 +3,19 @@ import { config } from 'dotenv';
 config({ path: __dirname + '/../../../.env.proposal' });
 
 export default {
-  debug: process.env.PROPOSAL_DEBUG === 'true',
-  rinkebyTestNetwork: {
-    parseEventsFrom: parseInt(process.env.PROPOSAL_RINKEBY_PARSE_EVENTS_FROM_HEIGHT),
-    contract: process.env.PROPOSAL_RINKEBY_CONTRACT,
-    webSocketProvider: process.env.PROPOSAL_RINKEBY_WEBSOCKET_PROVIDER,
+  logLevel: 'debug',
+  /** workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork */
+  network: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK,
+  workQuestDevNetwork: {
+    linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
+    linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
   },
-};
+  workQuestTestNetwork: {
+  },
+  workQuestMainNetwork: {
+  },
+  defaultConfigNetwork: (): { linkTendermintProvider: string, linkRpcProvider: string } => {
+    // @ts-ignore
+    return this.default[this.default.network];
+  },
+}

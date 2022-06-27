@@ -24,9 +24,9 @@
   become: yes
 
 - name: Install packages based on package.json
-  npm:
-    path: '{{ WORKERS_BIN }}'
-    state: present
+  shell: npm i
+  args:
+    chdir: '{{ WORKERS_BIN }}'
 
 - name: Build code
   shell: npm run build
@@ -43,11 +43,6 @@
     src: ./{{ bridge_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ bridge_env }}'
 
-- name: Copy or generate liquidity env file
-  template:
-    src: ./{{ liquidity_env }}.j2
-    dest: '{{ WORKERS_BIN }}/{{ liquidity_env }}'
-
 - name: Copy or generate pension-fund env file
   template:
     src: ./{{ pension_env }}.j2
@@ -62,6 +57,46 @@
   template:
     src: ./{{ wqt_wbnb_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ wqt_wbnb_env }}'
+
+- name: Copy or generate referral-program env file
+  template:
+    src: ./{{ referral_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ referral_env }}'
+
+- name: Copy or generate saving-product env file
+  template:
+    src: ./{{ saving_product_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ saving_product_env }}'
+
+- name: Copy or generate fetcher env file
+  template:
+    src: ./{{ fetcher_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ fetcher_env }}'
+
+- name: Copy or generate quest env file
+  template:
+    src: ./{{ quest_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ quest_env }}'
+
+- name: Copy or generate quest-factory env file
+  template:
+    src: ./{{ quest_factory_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ quest_factory_env }}'
+
+- name: Copy or generate raise-view env file
+  template:
+    src: ./{{ raise_view_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ raise_view_env }}'
+
+- name: Copy or generate wqt-weth env file
+  template:
+    src: ./{{ wqt_weth_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ wqt_weth_env }}'
+
+- name: Copy or generate bridge-usdt env file
+  template:
+    src: ./{{ bridge_usdt_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ bridge_usdt_env }}'
 
 - name: Start backend process
   shell: pm2 reload app.json
