@@ -147,9 +147,11 @@ export async function init() {
     polygonBridgeController.collectAllUncollectedEvents(networksPayload[configSwapUsdt.polygonscanNetwork]['lastParsedBlock']),
   ]);
 
-  bscSwapUsdtProvider.startListener();
-  ethSwapUsdtProvider.startListener();
-  polygonSwapUsdtProvider.startListener();
+  await Promise.all([
+    bscBridgeController.start(),
+    ethBridgeController.start(),
+    polygonBridgeController.start(),
+  ]);
 }
 
 init().catch(e => {

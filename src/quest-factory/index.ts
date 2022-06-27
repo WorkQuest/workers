@@ -63,7 +63,7 @@ export async function init() {
 
   await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
 
-  await questFactoryProvider.startListener();
+  await questFactoryController.start();
 }
 
 init().catch(e => {

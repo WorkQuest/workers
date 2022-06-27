@@ -46,7 +46,7 @@ export async function init() {
 
   await proposalController.collectAllUncollectedEvents(proposalBlockInfo.lastParsedBlock);
 
-  await proposalProvider.startListener();
+  await proposalController.start();
 }
 
 init().catch(e => {

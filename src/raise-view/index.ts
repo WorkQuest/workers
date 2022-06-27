@@ -46,7 +46,7 @@ export async function init() {
 
   await raiseViewController.collectAllUncollectedEvents(raiseViewBlockInfo.lastParsedBlock);
 
-  await raiseViewProvider.startListener();
+  await raiseViewController.start();
 }
 
 init().catch(e => {

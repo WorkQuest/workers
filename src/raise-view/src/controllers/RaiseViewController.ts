@@ -76,6 +76,17 @@ export class RaiseViewController implements IController {
     return new Date(Date.now() + 86400000 * period);
   }
 
+  protected async getLastCollectedBlock(): Promise<number> {
+    const { lastParsedBlock } = await RaiseViewBlockInfo.findOne({
+      where: { network: this.network }
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+
   protected updateBlockViewHeight(blockHeight: number): Promise<any> {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
@@ -305,7 +316,17 @@ export class RaiseViewController implements IController {
     Logger.debug('Promoted user event handler: create "%s"', transactionHash);
   }
 
-  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+  public async start() {
+    await this.contractProvider.startListener();
+
+    setInterval(async () => {
+      await this.collectAllUncollectedEvents();
+    }, 5 * 60 * 60 * 1000);
+  }
+
+  public async collectAllUncollectedEvents(fromBlockNumber?: number) {
+    fromBlockNumber ??= await this.getLastCollectedBlock();
+
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);

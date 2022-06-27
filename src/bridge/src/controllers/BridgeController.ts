@@ -1,5 +1,5 @@
 import Web3 from "web3";
-import {Op} from "sequelize";
+import { col, Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {BridgeEvents, IController} from "./types";
@@ -35,6 +35,16 @@ export class BridgeController implements IController {
     } else if (eventsData.event === BridgeEvents.SwapInitialized) {
       return this.swapInitializedEventHandler(eventsData);
     }
+  }
+
+  protected async getLastCollectedBlock(): Promise<number> {
+    const { lastParsedBlock } = await BridgeParserBlockInfo.findOne({
+      where: { network: this.network }
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
   }
 
   protected updateBlockViewHeight(blockHeight: number) {
@@ -187,7 +197,17 @@ export class BridgeController implements IController {
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
-  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+  public async start() {
+    await this.contractProvider.startListener();
+
+    setInterval(async () => {
+      await this.collectAllUncollectedEvents();
+    }, 5 * 60 * 60 * 1000); // 5 hours
+  }
+
+  public async collectAllUncollectedEvents(fromBlockNumber?: number) {
+    fromBlockNumber ??= await this.getLastCollectedBlock();
+
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);

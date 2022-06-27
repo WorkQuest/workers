@@ -54,7 +54,7 @@ export async function init() {
 
   await pensionFundController.collectAllUncollectedEvents(pensionFundBlockInfo.lastParsedBlock);
 
-  await pensionFundProvider.startListener();
+  await pensionFundController.start();
 }
 
 init().catch(e => {

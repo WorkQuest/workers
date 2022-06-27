@@ -32,6 +32,7 @@ export interface IController {
   readonly network: BlockchainNetworks;
   readonly contractProvider: IContractProvider;
 
-  collectAllUncollectedEvents(fromBlockNumber: number): Promise<void>;
+  start(): Promise<void>;
+  collectAllUncollectedEvents(fromBlockNumber?: number): Promise<void>;
 }
 

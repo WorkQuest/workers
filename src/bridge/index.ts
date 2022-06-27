@@ -18,11 +18,15 @@ import {
 export async function init() {
   await initDatabase(configDatabase.database.link, false, false);
 
-  const networks = [configBridge.bscNetwork, configBridge.ethereumNetwork, configBridge.workQuestNetwork];
-
   const contractEthData = Store[Networks.Eth][EthNetworkContracts.WqtBridge];
   const contractBnbData = Store[Networks.Bnb][BnbNetworkContracts.WqtBridge];
   const contractWorkNetData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WqtBridge];
+
+  const networks = [
+    { network: configBridge.bscNetwork, data: contractBnbData },
+    { network: configBridge.ethereumNetwork, data: contractEthData },
+    { network: configBridge.workQuestNetwork, data: contractWorkNetData }
+  ];
 
   Logger.debug('Binance smart chain network "%s"', configBridge.bscNetwork);
   Logger.debug('Ethereum network "%s"', configBridge.ethereumNetwork);
@@ -104,15 +108,15 @@ export async function init() {
 
   const blockInfos = new Map<string, number>();
 
-  for (const network of networks) {
+  for (const { network, data } of networks) {
     const [bridgeBlockInfo] = await BridgeParserBlockInfo.findOrCreate({
       where: { network },
-      defaults: { network, lastParsedBlock: configBridge[network].parseEventsFromHeight }
+      defaults: { network, lastParsedBlock: data.deploymentHeight }
     });
 
-    if (bridgeBlockInfo.lastParsedBlock < configBridge[network].parseEventsFromHeight) {
+    if (bridgeBlockInfo.lastParsedBlock < data.deploymentHeight) {
       await bridgeBlockInfo.update({
-        lastParsedBlock: configBridge[network].parseEventsFromHeight,
+        lastParsedBlock: data.deploymentHeight,
       });
     }
 
@@ -125,9 +129,11 @@ export async function init() {
     ethBridgeController.collectAllUncollectedEvents(blockInfos.get(configBridge.ethereumNetwork)),
   ]);
 
-  await wqBridgeProvider.startListener();
-  bscBridgeProvider.startListener();
-  ethBridgeProvider.startListener();
+  await Promise.all([
+    wqBridgeController.start(),
+    bscBridgeController.start(),
+    ethBridgeController.start(),
+  ]);
 }
 
 init().catch(e => {

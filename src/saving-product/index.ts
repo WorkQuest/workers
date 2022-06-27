@@ -48,7 +48,7 @@ export async function init() {
 
   await savingProductController.collectAllUncollectedEvents(savingProductBlockInfo.lastParsedBlock);
 
-  await savingProductProvider.startListener();
+  await savingProductController.start();
 }
 
 init().catch(e => {

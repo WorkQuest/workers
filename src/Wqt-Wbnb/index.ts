@@ -55,7 +55,7 @@ export async function init() {
 
   console.log('Start swap listener');
 
-  await wqtWbnbProvider.startListener();
+  await wqtWbnbController.start();
 }
 
 init().catch(e => {

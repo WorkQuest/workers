@@ -56,7 +56,7 @@ export async function init() {
 
   await referralController.collectAllUncollectedEvents(referralBlockInfo.lastParsedBlock);
 
-  await referralProvider.startListener();
+  await referralController.start();
 }
 
 init().catch(e => {
