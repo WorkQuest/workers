@@ -52,6 +52,7 @@ export default async function (payload: SendFirstWqtPayload) {
     web3.eth.defaultAccount = account.address;
 
     console.log('account.address ', account.address);
+    console.log(configSwapUsdt.workQuestDevNetwork.linkRpcProvider);
     console.log(await web3.eth.getBlockNumber());
 
     const gasLimit = 21000;
