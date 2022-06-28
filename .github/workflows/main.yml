@@ -63,7 +63,7 @@ jobs:
 
           DB_LINK=${{ secrets.DB_LINK }} \
           RABBIT_LINK=${{ secrets.RABBIT_LINK }} \
-          ORACLE_LINK=${{ secrets.ORACLE_LINK }}
+          ORACLE_LINK=${{ secrets.ORACLE_LINK }} \
           REDIS_LINK=${{ secrets.REDIS_LINK }} \
           NOTIFICATION_MESSAGE_BROKER_LINK=${{ secrets.NOTIFICATION_MESSAGE_BROKER_LINK }} \
 
