@@ -41,19 +41,13 @@ export default async function (payload: SendFirstWqtPayload) {
       return;
     }
 
-    console.log('In Proggess');
-
     await transmissionData.update({ status: TransactionStatus.InProcess });
 
-    const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestDevNetwork.linkRpcProvider));
+    const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestMainNetwork.linkRpcProvider));
     const account = web3.eth.accounts.privateKeyToAccount(configSwapUsdt.accountSenderFirsWqt.privateKey);
 
     web3.eth.accounts.wallet.add(account);
     web3.eth.defaultAccount = account.address;
-
-    console.log('account.address ', account.address);
-    console.log(configSwapUsdt.workQuestDevNetwork.linkRpcProvider);
-    console.log(await web3.eth.getBlockNumber());
 
     const gasLimit = 21000;
     const gasPrice = parseInt(await web3.eth.getGasPrice());
