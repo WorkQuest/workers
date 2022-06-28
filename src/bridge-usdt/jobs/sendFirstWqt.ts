@@ -41,6 +41,8 @@ export default async function (payload: SendFirstWqtPayload) {
       return;
     }
 
+    console.log('In Proggess');
+
     await transmissionData.update({ status: TransactionStatus.InProcess });
 
     const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestDevNetwork.linkRpcProvider));
@@ -49,8 +51,12 @@ export default async function (payload: SendFirstWqtPayload) {
     web3.eth.accounts.wallet.add(account);
     web3.eth.defaultAccount = account.address;
 
+    console.log('account.address ', account.address);
+
     const gasLimit = 21000;
     const gasPrice = parseInt(await web3.eth.getGasPrice());
+
+    console.log(gasPrice);
 
     const amountValueToUser = new BigNumber(payload.amount);
 
