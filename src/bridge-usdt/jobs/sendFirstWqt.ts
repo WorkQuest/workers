@@ -96,7 +96,10 @@ export default async function (payload: SendFirstWqtPayload) {
           transmissionData.status = TransactionStatus.TransactionError;
         }
 
-        await transaction.save();
+        await Promise.all([
+          transaction.save(),
+          transmissionData.save(),
+        ]);
       })
       .catch(async error => {
         await transmissionData.update({
