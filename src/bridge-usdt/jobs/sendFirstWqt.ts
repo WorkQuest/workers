@@ -52,6 +52,7 @@ export default async function (payload: SendFirstWqtPayload) {
     web3.eth.defaultAccount = account.address;
 
     console.log('account.address ', account.address);
+    console.log(await web3.eth.getGasPrice());
 
     const gasLimit = 21000;
     const gasPrice = parseInt(await web3.eth.getGasPrice());
