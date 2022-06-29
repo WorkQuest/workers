@@ -52,8 +52,6 @@ export default async function (payload: SendFirstWqtPayload) {
     const gasLimit = 21000;
     const gasPrice = parseInt(await web3.eth.getGasPrice());
 
-    console.log(gasPrice);
-
     const amountValueToUser = new BigNumber(payload.amount);
 
     const platformCommissionWithTxFee = new BigNumber(gasLimit * gasPrice)
