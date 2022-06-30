@@ -85,10 +85,10 @@ export async function init() {
       keepaliveInterval: 60000, // ms
     },
     reconnect: {
-      auto: true,
-      delay: 5000, // ms
-      maxAttempts: 5,
-      onTimeout: false
+      auto: false,
+      // delay: 5000, // ms
+      // maxAttempts: 5,
+      // onTimeout: false
     },
   })
 
