@@ -29,7 +29,6 @@
       "exec_mode": "fork",
       "instances": "1",
       "script": "./build/fetchers/index.js",
-      "cron_restart": "0 */5 * * *",
       "autorestart": true,
       "listen_timeout": 15000,
       "env": {
@@ -41,6 +40,54 @@
       "exec_mode": "fork",
       "instances": "1",
       "script": "./build/proposal/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_REFERRAL_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/referral-program/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_PENSION_FUND_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/pension-fund/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_QUEST_FACTORY_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/quest-factory/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_QUEST_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/quest/index.js",
       "cron_restart": "0 */5 * * *",
       "autorestart": true,
       "listen_timeout": 15000,
