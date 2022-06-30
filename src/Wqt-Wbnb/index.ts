@@ -20,6 +20,10 @@ export async function init() {
   await initDatabase(configDatabase.dbLink, false, true);
 
   const websocketProvider = new Web3.providers.WebsocketProvider(configWqtWbnb.wsProvider, {
+    clientConfig: {
+      keepalive: true,
+      keepaliveInterval: 60000
+    },
     reconnect: {
       auto: true,
       delay: 10000,
