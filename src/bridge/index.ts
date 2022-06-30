@@ -43,8 +43,9 @@ export async function init() {
     },
     reconnect: {
       auto: true,
-      delay: 1000, // ms
-      onTimeout: false,
+      delay: 5000, // ms
+      maxAttempts: 5,
+      onTimeout: false
     },
   });
 
@@ -55,8 +56,9 @@ export async function init() {
     },
     reconnect: {
       auto: true,
-      delay: 1000, // ms
-      onTimeout: false,
+      delay: 5000, // ms
+      maxAttempts: 5,
+      onTimeout: false
     },
   });
 
