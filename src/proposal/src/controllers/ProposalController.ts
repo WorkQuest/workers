@@ -75,7 +75,7 @@ export class ProposalController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Proposal created event handler: timestamp "%s", event data o%',
+      'Proposal created event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -151,7 +151,7 @@ export class ProposalController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Proposal vote cast event handler: timestamp "%s", event data o%',
+      'Proposal vote cast event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -211,7 +211,7 @@ export class ProposalController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     Logger.debug(
-      'Proposal executed event handler: timestamp "%s", event data o%',
+      'Proposal executed event handler: timestamp "%s", event data %o',
       timestamp, eventsData
     );
 

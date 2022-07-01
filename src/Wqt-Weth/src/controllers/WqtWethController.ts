@@ -74,7 +74,7 @@ export class WqtWethController {
 
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
 
-    Logger.debug('Sync event handler: timestamp "%s", event data o%',
+    Logger.debug('Sync event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );

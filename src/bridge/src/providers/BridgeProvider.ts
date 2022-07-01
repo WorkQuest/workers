@@ -16,7 +16,7 @@ export class BridgeProvider implements IContractProvider {
   private contractEventsListenerInit() {
     this.contract.events
       .allEvents({ fromBlock: "latest" })
-      .on('error', console.error)
+      .on('error', (error) => { throw error })
       .on('data', async (eventData) => await this.onEventData(eventData));
   }
 

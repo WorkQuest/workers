@@ -8,15 +8,17 @@ export default {
   bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
   ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork
   polygonscanNetwork: process.env.POLYGONSCAN_BLOCKCHAIN_NETWORK,//PolygonscanMainNetwork, MumbaiTestNetwork
-  faucetPrivateKey: process.env.PRIVATE_KEY_TO_SEND_FIRST_WQT,
-  faucetWalletAddress: process.env.WALLET_ADDRESS_TO_SEND_FIRST_WQT,
   oracleLink: process.env.ORACLE_LINK,
   privateKey: process.env.SWAP_USDT_CONTRACT_PRIVATE_KEY,
+  accountSenderFirsWqt: {
+    address: process.env.ACCOUNT_ADDRESS_TO_SEND_FIRST_WQT,
+    privateKey: process.env.ACCOUNT_PRIVATE_KEY_TO_SEND_FIRST_WQT,
+  },
   workQuestTestNetwork: {
-
+    linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
   },
   workQuestMainNetwork: {
-
+    linkRpcProvider: process.env.WORK_QUEST_MAIN_NETWORK_RPC_PROVIDER,
   },
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,

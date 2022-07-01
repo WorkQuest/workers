@@ -20,9 +20,7 @@ export class WqtWethProvider implements IContractProvider {
   private _eventListenerInit(fromBlock: number) {
     this.contract.events
       .allEvents({ fromBlock })
-      .on('error', (err) => {
-        console.error(err);
-      })
+      .on('error', (error) => { throw error })
       .on('data', (data) => this.onEventData(data));
   }
 

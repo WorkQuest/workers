@@ -314,7 +314,7 @@ export class QuestController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const workerAddress = eventsData.returnValues.worker.toLowerCase();
 
-    Logger.debug('Assigned event handler: timestamp "%s", event data o%', timestamp, eventsData);
+    Logger.debug('Assigned event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const workerModelController = await UserModelController.byWalletAddress(workerAddress);
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
@@ -383,7 +383,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Job started event handler: timestamp "%s", event data o%', timestamp, eventsData);
+    Logger.debug('Job started event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questResponsesModelController = new QuestResponsesModelController(questModelController);
@@ -454,7 +454,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Job done event handler: timestamp "%s", event data o%', timestamp, eventsData);
+    Logger.debug('Job done event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 
@@ -518,7 +518,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Job finished event handler: timestamp "%s", event data o%', timestamp, eventsData);
+    Logger.debug('Job finished event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 

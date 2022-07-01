@@ -1,6 +1,7 @@
 import { Logger } from "../../logger/pino";
 import { Contract, EventData } from "web3-eth-contract";
 import { SwapUsdtClients, IContractProvider, onEventCallBack } from "./types";
+import {WebsocketProvider} from "web3-core";
 
 export class SwapUsdtProvider implements IContractProvider {
 
@@ -16,7 +17,7 @@ export class SwapUsdtProvider implements IContractProvider {
   private contractEventsListenerInit() {
     this.contract.events
       .allEvents({ fromBlock: "latest" })
-      .on('error', console.error)
+      .on('error', (error) => { throw error })
       .on('data', async (eventData) => await this.onEventData(eventData));
   }
 

@@ -71,7 +71,7 @@ export class ReferralController implements IController {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     Logger.debug(
-      'Registered affiliate event handler: timestamp "%s", event data o%',
+      'Registered affiliate event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -132,7 +132,7 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
-    Logger.debug('Paid referral event handler: timestamp "%s", event data o%',
+    Logger.debug('Paid referral event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -210,7 +210,7 @@ export class ReferralController implements IController {
     const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
 
     Logger.debug(
-      'Reward claimed event handler: timestamp "%s", event data o%',
+      'Reward claimed event handler: timestamp "%s", event data %o',
       timestamp, eventsData
     );
 

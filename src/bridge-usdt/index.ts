@@ -60,7 +60,8 @@ export async function init() {
     },
     reconnect: {
       auto: true,
-      delay: 1000, // ms
+      delay: 5000, // ms
+      maxAttempts: 5,
       onTimeout: false,
     },
   });
@@ -72,7 +73,8 @@ export async function init() {
     },
     reconnect: {
       auto: true,
-      delay: 1000, // ms
+      delay: 5000, // ms
+      maxAttempts: 5,
       onTimeout: false,
     },
   });
@@ -84,10 +86,19 @@ export async function init() {
     },
     reconnect: {
       auto: true,
-      delay: 1000, // ms
+      delay: 5000, // ms
+      maxAttempts: 5,
       onTimeout: false,
     },
-  })
+  });
+
+  bscWsProvider.on('end', () => Logger.error('WS provider the end'));
+  ethWsProvider.on('end', () => Logger.error('WS provider the end'));
+  polygonWsProvider.on('end', () => Logger.error('WS provider the end'));
+
+  bscWsProvider.on('error', () => Logger.error('WS provider the error'));
+  ethWsProvider.on('error', () => Logger.error('WS provider the error'));
+  polygonWsProvider.on('error', () => Logger.error('WS provider the error'));
 
   const web3Bsc = new Web3(bscWsProvider);
   const web3Eth = new Web3(ethWsProvider);
