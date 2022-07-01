@@ -32,11 +32,6 @@ export class SwapUsdtProvider implements IContractProvider {
   public startListener() {
     this.contractEventsListenerInit();
 
-    if (this.clients.web3.currentProvider instanceof WebsocketProvider) {
-      this.clients.web3.currentProvider.on('end', () => Logger.error('WS provider the end'))
-      this.clients.web3.currentProvider.on('error', () => Logger.error('WS provider the error'))
-    }
-
     Logger.info('Start bridge listener on contract: "%s"', this.contract.options.address);
   }
 
