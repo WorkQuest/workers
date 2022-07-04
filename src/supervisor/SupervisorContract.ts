@@ -8,14 +8,12 @@ export class SupervisorContract {
     },
     options: {
       maxLimit: 3,
-      period: 5000,
-      maxBacklog: 10000,
+      period: 150000,
+      maxBacklog: 20000,
     },
   };
   protected readonly blockHeightSync = {
-    options: {
-      period: 5000,
-    }
+    options: { period: 150000 },
   }
 
   constructor(
