@@ -1,13 +1,18 @@
 import Web3 from "web3";
-import { run } from 'graphile-worker';
-import { Logger } from "./logger/pino";
+import {run} from 'graphile-worker';
+import {Logger} from "./logger/pino";
+import {SupervisorContract} from "../supervisor";
 import configDatabase from ".//config/config.common";
 import configSwapUsdt from "./config/config.swapUsdt";
-import { SwapUsdtEthClients } from "./src/providers/types";
-import { SwapUsdtProvider } from "./src/providers/SwapUsdtProvider";
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
-import { SwapUsdtController } from "./src/controllers/SwapUsdtController";
-import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
+import {SwapUsdtEthClients} from "./src/providers/types";
+import {SwapUsdtProvider} from "./src/providers/SwapUsdtProvider";
+import {NotificationBroker} from "../brokers/src/NotificationBroker";
+import {SwapUsdtController} from "./src/controllers/SwapUsdtController";
+import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
+import {
+  initDatabase,
+  BlockchainNetworks,
+} from "@workquest/database-models/lib/models";
 import {
   Store,
   Networks,
@@ -15,11 +20,6 @@ import {
   EthNetworkContracts,
   PolygonScanContracts,
 } from "@workquest/contract-data-pools";
-import {
-  initDatabase,
-  BlockchainNetworks,
-  BridgeSwapUsdtParserBlockInfo,
-} from "@workquest/database-models/lib/models";
 
 export async function init() {
   const contractEthData = Store[Networks.Eth][EthNetworkContracts.BridgeUSDT];
@@ -35,12 +35,6 @@ export async function init() {
     schema: 'worker_token_swap_txs',
     taskDirectory: `${__dirname}/jobs`, // Папка с исполняемыми тасками.
   });
-
-  const networksPayload = {
-    [configSwapUsdt.bscNetwork]: {},
-    [configSwapUsdt.ethereumNetwork]: {},
-    [configSwapUsdt.polygonscanNetwork]: {},
-  }
 
   Logger.debug('Ethereum network "%s"', configSwapUsdt.ethereumNetwork);
   Logger.debug('Polygon network "%s"', configSwapUsdt.polygonscanNetwork);
@@ -60,12 +54,11 @@ export async function init() {
     },
     reconnect: {
       auto: true,
-      delay: 5000, // ms
-      maxAttempts: 5,
+      delay: 1000, // ms
+      maxAttempts: 1,
       onTimeout: false,
     },
   });
-
   const ethWsProvider = new Web3.providers.WebsocketProvider(ethDefaultConfig.linkWsProvider, {
     clientConfig: {
       keepalive: true,
@@ -73,12 +66,11 @@ export async function init() {
     },
     reconnect: {
       auto: true,
-      delay: 5000, // ms
-      maxAttempts: 5,
+      delay: 1000, // ms
+      maxAttempts: 1,
       onTimeout: false,
     },
   });
-
   const polygonWsProvider = new Web3.providers.WebsocketProvider(polygonDefaultConfig.linkWsProvider, {
     clientConfig: {
       keepalive: true,
@@ -86,19 +78,11 @@ export async function init() {
     },
     reconnect: {
       auto: true,
-      delay: 5000, // ms
-      maxAttempts: 5,
+      delay: 1000, // ms
+      maxAttempts: 1,
       onTimeout: false,
     },
   });
-
-  bscWsProvider.on('end', () => Logger.error('WS provider the end'));
-  ethWsProvider.on('end', () => Logger.error('WS provider the end'));
-  polygonWsProvider.on('end', () => Logger.error('WS provider the end'));
-
-  bscWsProvider.on('error', () => Logger.error('WS provider the error'));
-  ethWsProvider.on('error', () => Logger.error('WS provider the error'));
-  polygonWsProvider.on('error', () => Logger.error('WS provider the error'));
 
   const web3Bsc = new Web3(bscWsProvider);
   const web3Eth = new Web3(ethWsProvider);
@@ -118,11 +102,26 @@ export async function init() {
   const ethClients: SwapUsdtEthClients = { web3: web3Eth, webSocketProvider: ethWsProvider, notificationsBroker };
   const polygonClients: SwapUsdtEthClients = { web3: web3Polygon, webSocketProvider: polygonWsProvider, notificationsBroker };
 
-  const bscSwapUsdtProvider = new SwapUsdtProvider(bscClients, SwapUsdtBscContract);
-  const ethSwapUsdtProvider = new SwapUsdtProvider(ethClients, SwapUsdtEthContract);
-  const polygonSwapUsdtProvider = new SwapUsdtProvider(polygonClients, SwapUsdtPolygonContract);
+  const oracleProvider = new OraclePricesProvider(configSwapUsdt.oracleLink);
 
-  const oracleProvider = new OraclePricesProvider(configSwapUsdt.oracleLink)
+  const bscSwapUsdtProvider = new SwapUsdtProvider(
+    contractBnbData.address,
+    contractBnbData.deploymentHeight,
+    SwapUsdtBscContract,
+    bscClients,
+  );
+  const ethSwapUsdtProvider = new SwapUsdtProvider(
+    contractBnbData.address,
+    contractBnbData.deploymentHeight,
+    SwapUsdtEthContract,
+    ethClients,
+  );
+  const polygonSwapUsdtProvider = new SwapUsdtProvider(
+    contractPolygonScanData.address,
+    contractPolygonScanData.deploymentHeight,
+    SwapUsdtPolygonContract,
+    polygonClients,
+  );
 
   const bscBridgeController = new SwapUsdtController(
     bscClients,
@@ -143,26 +142,26 @@ export async function init() {
     oracleProvider,
   );
 
-  for (const network in networksPayload) {
-    const [swapUsdtBlockInfo] = await BridgeSwapUsdtParserBlockInfo.findOrCreate({
-      where: { network },
-      defaults: { network, lastParsedBlock: configSwapUsdt[network].parseEventsFromHeight }
-    });
+  await new SupervisorContract(
+    Logger,
+    bscBridgeController,
+    bscSwapUsdtProvider,
+  )
+  .startTasks()
 
-    networksPayload[network]['lastParsedBlock'] = swapUsdtBlockInfo.lastParsedBlock;
-  }
+  await new SupervisorContract(
+    Logger,
+    ethBridgeController,
+    ethSwapUsdtProvider,
+  )
+  .startTasks()
 
-  await Promise.all([
-    bscBridgeController.collectAllUncollectedEvents(networksPayload[configSwapUsdt.bscNetwork]['lastParsedBlock']),
-    ethBridgeController.collectAllUncollectedEvents(networksPayload[configSwapUsdt.ethereumNetwork]['lastParsedBlock']),
-    polygonBridgeController.collectAllUncollectedEvents(networksPayload[configSwapUsdt.polygonscanNetwork]['lastParsedBlock']),
-  ]);
-
-  await Promise.all([
-    bscBridgeController.start(),
-    ethBridgeController.start(),
-    polygonBridgeController.start(),
-  ]);
+  await new SupervisorContract(
+    Logger,
+    polygonBridgeController,
+    polygonSwapUsdtProvider,
+  )
+  .startTasks()
 }
 
 init().catch(e => {
