@@ -1,9 +1,10 @@
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
-import { IController, QuestFactoryEvent, QuestFactoryNotificationActions } from './types';
+import { addJob } from "../../../utils/scheduler";
 import { QuestFactoryClients, IContractProvider } from '../providers/types';
 import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
+import { IController, QuestFactoryEvent, QuestFactoryNotificationActions } from './types';
 import {
   Quest,
   UserRole,
@@ -14,7 +15,7 @@ import {
   QuestFactoryCreatedEvent,
   QuestsPlatformStatisticFields,
 } from '@workquest/database-models/lib/models';
-import { addJob } from "../../../utils/scheduler";
+
 
 export class QuestFactoryController implements IController {
   constructor(
@@ -22,14 +23,15 @@ export class QuestFactoryController implements IController {
     public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      return this.onEvent(eventData);
-    });
   }
 
-  protected async getLastCollectedBlock(): Promise<number> {
-    const { lastParsedBlock } = await QuestFactoryBlockInfo.findOne({
-      where: { network: this.network }
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await QuestFactoryBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
     });
 
     Logger.debug('Last collected block: "%s"', lastParsedBlock);
@@ -37,11 +39,10 @@ export class QuestFactoryController implements IController {
     return lastParsedBlock;
   }
 
-
-  protected updateBlockViewHeight(blockHeight: number): Promise<any> {
+  protected async updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return QuestFactoryBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    await QuestFactoryBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -155,22 +156,12 @@ export class QuestFactoryController implements IController {
     Logger.debug('Created event handler: set into redis key "%s", value %o', contractAddress, { transactionHash, nonce });
   }
 
-  public async start() {
-    await this.contractProvider.startListener();
-
-    setInterval(async () => {
-      await this.collectAllUncollectedEvents();
-    }, 5 * 60 * 60 * 1000);
-  }
-
-  public async collectAllUncollectedEvents(fromBlockNumber?: number) {
-    fromBlockNumber ??= await this.getLastCollectedBlock();
-
+  public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (error) {
@@ -183,5 +174,25 @@ export class QuestFactoryController implements IController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }

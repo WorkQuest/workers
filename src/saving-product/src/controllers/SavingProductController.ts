@@ -17,9 +17,6 @@ export class SavingProductController implements IController {
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
   private async onEvent(eventsData: EventData) {
@@ -40,9 +37,13 @@ export class SavingProductController implements IController {
     }
   }
 
-  protected async getLastCollectedBlock(): Promise<number> {
-    const { lastParsedBlock } = await SavingProductParseBlock.findOne({
-      where: { network: this.network }
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await SavingProductParseBlock.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
     });
 
     Logger.debug('Last collected block: "%s"', lastParsedBlock);
@@ -50,10 +51,10 @@ export class SavingProductController implements IController {
     return lastParsedBlock;
   }
 
-  protected updateBlockViewHeight(blockHeight: number) {
+  protected async updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return SavingProductParseBlock.update({ lastParsedBlock: blockHeight }, {
+    await SavingProductParseBlock.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -205,20 +206,10 @@ export class SavingProductController implements IController {
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
-  public async start() {
-    await this.contractProvider.startListener();
+  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
-    setInterval(async () => {
-      await this.collectAllUncollectedEvents();
-    }, 5 * 60 * 60 * 1000); // 5 hours
-  }
-
-  public async collectAllUncollectedEvents(fromBlockNumber?: number) {
-    fromBlockNumber ??= await this.getLastCollectedBlock();
-
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
-
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -233,5 +224,25 @@ export class SavingProductController implements IController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }

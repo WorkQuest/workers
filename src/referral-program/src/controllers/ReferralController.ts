@@ -23,9 +23,6 @@ export class ReferralController implements IController {
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
   private async onEvent(eventsData: EventData) {
@@ -44,9 +41,13 @@ export class ReferralController implements IController {
     }
   }
 
-  protected async getLastCollectedBlock(): Promise<number> {
-    const { lastParsedBlock } = await ReferralProgramParseBlock.findOne({
-      where: { network: this.network }
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await ReferralProgramParseBlock.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
     });
 
     Logger.debug('Last collected block: "%s"', lastParsedBlock);
@@ -54,12 +55,12 @@ export class ReferralController implements IController {
     return lastParsedBlock;
   }
 
-  protected updateBlockViewHeight(blockHeight: number) {
+  protected async updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return ReferralProgramParseBlock.update(
+    await ReferralProgramParseBlock.update(
       { lastParsedBlock: blockHeight },
-      { where: { network: this.network } }
+      { where: { network: this.network } },
     );
   }
 
@@ -263,22 +264,12 @@ export class ReferralController implements IController {
     );
   }
 
-  public async start() {
-    await this.contractProvider.startListener();
-
-    setInterval(async () => {
-      await this.collectAllUncollectedEvents();
-    }, 5 * 60 * 60 * 1000) // 5 hours
-  }
-
-  public async collectAllUncollectedEvents(fromBlockNumber?: number) {
-    fromBlockNumber ??= await this.getLastCollectedBlock();
-
+  public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -295,4 +286,23 @@ export class ReferralController implements IController {
     }
   }
 
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
+  }
 }

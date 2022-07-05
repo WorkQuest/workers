@@ -1,27 +1,22 @@
 import Web3 from 'web3';
-import { Logger } from "./logger/pino";
+import {Logger} from "./logger/pino";
 import configDatabase from './config/config.database';
-import { PensionFundClients } from "./src/providers/types";
+import {PensionFundClients} from "./src/providers/types";
 import configPensionFund from './config/config.pensionFund';
-import { TransactionBroker } from "../brokers/src/TransactionBroker";
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
-import { PensionFundProvider } from "./src/providers/PensionFundProvider";
-import { PensionFundController } from "./src/controllers/PensionFundController";
-import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
-import {
-  initDatabase,
-  BlockchainNetworks,
-  PensionFundBlockInfo,
-} from '@workquest/database-models/lib/models';
+import {TransactionBroker} from "../brokers/src/TransactionBroker";
+import { NotificationBroker} from "../brokers/src/NotificationBroker";
+import {PensionFundProvider} from "./src/providers/PensionFundProvider";
+import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
+import {PensionFundController} from "./src/controllers/PensionFundController";
+import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
+import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
 
 export async function init() {
   await initDatabase(configDatabase.dbLink, false, false);
 
   const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.PensionFund];
 
-  const {
-    linkRpcProvider
-  } = configPensionFund.defaultConfigNetwork();
+  const { linkRpcProvider } = configPensionFund.defaultConfigNetwork();
 
   Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
   Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
@@ -41,20 +36,25 @@ export async function init() {
 
   const pensionFundContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const pensionFundProvider = new PensionFundProvider(clients, pensionFundContract);
-  const pensionFundController = new PensionFundController(clients, configPensionFund.network as BlockchainNetworks, pensionFundProvider);
+  const pensionFundProvider = new PensionFundProvider(
+    contractData.address,
+    contractData.deploymentHeight,
+    pensionFundContract,
+    clients,
+  );
 
-  const [pensionFundBlockInfo] = await PensionFundBlockInfo.findOrCreate({
-    where: { network: configPensionFund.network },
-    defaults: {
-      network: configPensionFund.network,
-      lastParsedBlock: contractData.deploymentHeight,
-    },
-  });
+  const pensionFundController = new PensionFundController(
+    clients,
+    configPensionFund.network as BlockchainNetworks,
+    pensionFundProvider,
+  );
 
-  await pensionFundController.collectAllUncollectedEvents(pensionFundBlockInfo.lastParsedBlock);
-
-  await pensionFundController.start();
+  await new SupervisorContract(
+    Logger,
+    pensionFundController,
+    pensionFundProvider,
+  )
+  .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 
 init().catch(e => {

@@ -2,10 +2,6 @@ import Web3 from "web3";
 import {EventData} from "web3-eth-contract";
 import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 
-export type OnContractFunction =
-  | ((type: 'error', callback: (error) => void) => void)
-  | ((type: 'events', callback: (eventData) => void) => void)
-
 export type ReceivedEvents = {
   error?: any,
   events: EventData[],
@@ -29,10 +25,11 @@ export interface Clients {
 }
 
 export interface IContractProvider {
-  readonly address: string;
-  readonly deploymentHeight: number;
+  readonly eventViewingHeight: number;
 
-  on: OnContractFunction;
+  on(type: 'error', callback: (error) => void);
+  on(type: 'events', callback: (eventData) => void);
+
   isListening(): Promise<boolean>;
   startListener(fromBlockNumber?: number): void;
   getAllEvents(fromBlockNumber: number): Promise<ReceivedEvents>;

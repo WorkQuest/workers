@@ -1,23 +1,21 @@
 import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
+import { IContractProvider } from "./types";
 import { PensionFundClients } from "./types";
 import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, IContractProvider } from "./types";
 import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 
 export class PensionFundProvider implements IContractProvider {
-  private readonly onEventCallBacks: onEventCallBack[] = [];
-
   private readonly preParsingSteps = 6000;
+  private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
-    public readonly clients: PensionFundClients,
+    public readonly address: string,
+    public readonly eventViewingHeight: number,
     public readonly contract: Contract,
-  ) {};
-
-  private async initBrokerListener() {
-    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
-  }
+    public readonly clients: PensionFundClients,
+  ) {
+  };
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
     const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.PensionFund];
@@ -43,18 +41,26 @@ export class PensionFundProvider implements IContractProvider {
 
   private onEventData(eventData) {
     return Promise.all(
-      this.onEventCallBacks.map(async callBack => callBack(eventData))
+      this.callbacks['events'].map(async callBack => callBack(eventData)),
     );
   }
 
   public async startListener() {
-    await this.initBrokerListener();
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this))
 
     Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
-  public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
-    this.onEventCallBacks.push(onEventCallBack);
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
+  }
+
+  public isListening(): Promise<boolean> {
+    return new Promise(() => true)
   }
 
   public async getAllEvents(fromBlockNumber: number) {
@@ -99,9 +105,9 @@ export class PensionFundProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, error, lastBlockNumber: fromBlock };
+      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, lastBlockNumber };
+    return { events: collectedEvents, lastBlockNumber };
   }
 }

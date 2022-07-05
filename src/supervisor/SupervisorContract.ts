@@ -1,5 +1,14 @@
 import {IContractProvider, IController} from "../types";
 
+export enum SupervisorContractTasks {
+  None = 0,
+
+  Heartbeat = 1 << 0,
+  BlockHeightSync = 1 << 1,
+
+  AllTasks = SupervisorContractTasks.BlockHeightSync | SupervisorContractTasks.Heartbeat,
+}
+
 export class SupervisorContract {
   protected readonly heartbeat = {
     state: {
@@ -23,7 +32,7 @@ export class SupervisorContract {
   ) {
   }
 
-  public startHeartbeat() {
+  private startHeartbeat() {
     this.heartbeat.state.limit = 0;
     this.heartbeat.state.timestamp = Date.now();
 
@@ -79,7 +88,7 @@ export class SupervisorContract {
     }, this.heartbeat.options.period + 5000);
   }
 
-  public startBlockHeightSync() {
+  private startBlockHeightSync() {
     this.Logger.debug('Supervisor BlockHeightSync (network: %s): Start block height sync, options: %o',
       this.controller.network,
       this.heartbeat.options,
@@ -106,12 +115,16 @@ export class SupervisorContract {
     }, this.blockHeightSync.options.period);
   }
 
-  public async startTasks() {
+  public async startTasks(includedTasks: SupervisorContractTasks = SupervisorContractTasks.AllTasks) {
     try {
       await this.controller.start();
 
-      this.startHeartbeat();
-      this.startBlockHeightSync();
+      if ((includedTasks & SupervisorContractTasks.Heartbeat) != 0) {
+        this.startHeartbeat();
+      }
+      if ((includedTasks & SupervisorContractTasks.BlockHeightSync) != 0) {
+        this.startBlockHeightSync();
+      }
     } catch (error) {
       this.Logger.error(error, 'Supervisor (network: %s): supervisor crash with unknown error',
         this.controller.network,

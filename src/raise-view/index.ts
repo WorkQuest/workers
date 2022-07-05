@@ -1,17 +1,14 @@
 import Web3 from 'web3';
-import { Logger } from "./logger/pino";
+import {Logger} from "./logger/pino";
 import configDatabase from "./config/config.database";
 import configRaiseView from "./config/config.raiseView";
-import { RaiseViewClients } from "./src/providers/types";
-import { TransactionBroker } from "../brokers/src/TransactionBroker";
-import { RaiseViewProvider } from "./src/providers/RaiseViewProvider";
-import { RaiseViewController } from "./src/controllers/RaiseViewController";
-import { Store, Networks, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
-import {
-  initDatabase,
-  BlockchainNetworks,
-  RaiseViewBlockInfo,
-} from '@workquest/database-models/lib/models';
+import {RaiseViewClients} from "./src/providers/types";
+import {TransactionBroker} from "../brokers/src/TransactionBroker";
+import {RaiseViewProvider} from "./src/providers/RaiseViewProvider";
+import {RaiseViewController} from "./src/controllers/RaiseViewController";
+import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
+import {Store, Networks, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
+import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
 
 export async function init() {
   Logger.info('Start worker "Raise view". Network: "%s"', configRaiseView.network);
@@ -33,20 +30,25 @@ export async function init() {
 
   const clients: RaiseViewClients = { web3, transactionsBroker };
 
-  const [raiseViewBlockInfo] = await RaiseViewBlockInfo.findOrCreate({
-    where: { network: BlockchainNetworks.workQuestDevNetwork },
-    defaults: {
-      network: BlockchainNetworks.workQuestDevNetwork,
-      lastParsedBlock: contractData.deploymentHeight,
-    },
-  });
+  const raiseViewProvider = new RaiseViewProvider(
+    contractData.address,
+    contractData.deploymentHeight,
+    raiseViewContract,
+    clients,
+  );
 
-  const raiseViewProvider = new RaiseViewProvider(clients, raiseViewContract);
-  const raiseViewController = new RaiseViewController(clients, raiseViewProvider, configRaiseView.network as BlockchainNetworks);
+  const raiseViewController = new RaiseViewController(
+    clients,
+    raiseViewProvider,
+    configRaiseView.network as BlockchainNetworks
+  );
 
-  await raiseViewController.collectAllUncollectedEvents(raiseViewBlockInfo.lastParsedBlock);
-
-  await raiseViewController.start();
+  await new SupervisorContract(
+    Logger,
+    raiseViewController,
+    raiseViewProvider,
+  )
+  .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 
 init().catch(e => {

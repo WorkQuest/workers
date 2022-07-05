@@ -3,13 +3,12 @@ import { Contract, EventData } from "web3-eth-contract";
 import { SwapUsdtClients, IContractProvider } from "./types";
 
 export class SwapUsdtProvider implements IContractProvider {
-
   private readonly preParsingSteps = 6000;
   private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor(
     public readonly address: string,
-    public readonly deploymentHeight: number,
+    public readonly eventViewingHeight: number,
     public readonly contract: Contract,
     public readonly clients: SwapUsdtClients,
   ) {

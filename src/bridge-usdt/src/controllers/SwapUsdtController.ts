@@ -31,7 +31,7 @@ export class SwapUsdtController implements IController {
       where: { network: this.network },
       defaults: {
         network: this.network,
-        lastParsedBlock: this.contractProvider.deploymentHeight,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
       },
     });
 
@@ -185,5 +185,9 @@ export class SwapUsdtController implements IController {
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()
     );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }
