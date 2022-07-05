@@ -43,7 +43,7 @@ export default async function (payload: SendFirstWqtPayload) {
 
     await transmissionData.update({ status: TransactionStatus.InProcess });
 
-    const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestDevNetwork.linkRpcProvider));
+    const web3 = new Web3(new Web3.providers.HttpProvider(configSwapUsdt.workQuestMainNetwork.linkRpcProvider));
     const account = web3.eth.accounts.privateKeyToAccount(configSwapUsdt.accountSenderFirsWqt.privateKey);
 
     web3.eth.accounts.wallet.add(account);
@@ -86,13 +86,18 @@ export default async function (payload: SendFirstWqtPayload) {
           network: configSwapUsdt.workQuestNetwork,
         });
 
+
+        transmissionData.status = TransactionStatus.Success;
         transmissionData.transactionHashTransmissionWqt = transaction.hash;
 
         if (!receipt.status) {
           transmissionData.status = TransactionStatus.TransactionError;
         }
 
-        await transaction.save();
+        await Promise.all([
+          transaction.save(),
+          transmissionData.save(),
+        ]);
       })
       .catch(async error => {
         await transmissionData.update({

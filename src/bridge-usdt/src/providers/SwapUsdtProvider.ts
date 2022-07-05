@@ -1,41 +1,54 @@
 import { Logger } from "../../logger/pino";
 import { Contract, EventData } from "web3-eth-contract";
-import { SwapUsdtClients, IContractProvider, onEventCallBack } from "./types";
+import { SwapUsdtClients, IContractProvider } from "./types";
 
 export class SwapUsdtProvider implements IContractProvider {
-
-  private readonly onEventCallBacks: onEventCallBack[] = [];
-
   private readonly preParsingSteps = 6000;
+  private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor(
-    public readonly clients: SwapUsdtClients,
+    public readonly address: string,
+    public readonly eventViewingHeight: number,
     public readonly contract: Contract,
-  ) {}
+    public readonly clients: SwapUsdtClients,
+  ) {
+  }
 
-  private contractEventsListenerInit() {
-    this.contract.events
-      .allEvents({ fromBlock: "latest" })
-      .on('error', console.error)
-      .on('data', async (eventData) => await this.onEventData(eventData));
+  private onError(error) {
+    return Promise.all(
+      this.callbacks['error'].map(async (callBack) => {
+        return callBack(error);
+      }),
+    );
   }
 
   private onEventData(eventData) {
     return Promise.all(
-      this.onEventCallBacks.map(async (callBack) => {
+      this.callbacks['events'].map(async (callBack) => {
         return callBack(eventData);
       }),
     );
   }
 
-  public startListener() {
-    this.contractEventsListenerInit();
+  public startListener(fromBlockNumber?: number) {
+    this.contract.events
+      .allEvents({ fromBlock: fromBlockNumber || "latest" })
+      .on('error', (error) => this.onError(error))
+      .on('data', async (eventData) => await this.onEventData(eventData))
 
     Logger.info('Start bridge listener on contract: "%s"', this.contract.options.address);
   }
 
-  public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
-    this.onEventCallBacks.push(onEventCallBack);
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
+  }
+
+  public isListening(): Promise<boolean> {
+    return this.clients.web3.eth.net.isListening();
   }
 
   public async getAllEvents(fromBlockNumber: number) {
@@ -84,9 +97,9 @@ export class SwapUsdtProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, error, lastBlockNumber: fromBlock };
+      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, lastBlockNumber };
+    return { events: collectedEvents, lastBlockNumber };
   }
 }

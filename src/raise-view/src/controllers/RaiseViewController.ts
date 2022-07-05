@@ -29,9 +29,6 @@ export class RaiseViewController implements IController {
     public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      return this.onEvent(eventData);
-    });
   }
 
   private async writeUserStatistic(payload: StatisticPayload) {
@@ -76,10 +73,24 @@ export class RaiseViewController implements IController {
     return new Date(Date.now() + 86400000 * period);
   }
 
-  protected updateBlockViewHeight(blockHeight: number): Promise<any> {
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await RaiseViewBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return RaiseViewBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    await RaiseViewBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -306,11 +317,12 @@ export class RaiseViewController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
+
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (error) {
@@ -325,5 +337,25 @@ export class RaiseViewController implements IController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }

@@ -1,30 +1,25 @@
 import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
 import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, IContractProvider, ReferralClients } from "./types";
-import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
+import { IContractProvider, ReferralClients } from "./types";
 
 export class ReferralProvider implements IContractProvider {
-  private readonly onEventCallBacks: onEventCallBack[] = [];
-
   private readonly preParsingSteps = 6000;
+  private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
+    public readonly address: string,
+    public readonly eventViewingHeight: number,
     public readonly clients: ReferralClients,
     public readonly contract: Contract,
-  ) {};
-
-  private async initBrokerListener() {
-    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
-    await this.clients.communicationBroker.initConsumer(this.onEventFromCommunicationBroker.bind(this));
-  }
+  ) {
+  };
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Referral];
 
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
+      .filter(tx => tx.to && tx.to.toLowerCase() === this.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {
@@ -54,18 +49,27 @@ export class ReferralProvider implements IContractProvider {
 
   private onEventData(eventData) {
     return Promise.all(
-      this.onEventCallBacks.map(async callBack => callBack(eventData))
+      this.callbacks['events'].map(async callBack => callBack(eventData)),
     );
   }
 
   public async startListener() {
-    await this.initBrokerListener();
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
+    await this.clients.communicationBroker.initConsumer(this.onEventFromCommunicationBroker.bind(this));
 
     Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
-  public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
-    this.onEventCallBacks.push(onEventCallBack);
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
+  }
+
+  public isListening(): Promise<boolean> {
+    return new Promise(() => true)
   }
 
   public async getAllEvents(fromBlockNumber: number) {
@@ -94,7 +98,6 @@ export class ReferralProvider implements IContractProvider {
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
-
         collectedEvents.push(...eventsData);
 
         Logger.info('Collected events per range: "%s". Collected events: "%s". Left to collect blocks "%s"',
@@ -112,9 +115,9 @@ export class ReferralProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, error, lastBlockNumber: fromBlock };
+      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, lastBlockNumber };
+    return { events: collectedEvents, lastBlockNumber };
   }
 }

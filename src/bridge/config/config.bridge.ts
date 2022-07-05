@@ -15,8 +15,10 @@ export default {
     parseEventsFromHeight: parseInt(process.env.WORK_QUEST_DEV_NETWORK_BRIDGE_PARSE_EVENTS_FROM_HEIGHT) || 0,
   },
   workQuestTestNetwork: {
+    linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
   },
   workQuestMainNetwork: {
+    linkRpcProvider: process.env.WORK_QUEST_MAIN_NETWORK_RPC_PROVIDER,
   },
   ethereumMainNetwork: {
     parseEventsFromHeight: parseInt(process.env.BRIDGE_ETH_MAINNETWORK_PARSE_EVENTS_FROM_HEIGHT) || 0,

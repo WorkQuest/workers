@@ -17,9 +17,6 @@ export class SavingProductController implements IController {
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
   private async onEvent(eventsData: EventData) {
@@ -40,10 +37,24 @@ export class SavingProductController implements IController {
     }
   }
 
-  protected updateBlockViewHeight(blockHeight: number) {
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await SavingProductParseBlock.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return SavingProductParseBlock.update({ lastParsedBlock: blockHeight }, {
+    await SavingProductParseBlock.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -196,9 +207,9 @@ export class SavingProductController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -213,5 +224,25 @@ export class SavingProductController implements IController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }

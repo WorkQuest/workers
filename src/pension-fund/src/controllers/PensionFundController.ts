@@ -17,9 +17,6 @@ export class PensionFundController {
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
   private async onEvent(eventsData: EventData) {
@@ -38,6 +35,20 @@ export class PensionFundController {
     }
   }
 
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await PensionFundBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: last block "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
   protected updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
@@ -45,7 +56,7 @@ export class PensionFundController {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
-      }
+      },
     });
   }
 
@@ -178,12 +189,12 @@ export class PensionFundController {
     return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
-  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+  protected async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -198,5 +209,25 @@ export class PensionFundController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }
