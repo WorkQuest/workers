@@ -1,12 +1,13 @@
 import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
-import { WqtWbnbEvent, WqtWbnbNotificationActions } from './types';
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
+import {IController, WqtWbnbEvent, WqtWbnbNotificationActions} from './types';
 import {
   Coin,
+  WqtWbnbClients,
   IContractProvider,
-  TokenPriceProvider, WqtWbnbClients,
+  TokenPriceProvider,
 } from '../providers/types';
 import {
   WqtWbnbBlockInfo,
@@ -18,21 +19,22 @@ import {
   DailyLiquidityWqtWbnb,
 } from '@workquest/database-models/lib/models';
 
-export class WqtWbnbController {
+export class WqtWbnbController implements IController {
   constructor(
     public readonly contractProvider: IContractProvider,
     private readonly tokenPriceProvider: TokenPriceProvider,
     private readonly clients: WqtWbnbClients,
-    private readonly network: BlockchainNetworks,
+    public readonly network: BlockchainNetworks,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
-  protected async getLastCollectedBlock(): Promise<number> {
-    const { lastParsedBlock } = await WqtWbnbBlockInfo.findOne({
-      where: { network: this.network }
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await WqtWbnbBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
     });
 
     Logger.debug('Last collected block: "%s"', lastParsedBlock);
@@ -40,11 +42,10 @@ export class WqtWbnbController {
     return lastParsedBlock;
   }
 
-
-  protected updateBlockViewHeight(blockHeight: number): Promise<any> {
+  protected async updateBlockViewHeight(blockHeight: number): Promise<any> {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return WqtWbnbBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    await WqtWbnbBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -347,20 +348,10 @@ export class WqtWbnbController {
     return this.tokenPriceProvider.coinPriceInUSD(timestamp, coin);
   }
 
-  public async start() {
-    await this.contractProvider.startListener();
+  public async collectAllUncollectedEvents(fromBlockNumber: number) {
+    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
 
-    setInterval(async () => {
-      await this.collectAllUncollectedEvents();
-    }, 5 * 60 * 60 * 1000); // 5 hours
-  }
-
-  public async collectAllUncollectedEvents(fromBlockNumber?: number) {
-    fromBlockNumber ??= await this.getLastCollectedBlock();
-
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
-
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -375,5 +366,25 @@ export class WqtWbnbController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }
