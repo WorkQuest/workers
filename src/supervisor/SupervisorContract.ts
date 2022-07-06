@@ -91,7 +91,7 @@ export class SupervisorContract {
   private startBlockHeightSync() {
     this.Logger.debug('Supervisor BlockHeightSync (network: %s): Start block height sync, options: %o',
       this.controller.network,
-      this.heartbeat.options,
+      this.blockHeightSync.options,
     );
 
     setInterval(async () => {
