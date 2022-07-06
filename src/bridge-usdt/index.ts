@@ -111,8 +111,8 @@ export async function init() {
     bscClients,
   );
   const ethSwapUsdtProvider = new SwapUsdtProvider(
-    contractBnbData.address,
-    contractBnbData.deploymentHeight,
+    contractEthData.address,
+    contractEthData.deploymentHeight,
     SwapUsdtEthContract,
     ethClients,
   );
