@@ -1,4 +1,6 @@
 import Web3 from 'web3';
+import {SupervisorContract} from "../supervisor";
+import {Logger} from "../bridge-usdt/logger/pino";
 import configWqtWeth from './config/config.WqtWeth';
 import configDatabase from './config/config.database';
 import { WqtWethClients } from "./src/providers/types";
@@ -7,11 +9,7 @@ import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import { WqtWethController } from './src/controllers/WqtWethController';
 import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
 import {EthNetworkContracts, Networks, Store} from "@workquest/contract-data-pools";
-import {
-  initDatabase,
-  WqtWethBlockInfo,
-  BlockchainNetworks,
-} from '@workquest/database-models/lib/models';
+import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
 
 export async function init() {
   const contractData = Store[Networks.Eth][EthNetworkContracts.WqtWeth];
@@ -19,6 +17,10 @@ export async function init() {
   await initDatabase(configDatabase.dbLink, false, true);
 
   const websocketProvider = new Web3.providers.WebsocketProvider(configWqtWeth.wsProvider, {
+    clientConfig: {
+      keepalive: true,
+      keepaliveInterval: 60000
+    },
     reconnect: {
       auto: true,
       delay: 10000,
@@ -33,7 +35,13 @@ export async function init() {
   const wqtWethContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const clients: WqtWethClients = { web3, notificationsBroker };
-  const wqtWethProvider = new WqtWethProvider(clients, wqtWethContract);
+
+  const wqtWethProvider = new WqtWethProvider(
+    contractData.address,
+    contractData.deploymentHeight,
+    wqtWethContract,
+    clients,
+  );
 
   const wqtWethController = new WqtWethController(
     wqtWethProvider,
@@ -42,19 +50,12 @@ export async function init() {
     BlockchainNetworks.ethMainNetwork,
   );
 
-  const [wqtWethBlockInfo] = await WqtWethBlockInfo.findOrCreate({
-    where: { network: BlockchainNetworks.ethMainNetwork },
-    defaults: {
-      network: BlockchainNetworks.ethMainNetwork,
-      lastParsedBlock: contractData.deploymentHeight,
-    },
-  });
-
-  await wqtWethController.collectAllUncollectedEvents(wqtWethBlockInfo.lastParsedBlock);
-
-  console.log('Start swap listener');
-
-  await wqtWethProvider.startListener();
+  await new SupervisorContract(
+    Logger,
+    wqtWethController,
+    wqtWethProvider,
+  )
+  .startTasks()
 }
 
 init().catch(e => {

@@ -1,21 +1,18 @@
 import Web3 from "web3";
-import { createClient } from "redis";
-import { Logger } from "./logger/pino";
-import { QuestClients } from "./src/providers/types";
+import {createClient} from "redis";
+import {Logger} from "./logger/pino";
 import configQuest from "./config/config.quest";
+import {QuestClients } from "./src/providers/types";
 import configDatabase from "./config/config.database";
-import { QuestProvider } from "./src/providers/QuestProvider";
-import { TransactionBroker } from "../brokers/src/TransactionBroker";
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
-import { QuestController } from "./src/controllers/QuestController";
-import { QuestCacheProvider } from "./src/providers/QuestCacheProvider";
-import { CommunicationBroker } from "../brokers/src/CommunicationBroker";
+import {QuestProvider} from "./src/providers/QuestProvider";
+import {QuestController} from "./src/controllers/QuestController";
+import {TransactionBroker} from "../brokers/src/TransactionBroker";
+import {NotificationBroker} from "../brokers/src/NotificationBroker";
+import {QuestCacheProvider} from "./src/providers/QuestCacheProvider";
+import {CommunicationBroker} from "../brokers/src/CommunicationBroker";
+import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
-import {
-  initDatabase,
-  QuestBlockInfo,
-  BlockchainNetworks,
-} from "@workquest/database-models/lib/models";
+import {initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/models";
 
 export async function init() {
   Logger.info('Start worker "Quest". Network: "%s"', configQuest.network);
@@ -52,20 +49,24 @@ export async function init() {
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
   const clients: QuestClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker, communicationBroker };
 
-  const [questBlockInfo] = await QuestBlockInfo.findOrCreate({
-    where: { network: configQuest.network },
-    defaults: {
-      network: configQuest.network,
-      lastParsedBlock: contractData.deploymentHeight,
-    },
-  });
+  const questProvider = new QuestProvider(
+    contractData.getAbi(),
+    contractData.deploymentHeight,
+    clients,
+  );
 
-  const questProvider = new QuestProvider(clients);
-  const questController = new QuestController(clients, questProvider, configQuest.network as BlockchainNetworks);
+  const questController = new QuestController(
+    clients,
+    questProvider,
+    configQuest.network as BlockchainNetworks
+  );
 
-  await questController.collectAllUncollectedEvents(questBlockInfo.lastParsedBlock);
-
-  await questProvider.startListener();
+  await new SupervisorContract(
+    Logger,
+    questController,
+    questProvider,
+  )
+  .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 
 init().catch(e => {

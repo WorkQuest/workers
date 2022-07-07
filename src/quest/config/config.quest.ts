@@ -8,13 +8,12 @@ export default {
   network: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK,
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
-    linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
   },
   workQuestTestNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
   },
   workQuestMainNetwork: {
-
+    linkRpcProvider: process.env.WORK_QUEST_MAIN_NETWORK_RPC_PROVIDER,
   },
   defaultConfigNetwork: (): { linkTendermintProvider: string, linkRpcProvider: string } => {
     // @ts-ignore

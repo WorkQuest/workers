@@ -1,19 +1,6 @@
 {
   "apps": [
     {
-      "name": "{{ PM2_FETCHER_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/fetchers/index.js",
-      "cron_restart": "0 */5 * * *",
-      "restart_delay": 15000,
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
-    },
-    {
       "name": "{{ PM2_BRIDGE_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
@@ -26,10 +13,45 @@
       }
     },
     {
-      "name": "{{ PM2_WQT_WBNB_WORKER_NAME }}",
+      "name": "{{ PM2_BRIDGE_USDT_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
-      "script": "./build/Wqt-Wbnb/index.js",
+      "script": "./build/bridge-usdt/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_FETCHER_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/fetchers/index.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_PROPOSAL_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/proposal/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_REFERRAL_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/referral-program/index.js",
       "cron_restart": "0 */5 * * *",
       "autorestart": true,
       "listen_timeout": 15000,
@@ -48,11 +70,12 @@
       "env": {
         "ENV": "prod"
       }
-    }, {
-      "name": "{{ PM2_REFERRAL_WORKER_NAME }}",
+    },
+    {
+      "name": "{{ PM2_QUEST_FACTORY_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
-      "script": "./build/referral-program/index.js",
+      "script": "./build/quest-factory/index.js",
       "cron_restart": "0 */5 * * *",
       "autorestart": true,
       "listen_timeout": 15000,
@@ -66,61 +89,6 @@
       "instances": "1",
       "script": "./build/quest/index.js",
       "cron_restart": "0 */5 * * *",
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
-    },
-    {
-      "name": "{{ PM2_QUEST_FACTORY_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/quest-factory/index.js",
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
-    },
-    {
-      "name": "{{ PM2_RAISE_VIEW_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/raise-view/index.js",
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
-    },
-    {
-      "name": "{{ PM2_WQT_WETH_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/Wqt-Weth/index.js",
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
-    },
-    {
-      "name": "{{ PM2_PROPOSAL_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/proposal/index.js",
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
-    },
-    {
-      "name": "{{ PM2_BRIDGE_USDT_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/bridge-usdt/index.js",
       "autorestart": true,
       "listen_timeout": 15000,
       "env": {

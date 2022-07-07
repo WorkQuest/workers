@@ -1,5 +1,5 @@
-import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 import { Clients } from '../../../types';
+import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
 import { NotificationBroker } from "../../../brokers/src/NotificationBroker";
 
 export interface TokenPriceProvider {

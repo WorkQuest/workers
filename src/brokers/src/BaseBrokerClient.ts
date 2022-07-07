@@ -22,4 +22,8 @@ export class BaseBrokerClient {
 
     this.channel = await connection.createChannel();
   }
+
+  public async check() {
+    this.channel.checkQueue()
+  }
 }

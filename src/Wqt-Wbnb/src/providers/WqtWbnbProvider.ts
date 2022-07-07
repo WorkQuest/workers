@@ -1,39 +1,54 @@
 import { Logger } from "../../logger/pino";
+import {IContractProvider, Clients} from './types';
 import { Contract, EventData } from 'web3-eth-contract';
-import {onEventCallBack, IContractProvider, Clients} from './types';
 
 export class WqtWbnbProvider implements IContractProvider {
-  private readonly onEventCallBacks: onEventCallBack[] = [];
-
   private readonly preParsingSteps = 6000;
+  private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor(
-    public readonly clients: Clients,
+    public readonly address: string,
+    public readonly eventViewingHeight: number,
     public readonly contract: Contract,
+    public readonly clients: Clients,
   ) {
   }
 
+  private onError(error) {
+    return Promise.all(
+      this.callbacks['error'].map(async (callBack) => {
+        return callBack(error);
+      }),
+    );
+  }
+
   private onEventData(eventData) {
-    this.onEventCallBacks.forEach((callBack) => callBack(eventData));
+    return Promise.all(
+      this.callbacks['events'].map(async (callBack) => {
+        return callBack(eventData);
+      }),
+    );
   }
 
-  private _eventListenerInit(fromBlock: number) {
+  public startListener(fromBlockNumber?: number) {
     this.contract.events
-      .allEvents({ fromBlock })
-      .on('error', (err) => {
-        console.error(err);
-      })
-      .on('data', (data) => this.onEventData(data));
+      .allEvents({ fromBlock: fromBlockNumber || "latest" })
+      .on('error', (error) => this.onError(error))
+      .on('data', async (eventData) => await this.onEventData(eventData))
+
+    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
-  public async startListener(): Promise<void> {
-    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
-
-    this._eventListenerInit(lastBlockNumber);
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
   }
 
-  public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
-    this.onEventCallBacks.push(onEventCallBack);
+  public isListening(): Promise<boolean> {
+    return this.clients.web3.eth.net.isListening();
   }
 
   public async getAllEvents(fromBlockNumber: number) {
@@ -83,9 +98,9 @@ export class WqtWbnbProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, error, lastBlockNumber: fromBlock };
+      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, lastBlockNumber };
+    return { events: collectedEvents, lastBlockNumber };
   }
 }

@@ -13,10 +13,10 @@ export default {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
   },
   workQuestTestNetwork: {
-    linkTendermintProvider: process.env.WORK_QUEST_TEST_NETWORK_TENDERMINT_PROVIDER,
     linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
   },
   workQuestMainNetwork: {
+    linkRpcProvider: process.env.WORK_QUEST_MAIN_NETWORK_RPC_PROVIDER,
   },
   ethereumMainNetwork: {
     linkWsProvider: process.env.ETH_MAIN_NETWORK_WEBSOCKET_PROVIDER,
