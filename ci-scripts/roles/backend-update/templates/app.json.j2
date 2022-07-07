@@ -94,6 +94,31 @@
       "env": {
         "ENV": "prod"
       }
-    }
+    },
+    {
+      "name": "{{ PM2_WQT_WBNB_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/Wqt-Wbnb/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_WQT_WETH_WORKER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/Wqt-Weth/index.js",
+      "cron_restart": "0 */5 * * *",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "env": {
+        "ENV": "prod"
+      }
+    },
+
   ]
 }
