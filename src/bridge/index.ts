@@ -110,7 +110,7 @@ export async function init() {
     bscBridgeController,
     bscBridgeProvider,
   )
-  .setHeightSyncOptions({ period: 20000 })
+  .setHeightSyncOptions({ period: 15000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
@@ -118,7 +118,7 @@ export async function init() {
     ethBridgeController,
     ethBridgeProvider,
   )
-  .setHeightSyncOptions({ period: 20000 })
+  .setHeightSyncOptions({ period: 15000 })
   .startTasks()
 }
 
