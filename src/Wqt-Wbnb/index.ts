@@ -44,7 +44,7 @@ export async function init() {
     wqtWbnbController,
     wqtWbnbProvider,
   )
-  .setHeightSyncOptions({ period: 10000 })
+  .setHeightSyncOptions({ period: 300000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 

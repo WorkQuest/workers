@@ -65,7 +65,7 @@ export class SupervisorContract {
   }
 
   public async startTasks(includedTasks: SupervisorContractTasks = SupervisorContractTasks.AllTasks) {
-    await this.controller.start();
+    // await this.controller.start();
 
     if ((includedTasks & SupervisorContractTasks.BlockHeightSync) != 0) {
       this.startBlockHeightSync();

@@ -1,5 +1,5 @@
 import Web3 from 'web3';
-import {SupervisorContract} from "../supervisor";
+import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {Logger} from "../bridge-usdt/logger/pino";
 import configWqtWeth from './config/config.WqtWeth';
 import configDatabase from './config/config.database';
@@ -44,7 +44,8 @@ export async function init() {
     wqtWethController,
     wqtWethProvider,
   )
-  .startTasks()
+  .setHeightSyncOptions({ period: 300000 })
+  .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 
 init().catch(e => {
