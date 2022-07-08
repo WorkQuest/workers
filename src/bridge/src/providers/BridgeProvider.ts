@@ -75,10 +75,7 @@ export class BridgeMQProvider implements IContractMQProvider {
 
     try {
       while (true) {
-        if (toBlock > lastBlockNumber) {
-          break;
-        }
-        if (toBlock === lastBlockNumber) {
+        if (toBlock >= lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
@@ -180,10 +177,7 @@ export class BridgeWsProvider implements IContractWsProvider {
 
     try {
       while (true) {
-                if (toBlock > lastBlockNumber) {
-          break;
-        }
-        if (toBlock === lastBlockNumber) {
+        if (toBlock >= lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
@@ -251,10 +245,7 @@ export class BridgeRpcProvider implements IContractRpcProvider {
 
     try {
       while (true) {
-        if (toBlock > lastBlockNumber) {
-          break;
-        }
-        if (toBlock === lastBlockNumber) {
+        if (toBlock >= lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });

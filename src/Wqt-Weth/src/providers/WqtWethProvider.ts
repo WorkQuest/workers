@@ -31,10 +31,7 @@ export class WqtWethRpcProvider implements IContractRpcProvider {
 
     try {
       while (true) {
-        if (toBlock > lastBlockNumber) {
-          break;
-        }
-        if (toBlock === lastBlockNumber) {
+        if (toBlock >= lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
@@ -141,10 +138,7 @@ export class WqtWethWsProvider implements IContractWsProvider {
 
     try {
       while (true) {
-        if (toBlock > lastBlockNumber) {
-          break;
-        }
-        if (toBlock === lastBlockNumber) {
+        if (toBlock >= lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
