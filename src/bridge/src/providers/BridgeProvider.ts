@@ -73,13 +73,12 @@ export class BridgeMQProvider implements IContractMQProvider {
       return { events: [], lastBlockNumber: fromBlock }
     }
 
-    if (fromBlock >= toBlock) {
-      return { events: [], lastBlockNumber: fromBlock }
-    }
-
     try {
       while (true) {
-        if (toBlock >= lastBlockNumber) {
+        if (toBlock > lastBlockNumber) {
+          break;
+        }
+        if (toBlock === lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
@@ -173,11 +172,7 @@ export class BridgeWsProvider implements IContractWsProvider {
     const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
-        let toBlock = fromBlock + this.preParsingSteps;
-
-    if (fromBlock >= toBlock) {
-      return { events: [], lastBlockNumber: fromBlock }
-    }
+    let toBlock = fromBlock + this.preParsingSteps;
 
     if (fromBlock >= toBlock) {
       return { events: [], lastBlockNumber: fromBlock }
@@ -185,7 +180,10 @@ export class BridgeWsProvider implements IContractWsProvider {
 
     try {
       while (true) {
-        if (toBlock >= lastBlockNumber) {
+                if (toBlock > lastBlockNumber) {
+          break;
+        }
+        if (toBlock === lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
@@ -245,11 +243,7 @@ export class BridgeRpcProvider implements IContractRpcProvider {
     const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
-        let toBlock = fromBlock + this.preParsingSteps;
-
-    if (fromBlock >= toBlock) {
-      return { events: [], lastBlockNumber: fromBlock }
-    }
+    let toBlock = fromBlock + this.preParsingSteps;
 
     if (fromBlock >= toBlock) {
       return { events: [], lastBlockNumber: fromBlock }
@@ -257,7 +251,10 @@ export class BridgeRpcProvider implements IContractRpcProvider {
 
     try {
       while (true) {
-        if (toBlock >= lastBlockNumber) {
+        if (toBlock > lastBlockNumber) {
+          break;
+        }
+        if (toBlock === lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });

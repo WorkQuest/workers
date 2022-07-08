@@ -29,13 +29,12 @@ export class WqtWethRpcProvider implements IContractRpcProvider {
       return { events: [], lastBlockNumber: fromBlock }
     }
 
-    if (fromBlock >= toBlock) {
-      return { events: [], lastBlockNumber: fromBlock }
-    }
-
     try {
       while (true) {
-        if (toBlock >= lastBlockNumber) {
+        if (toBlock > lastBlockNumber) {
+          break;
+        }
+        if (toBlock === lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
@@ -134,11 +133,7 @@ export class WqtWethWsProvider implements IContractWsProvider {
     );
 
     let fromBlock = fromBlockNumber;
-        let toBlock = fromBlock + this.preParsingSteps;
-
-    if (fromBlock >= toBlock) {
-      return { events: [], lastBlockNumber: fromBlock }
-    }
+    let toBlock = fromBlock + this.preParsingSteps;
 
     if (fromBlock >= toBlock) {
       return { events: [], lastBlockNumber: fromBlock }
@@ -146,7 +141,10 @@ export class WqtWethWsProvider implements IContractWsProvider {
 
     try {
       while (true) {
-        if (toBlock >= lastBlockNumber) {
+        if (toBlock > lastBlockNumber) {
+          break;
+        }
+        if (toBlock === lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });

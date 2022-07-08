@@ -88,7 +88,10 @@ export class QuestMQProvider implements IContractMQProvider {
 
     try {
       while (true) {
-        if (toBlock >= lastBlockNumber) {
+        if (toBlock > lastBlockNumber) {
+          break;
+        }
+        if (toBlock === lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const blocks = await Promise.all(
