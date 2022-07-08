@@ -106,7 +106,7 @@ export class BridgeUsdtWsProvider implements IContractWsProvider {
 }
 
 export class BridgeUsdtRpcProvider implements IContractRpcProvider {
-  private readonly preParsingSteps = 6000;
+  private readonly preParsingSteps = 2000;
 
   constructor(
     public readonly address: string,

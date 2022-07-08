@@ -4,7 +4,7 @@ import {Contract, EventData} from 'web3-eth-contract';
 import {IContractWsProvider, IContractRpcProvider} from './types';
 
 export class WqtWbnbRpcProvider implements IContractRpcProvider {
-  private readonly preParsingSteps = 6000;
+  private readonly preParsingSteps = 2000;
 
   constructor(
     public readonly address: string,
