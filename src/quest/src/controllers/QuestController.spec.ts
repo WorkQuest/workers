@@ -4,6 +4,7 @@ import * as sinon from 'sinon';
 import {QuestCacheProvider} from "../providers/QuestCacheProvider";
 import {QuestClients} from "../providers/types";
 import {QuestController} from "./QuestController";
+// import {WebsocketClient as TendermintWebsocketClient} from "@cosmjs/tendermint-rpc/build/rpcclients/websocketclient";
 import {
   BlockchainNetworks,
   Quest,

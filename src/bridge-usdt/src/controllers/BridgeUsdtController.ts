@@ -2,10 +2,15 @@ import { Op } from "sequelize";
 import BigNumber from "bignumber.js";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
-import { IContractProvider } from "../../../types";
 import { IController, SwapUsdtEvents } from "./types";
 import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
 import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
+import {
+  IContractProvider,
+  IContractMQProvider,
+  IContractWsProvider,
+  IContractRpcProvider,
+} from "../../../types";
 import {
   CommissionTitle,
   BlockchainNetworks,
@@ -17,19 +22,30 @@ import {
   BridgeSwapUsdtParserBlockInfo,
 } from "@workquest/database-models/lib/models";
 
-export class SwapUsdtController implements IController {
+export class BridgeUsdtController implements IController {
   constructor(
     public readonly clients: SwapUsdtClients,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider,
-    private readonly tokenPriceProvider: TokenPriceProvider,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
-  private async onEvent(eventsData: EventData) {
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await BridgeSwapUsdtParserBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -102,7 +118,7 @@ export class SwapUsdtController implements IController {
       status: TransactionStatus.Pending,
     });
 
-    const wqtPrice = await this.getTokensPriceInUsd(eventsData.returnValues.timestamp);
+    const wqtPrice = await this.tokenPriceProvider.coinPriceInUSD(eventsData.returnValues.timestamp);
 
     if (!wqtPrice) {
       Logger.warn('The oracle provider did not receive data on the current price',
@@ -138,16 +154,12 @@ export class SwapUsdtController implements IController {
     return this.updateBlockViewHeight(eventsData.blockNumber);
   };
 
-  private getTokensPriceInUsd(timestamp: string | number): Promise<number> {
-    return this.tokenPriceProvider.coinPriceInUSD(timestamp);
-  };
-
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -163,4 +175,39 @@ export class SwapUsdtController implements IController {
       throw error;
     }
   };
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+  }
+}
+
+export class BridgeUsdtListenerController extends BridgeUsdtController {
+  constructor(
+    public readonly clients: SwapUsdtClients,
+    public readonly network: BlockchainNetworks,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, tokenPriceProvider, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
+  }
 }

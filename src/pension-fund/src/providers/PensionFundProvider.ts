@@ -1,30 +1,27 @@
-import { Transaction } from "web3-eth";
-import { Logger } from "../../logger/pino";
-import { PensionFundClients } from "./types";
-import { Contract, EventData } from "web3-eth-contract";
-import { onEventCallBack, IContractProvider } from "./types";
-import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
+import Web3 from "web3";
+import {Transaction} from "web3-eth";
+import {Logger} from "../../logger/pino";
+import {IContractMQProvider} from "./types";
+import {Contract, EventData} from "web3-eth-contract";
+import {TransactionBroker} from "../../../brokers/src/TransactionBroker";
 
-export class PensionFundProvider implements IContractProvider {
-  private readonly onEventCallBacks: onEventCallBack[] = [];
-
+export class PensionFundMQProvider implements IContractMQProvider {
   private readonly preParsingSteps = 6000;
+  private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
-    public readonly clients: PensionFundClients,
+    public readonly address: string,
+    public readonly eventViewingHeight: number,
     public readonly contract: Contract,
-  ) {};
-
-  private async initBrokerListener() {
-    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
-  }
+    protected readonly web3: Web3,
+    protected readonly txBroker: TransactionBroker,
+  ) {
+  };
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.PensionFund];
-
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
+      .filter(tx => tx.to && tx.to.toLowerCase() === this.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {
@@ -43,23 +40,27 @@ export class PensionFundProvider implements IContractProvider {
 
   private onEventData(eventData) {
     return Promise.all(
-      this.onEventCallBacks.map(async callBack => callBack(eventData))
+      this.callbacks['events'].map(async callBack => callBack(eventData)),
     );
   }
 
   public async startListener() {
-    await this.initBrokerListener();
+    await this.txBroker.initConsumer(this.onEventFromBroker.bind(this))
 
     Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
-  public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
-    this.onEventCallBacks.push(onEventCallBack);
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
   }
 
-  public async getAllEvents(fromBlockNumber: number) {
+  public async getEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
@@ -99,9 +100,9 @@ export class PensionFundProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, error, lastBlockNumber: fromBlock };
+      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, lastBlockNumber };
+    return { events: collectedEvents, lastBlockNumber };
   }
 }

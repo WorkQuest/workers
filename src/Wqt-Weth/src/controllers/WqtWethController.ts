@@ -1,12 +1,19 @@
 import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
-import { WqtWethEvent, WqtWethNotificationActions } from './types';
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import {
+  IContractMQProvider,
+  IContractRpcProvider, IContractWsProvider,
+  IController,
+  WqtWethEvent,
+  WqtWethNotificationActions,
+} from './types';
+import {
   Coin,
+  WqtWethClients,
   IContractProvider,
-  TokenPriceProvider, WqtWethClients,
+  TokenPriceProvider,
 } from '../providers/types';
 import {
   WqtWethBlockInfo,
@@ -17,23 +24,35 @@ import {
   BlockchainNetworks,
   DailyLiquidityWqtWeth,
 } from '@workquest/database-models/lib/models';
+import {BridgeUsdtListenerController} from "../../../bridge-usdt/src/controllers/BridgeUsdtController";
 
-export class WqtWethController {
+export class WqtWethController implements IController {
   constructor(
-    public readonly contractProvider: IContractProvider,
-    private readonly tokenPriceProvider: TokenPriceProvider,
-    private readonly clients: WqtWethClients,
-    private readonly network: BlockchainNetworks,
+    public readonly clients: WqtWethClients,
+    public readonly network: BlockchainNetworks,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
-  protected updateBlockViewHeight(blockHeight: number): Promise<any> {
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await WqtWethBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async updateBlockViewHeight(blockHeight: number): Promise<any> {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return WqtWethBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    await WqtWethBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -41,7 +60,7 @@ export class WqtWethController {
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -339,9 +358,9 @@ export class WqtWethController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -356,5 +375,40 @@ export class WqtWethController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+  }
+}
+
+export class WqtWethListenerController extends WqtWethController {
+  constructor(
+    public readonly clients: WqtWethClients,
+    public readonly network: BlockchainNetworks,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, tokenPriceProvider, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }

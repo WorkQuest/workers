@@ -1,37 +1,27 @@
-import { Transaction } from "web3-eth";
-import { Logger } from "../../logger/pino";
-import configQuestFactory from '../../config/config.questFactory';
-import { Contract, EventData } from "web3-eth-contract";
-import {
-  onEventCallBack,
-  IContractProvider,
-  QuestFactoryClients,
-} from "./types";
-import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
+import {Transaction} from "web3-eth";
+import {Logger} from "../../logger/pino";
+import {Contract, EventData} from "web3-eth-contract";
+import {IContractMQProvider, QuestFactoryClients} from "./types";
 
-export class QuestFactoryProvider implements IContractProvider {
-  private readonly onEventCallBacks: onEventCallBack[] = [];
-
+export class QuestFactoryMQProvider implements IContractMQProvider {
   private readonly preParsingSteps = 6000;
+  private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
-    public readonly clients: QuestFactoryClients,
+    public readonly address: string,
+    public readonly eventViewingHeight: number,
     public readonly contract: Contract,
-  ) {};
-
-  private async initBrokerListener() {
-    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
-  }
+    public readonly clients: QuestFactoryClients,
+  ) {
+  };
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
     Logger.info('Quest-factory queue listener provider: received messages from the queue');
     Logger.debug('Quest-factory queue listener provider: received messages from the queue with payload %o', payload);
 
-    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.QuestFactory];
-
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
+      .filter(tx => tx.to && tx.to.toLowerCase() === this.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
     Logger.info('Quest-factory queue listener provider: number of contract transactions "%s"', tracedTxs.length);
@@ -60,21 +50,25 @@ export class QuestFactoryProvider implements IContractProvider {
 
   private onEventData(eventData) {
     return Promise.all(
-      this.onEventCallBacks.map(async callBack => callBack(eventData))
+      this.callbacks['events'].map(async callBack => callBack(eventData)),
     );
   }
 
   public async startListener() {
-    Logger.info('Start listening');
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
 
-    await this.initBrokerListener();
+    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
-  public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
-    this.onEventCallBacks.push(onEventCallBack);
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
   }
 
-  public async getAllEvents(fromBlockNumber: number) {
+  public async getEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
@@ -116,9 +110,9 @@ export class QuestFactoryProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, error, lastBlockNumber: fromBlock };
+      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, lastBlockNumber };
+    return { events: collectedEvents, lastBlockNumber };
   }
 }

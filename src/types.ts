@@ -2,9 +2,11 @@ import Web3 from "web3";
 import {EventData} from "web3-eth-contract";
 import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 
-export type onEventCallBack = {
-  (eventData): void;
-};
+export type ReceivedEvents = {
+  error?: any,
+  events: EventData[],
+  lastBlockNumber: number,
+}
 
 export type defaultConfigValues = {
   contractAddress: string,
@@ -23,15 +25,36 @@ export interface Clients {
 }
 
 export interface IContractProvider {
-  startListener(): void;
-  subscribeOnEvents(onEventCallBack: onEventCallBack): void;
-  getAllEvents(fromBlockNumber: number): Promise<{ collectedEvents: EventData[], error?: any, lastBlockNumber: number }>;
+  readonly eventViewingHeight: number;
+
+  getEvents(fromBlockNumber: number): Promise<ReceivedEvents>;
+}
+
+export interface IContractWsProvider extends IContractProvider {
+  on(type: 'error', callback: (error) => void);
+  on(type: 'events', callback: (eventData) => void);
+
+  isListening(): Promise<boolean>;
+  startListener(fromBlockNumber?: number): void;
+}
+
+export interface IContractMQProvider extends IContractProvider {
+  on(type: 'error', callback: (error) => void);
+  on(type: 'events', callback: (eventData) => void);
+
+  startListener(fromBlockNumber?: number): void;
+}
+
+export interface IContractRpcProvider extends IContractProvider {
+
 }
 
 export interface IController {
   readonly network: BlockchainNetworks;
   readonly contractProvider: IContractProvider;
 
-  collectAllUncollectedEvents(fromBlockNumber: number): Promise<void>;
+  start(): Promise<void>;
+  syncBlocks(): Promise<void>;
+  getLastCollectedBlock(): Promise<number>;
 }
 

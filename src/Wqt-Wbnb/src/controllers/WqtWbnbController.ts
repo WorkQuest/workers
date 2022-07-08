@@ -1,12 +1,20 @@
 import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
-import { WqtWbnbEvent, WqtWbnbNotificationActions } from './types';
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import {
+  IContractMQProvider,
+  IContractRpcProvider,
+  IContractWsProvider,
+  IController,
+  WqtWbnbEvent,
+  WqtWbnbNotificationActions
+} from './types';
+import {
   Coin,
+  WqtWbnbClients,
   IContractProvider,
-  TokenPriceProvider, WqtWbnbClients,
+  TokenPriceProvider,
 } from '../providers/types';
 import {
   WqtWbnbBlockInfo,
@@ -18,22 +26,33 @@ import {
   DailyLiquidityWqtWbnb,
 } from '@workquest/database-models/lib/models';
 
-export class WqtWbnbController {
+export class WqtWbnbController implements IController {
   constructor(
-    public readonly contractProvider: IContractProvider,
-    private readonly tokenPriceProvider: TokenPriceProvider,
-    private readonly clients: WqtWbnbClients,
-    private readonly network: BlockchainNetworks,
+    protected readonly clients: WqtWbnbClients,
+    public readonly network: BlockchainNetworks,
+    protected  readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
-  protected updateBlockViewHeight(blockHeight: number): Promise<any> {
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await WqtWbnbBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async updateBlockViewHeight(blockHeight: number): Promise<any> {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return WqtWbnbBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    await WqtWbnbBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -41,7 +60,7 @@ export class WqtWbnbController {
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -337,9 +356,9 @@ export class WqtWbnbController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -354,5 +373,40 @@ export class WqtWbnbController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+  }
+}
+
+export class WqtWbnbListenerController extends WqtWbnbController {
+  constructor(
+    protected readonly clients: WqtWbnbClients,
+    public readonly network: BlockchainNetworks,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, tokenPriceProvider, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }

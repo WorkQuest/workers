@@ -1,9 +1,20 @@
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
-import { EventData } from 'web3-eth-contract';
-import { IController, QuestFactoryEvent, QuestFactoryNotificationActions } from './types';
-import { QuestFactoryClients, IContractProvider } from '../providers/types';
-import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
+import {EventData} from 'web3-eth-contract';
+import {addJob} from "../../../utils/scheduler";
+import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
+import {
+  IContractProvider,
+  QuestFactoryClients,
+  IContractRpcProvider,
+} from '../providers/types';
+import {
+  IController,
+  QuestFactoryEvent,
+  IContractMQProvider,
+  IContractWsProvider,
+  QuestFactoryNotificationActions,
+} from './types';
 import {
   Quest,
   UserRole,
@@ -11,25 +22,36 @@ import {
   QuestFactoryStatus,
   BlockchainNetworks,
   QuestFactoryBlockInfo,
-  QuestFactoryCreatedEvent, QuestsPlatformStatisticFields,
+  QuestFactoryCreatedEvent,
+  QuestsPlatformStatisticFields,
 } from '@workquest/database-models/lib/models';
-import { addJob } from "../../../utils/scheduler";
 
 export class QuestFactoryController implements IController {
   constructor(
     public readonly clients: QuestFactoryClients,
-    public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      return this.onEvent(eventData);
-    });
   }
 
-  protected updateBlockViewHeight(blockHeight: number): Promise<any> {
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await QuestFactoryBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return QuestFactoryBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    await QuestFactoryBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -37,7 +59,7 @@ export class QuestFactoryController implements IController {
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
@@ -146,9 +168,9 @@ export class QuestFactoryController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error } = await this.contractProvider.getEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (error) {
@@ -161,5 +183,39 @@ export class QuestFactoryController implements IController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+  }
+}
+
+export class QuestFactoryListenerController extends QuestFactoryController {
+  constructor(
+    public readonly clients: QuestFactoryClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }
