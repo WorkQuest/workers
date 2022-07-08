@@ -12,8 +12,9 @@ export default {
     linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
   },
   workQuestMainNetwork: {
+    linkRpcProvider: process.env.WORK_QUEST_MAIN_NETWORK_RPC_PROVIDER,
   },
-  defaultConfigNetwork: (): { linkTendermintProvider: string, linkRpcProvider: string } => {
+  defaultConfigNetwork: (): { linkRpcProvider: string } => {
     // @ts-ignore
     return this.default[this.default.network];
   },
