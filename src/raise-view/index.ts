@@ -4,9 +4,9 @@ import configDatabase from "./config/config.database";
 import configRaiseView from "./config/config.raiseView";
 import {RaiseViewClients} from "./src/providers/types";
 import {TransactionBroker} from "../brokers/src/TransactionBroker";
-import {RaiseViewProvider} from "./src/providers/RaiseViewProvider";
-import {RaiseViewController} from "./src/controllers/RaiseViewController";
+import {RaiseViewMQProvider} from "./src/providers/RaiseViewProvider";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
+import {RaiseViewListenerController} from "./src/controllers/RaiseViewController";
 import {Store, Networks, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
 import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
 
@@ -30,17 +30,17 @@ export async function init() {
 
   const clients: RaiseViewClients = { web3, transactionsBroker };
 
-  const raiseViewProvider = new RaiseViewProvider(
+  const raiseViewProvider = new RaiseViewMQProvider(
     contractData.address,
     contractData.deploymentHeight,
     raiseViewContract,
     clients,
   );
 
-  const raiseViewController = new RaiseViewController(
+  const raiseViewController = new RaiseViewListenerController(
     clients,
+    configRaiseView.network as BlockchainNetworks,
     raiseViewProvider,
-    configRaiseView.network as BlockchainNetworks
   );
 
   await new SupervisorContract(
@@ -48,6 +48,7 @@ export async function init() {
     raiseViewController,
     raiseViewProvider,
   )
+  .setHeightSyncOptions({ period: 300000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 

@@ -1,10 +1,20 @@
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
-import { EventData } from 'web3-eth-contract';
-import { addJob } from "../../../utils/scheduler";
-import { QuestFactoryClients, IContractProvider } from '../providers/types';
-import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
-import { IController, QuestFactoryEvent, QuestFactoryNotificationActions } from './types';
+import {EventData} from 'web3-eth-contract';
+import {addJob} from "../../../utils/scheduler";
+import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
+import {
+  IContractProvider,
+  QuestFactoryClients,
+  IContractRpcProvider,
+} from '../providers/types';
+import {
+  IController,
+  QuestFactoryEvent,
+  IContractMQProvider,
+  IContractWsProvider,
+  QuestFactoryNotificationActions,
+} from './types';
 import {
   Quest,
   UserRole,
@@ -16,12 +26,11 @@ import {
   QuestsPlatformStatisticFields,
 } from '@workquest/database-models/lib/models';
 
-
 export class QuestFactoryController implements IController {
   constructor(
     public readonly clients: QuestFactoryClients,
-    public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
@@ -50,7 +59,7 @@ export class QuestFactoryController implements IController {
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
@@ -159,7 +168,7 @@ export class QuestFactoryController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -186,6 +195,20 @@ export class QuestFactoryController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+  }
+}
+
+export class QuestFactoryListenerController extends QuestFactoryController {
+  constructor(
+    public readonly clients: QuestFactoryClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()

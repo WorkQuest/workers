@@ -1,7 +1,12 @@
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
-import { ReferralClients } from "../providers/types";
 import { IController, ReferralEvent, IContractProvider } from './types';
+import {
+  ReferralClients,
+  IContractMQProvider,
+  IContractWsProvider,
+  IContractRpcProvider,
+} from "../providers/types";
 import {
   User,
   Media,
@@ -21,11 +26,11 @@ export class ReferralController implements IController {
   constructor(
     public readonly clients: ReferralClients,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
@@ -267,7 +272,7 @@ export class ReferralController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -296,6 +301,20 @@ export class ReferralController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+  }
+}
+
+export class ReferralListenerController extends ReferralController {
+  constructor(
+    public readonly clients: ReferralClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()

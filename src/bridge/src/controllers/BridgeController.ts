@@ -2,10 +2,14 @@ import Web3 from "web3";
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
-import {BridgeClients} from "../providers/types";
-import {IContractProvider} from "../../../types";
-import {BridgeEvents, IController} from "./types";
 import configBridge from "../../config/config.bridge";
+import {IContractProvider, IContractRpcProvider} from "../../../types";
+import {BridgeClients, IContractMQProvider} from "../providers/types";
+import {
+  IController,
+  BridgeEvents,
+  IContractWsProvider,
+} from "./types";
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,
@@ -16,11 +20,11 @@ export class BridgeController implements IController {
   constructor(
     public readonly clients: BridgeClients,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -201,7 +205,7 @@ export class BridgeController implements IController {
   protected async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -230,6 +234,20 @@ export class BridgeController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+  }
+}
+
+export class BridgeListenerController extends BridgeController {
+  constructor(
+    public readonly clients: BridgeClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()

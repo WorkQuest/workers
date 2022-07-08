@@ -1,9 +1,9 @@
 import {Transaction} from "web3-eth";
 import {Logger} from "../../logger/pino";
 import {Contract, EventData} from "web3-eth-contract";
-import {IContractProvider, QuestFactoryClients} from "./types";
+import {IContractMQProvider, QuestFactoryClients} from "./types";
 
-export class QuestFactoryProvider implements IContractProvider {
+export class QuestFactoryMQProvider implements IContractMQProvider {
   private readonly preParsingSteps = 6000;
   private readonly callbacks = { 'events': [], 'error': [] };
 
@@ -68,11 +68,7 @@ export class QuestFactoryProvider implements IContractProvider {
     }
   }
 
-  public isListening(): Promise<boolean> {
-    return new Promise(() => true)
-  }
-
-  public async getAllEvents(fromBlockNumber: number) {
+  public async getEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 

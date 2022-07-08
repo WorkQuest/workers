@@ -1,9 +1,9 @@
 import {Transaction} from "web3-eth";
 import {Logger} from "../../logger/pino";
 import {Contract, EventData} from "web3-eth-contract";
-import {IContractProvider, RaiseViewClients} from "./types";
+import {IContractMQProvider, RaiseViewClients} from "./types";
 
-export class RaiseViewProvider implements IContractProvider {
+export class RaiseViewMQProvider implements IContractMQProvider {
   private readonly preParsingSteps = 6000;
   private readonly callbacks = { 'events': [], 'error': [] };
 
@@ -72,11 +72,7 @@ export class RaiseViewProvider implements IContractProvider {
     }
   }
 
-  public isListening(): Promise<boolean> {
-    return new Promise(() => true)
-  }
-
-  public async getAllEvents(fromBlockNumber: number) {
+  public async getEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 

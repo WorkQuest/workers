@@ -4,13 +4,13 @@ import {Logger} from "./logger/pino";
 import configQuest from "./config/config.quest";
 import {QuestClients } from "./src/providers/types";
 import configDatabase from "./config/config.database";
-import {QuestProvider} from "./src/providers/QuestProvider";
-import {QuestController} from "./src/controllers/QuestController";
+import {QuestMQProvider} from "./src/providers/QuestProvider";
 import {TransactionBroker} from "../brokers/src/TransactionBroker";
 import {NotificationBroker} from "../brokers/src/NotificationBroker";
 import {QuestCacheProvider} from "./src/providers/QuestCacheProvider";
 import {CommunicationBroker} from "../brokers/src/CommunicationBroker";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
+import {QuestListenerController} from "./src/controllers/QuestController";
 import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
 import {initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/models";
 
@@ -49,16 +49,16 @@ export async function init() {
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
   const clients: QuestClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker, communicationBroker };
 
-  const questProvider = new QuestProvider(
+  const questProvider = new QuestMQProvider(
     contractData.getAbi(),
     contractData.deploymentHeight,
     clients,
   );
 
-  const questController = new QuestController(
+  const questController = new QuestListenerController(
     clients,
+    configQuest.network as BlockchainNetworks,
     questProvider,
-    configQuest.network as BlockchainNetworks
   );
 
   await new SupervisorContract(
@@ -66,6 +66,7 @@ export async function init() {
     questController,
     questProvider,
   )
+  .setHeightSyncOptions({ period: 300000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 

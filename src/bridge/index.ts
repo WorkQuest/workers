@@ -1,14 +1,14 @@
 import Web3 from "web3";
 import { Logger } from "./logger/pino";
-import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import configBridge from "./config/config.bridge";
 import configDatabase from "../bridge/config/config.common";
-import { BridgeProvider } from "./src/providers/BridgeProvider";
-import { BridgeController } from "./src/controllers/BridgeController";
-import { BridgeEthClients, BridgeWorkNetClients } from "./src/providers/types";
-import { BridgeWorkNetProvider } from "./src/providers/BridgeWorkNetProvider";
 import { TransactionBroker } from "../brokers/src/TransactionBroker";
 import { NotificationBroker } from "../brokers/src/NotificationBroker";
+import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
+import { BridgeEthClients, BridgeWorkNetClients } from "./src/providers/types";
+import { BridgeRpcProvider, BridgeMQProvider } from "./src/providers/BridgeProvider";
+import { initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/models";
+import {BridgeController, BridgeListenerController} from "./src/controllers/BridgeController";
 import {
   Store,
   Networks,
@@ -16,10 +16,7 @@ import {
   EthNetworkContracts,
   WorkQuestNetworkContracts,
 } from "@workquest/contract-data-pools";
-import {
-  initDatabase,
-  BlockchainNetworks,
-} from "@workquest/database-models/lib/models";
+
 
 export async function init() {
   await initDatabase(configDatabase.database.link, false, false);
@@ -39,34 +36,12 @@ export async function init() {
   Logger.debug('WorkQuest network: link Rpc provider "%s"', wqDefaultConfig.linkRpcProvider);
 
   const wqRpcProvider = new Web3.providers.HttpProvider(wqDefaultConfig.linkRpcProvider);
-  const bscWsProvider = new Web3.providers.WebsocketProvider(bscDefaultConfig.linkWsProvider, {
-    clientConfig: {
-      keepalive: true,
-      keepaliveInterval: 60000, // ms
-    },
-    reconnect: {
-      auto: true,
-      delay: 5000, // ms
-      maxAttempts: 5,
-      onTimeout: false
-    },
-  });
-  const ethWsProvider = new Web3.providers.WebsocketProvider(ethDefaultConfig.linkWsProvider, {
-    clientConfig: {
-      keepalive: true,
-      keepaliveInterval: 60000, // ms
-    },
-    reconnect: {
-      auto: true,
-      delay: 5000, // ms
-      maxAttempts: 5,
-      onTimeout: false
-    },
-  });
+  const bscRpcProvider = new Web3.providers.HttpProvider(bscDefaultConfig.linkRpcProvider);
+  const ethRpcProvider = new Web3.providers.HttpProvider(ethDefaultConfig.linkRpcProvider);
 
   const web3Wq = new Web3(wqRpcProvider);
-  const web3Bsc = new Web3(bscWsProvider);
-  const web3Eth = new Web3(ethWsProvider);
+  const web3Bsc = new Web3(bscRpcProvider);
+  const web3Eth = new Web3(ethRpcProvider);
 
   const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'bridge');
   await transactionsBroker.init();
@@ -83,29 +58,30 @@ export async function init() {
   Logger.debug('Ethereum network contract address: "%s"', contractEthData.contractAddress);
 
   const wqClients: BridgeWorkNetClients = { web3: web3Wq, transactionsBroker, notificationsBroker };
-  const bscClients: BridgeEthClients = { web3: web3Bsc, webSocketProvider: bscWsProvider, notificationsBroker };
-  const ethClients: BridgeEthClients = { web3: web3Eth, webSocketProvider: ethWsProvider, notificationsBroker };
+  const bscClients: BridgeEthClients = { web3: web3Bsc, webSocketProvider: bscRpcProvider, notificationsBroker };
+  const ethClients: BridgeEthClients = { web3: web3Eth, webSocketProvider: ethRpcProvider, notificationsBroker };
 
-  const wqBridgeProvider = new BridgeWorkNetProvider(
+  const wqBridgeProvider = new BridgeMQProvider(
     contractWorkNetData.address,
     contractWorkNetData.deploymentHeight,
     bridgeWqContract,
-    wqClients,
+    web3Wq,
+    transactionsBroker
   );
-  const bscBridgeProvider = new BridgeProvider(
+  const bscBridgeProvider = new BridgeRpcProvider(
     contractBnbData.address,
     contractBnbData.deploymentHeight,
     bridgeBscContract,
-    bscClients,
+    web3Bsc,
   );
-  const ethBridgeProvider = new BridgeProvider(
+  const ethBridgeProvider = new BridgeRpcProvider(
     contractEthData.address,
     contractEthData.deploymentHeight,
     bridgeEthContract,
-    ethClients,
+    web3Eth,
   );
 
-  const wqBridgeController = new BridgeController(
+  const wqBridgeController = new BridgeListenerController(
     wqClients,
     configBridge.workQuestNetwork as BlockchainNetworks,
     wqBridgeProvider,
@@ -126,6 +102,7 @@ export async function init() {
     wqBridgeController,
     wqBridgeProvider,
   )
+  .setHeightSyncOptions({ period: 300000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
@@ -133,13 +110,15 @@ export async function init() {
     bscBridgeController,
     bscBridgeProvider,
   )
-  .startTasks()
+  .setHeightSyncOptions({ period: 10000 })
+  .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
     Logger,
     ethBridgeController,
     ethBridgeProvider,
   )
+  .setHeightSyncOptions({ period: 10000 })
   .startTasks()
 }
 

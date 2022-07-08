@@ -2,10 +2,15 @@ import { Op } from "sequelize";
 import BigNumber from "bignumber.js";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
-import { IContractProvider } from "../../../types";
 import { IController, SwapUsdtEvents } from "./types";
 import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
 import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
+import {
+  IContractProvider,
+  IContractMQProvider,
+  IContractWsProvider,
+  IContractRpcProvider,
+} from "../../../types";
 import {
   CommissionTitle,
   BlockchainNetworks,
@@ -17,12 +22,12 @@ import {
   BridgeSwapUsdtParserBlockInfo,
 } from "@workquest/database-models/lib/models";
 
-export class SwapUsdtController implements IController {
+export class BridgeUsdtController implements IController {
   constructor(
     public readonly clients: SwapUsdtClients,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider,
-    private readonly tokenPriceProvider: TokenPriceProvider,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
@@ -40,7 +45,7 @@ export class SwapUsdtController implements IController {
     return lastParsedBlock;
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -152,7 +157,7 @@ export class SwapUsdtController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -181,6 +186,21 @@ export class SwapUsdtController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+  }
+}
+
+export class BridgeUsdtListenerController extends BridgeUsdtController {
+  constructor(
+    public readonly clients: SwapUsdtClients,
+    public readonly network: BlockchainNetworks,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, tokenPriceProvider, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()

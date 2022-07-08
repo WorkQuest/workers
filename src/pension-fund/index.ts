@@ -5,11 +5,11 @@ import {PensionFundClients} from "./src/providers/types";
 import configPensionFund from './config/config.pensionFund';
 import {TransactionBroker} from "../brokers/src/TransactionBroker";
 import { NotificationBroker} from "../brokers/src/NotificationBroker";
-import {PensionFundProvider} from "./src/providers/PensionFundProvider";
+import {PensionFundMQProvider} from "./src/providers/PensionFundProvider";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
-import {PensionFundController} from "./src/controllers/PensionFundController";
-import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
+import {PensionFundListenerController} from "./src/controllers/PensionFundController";
 import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
+import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
 
 export async function init() {
   await initDatabase(configDatabase.dbLink, false, false);
@@ -36,14 +36,15 @@ export async function init() {
 
   const pensionFundContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const pensionFundProvider = new PensionFundProvider(
+  const pensionFundProvider = new PensionFundMQProvider(
     contractData.address,
     contractData.deploymentHeight,
     pensionFundContract,
-    clients,
+    web3,
+    transactionsBroker,
   );
 
-  const pensionFundController = new PensionFundController(
+  const pensionFundController = new PensionFundListenerController(
     clients,
     configPensionFund.network as BlockchainNetworks,
     pensionFundProvider,
@@ -54,6 +55,7 @@ export async function init() {
     pensionFundController,
     pensionFundProvider,
   )
+  .setHeightSyncOptions({ period: 300000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 

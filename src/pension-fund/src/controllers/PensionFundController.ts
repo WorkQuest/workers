@@ -1,8 +1,13 @@
-import { Op } from "sequelize";
-import { Logger } from "../../logger/pino";
-import { PensionFundEvents } from './types';
-import { EventData } from 'web3-eth-contract';
-import { IContractProvider, PensionFundClients } from "../providers/types";
+import {Op} from "sequelize";
+import {Logger} from "../../logger/pino";
+import {EventData} from 'web3-eth-contract';
+import {IContractProvider, IController, PensionFundClients} from "../providers/types";
+import {
+  PensionFundEvents,
+  IContractMQProvider,
+  IContractWsProvider,
+  IContractRpcProvider,
+} from './types';
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
@@ -11,15 +16,15 @@ import {
   PensionFundWalletUpdatedEvent,
 } from '@workquest/database-models/lib/models';
 
-export class PensionFundController {
+export class PensionFundController implements IController {
   constructor(
     public readonly clients: PensionFundClients,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -192,7 +197,7 @@ export class PensionFundController {
   protected async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -221,6 +226,20 @@ export class PensionFundController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+  }
+}
+
+export class PensionFundListenerController extends PensionFundController {
+  constructor(
+    public readonly clients: PensionFundClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()

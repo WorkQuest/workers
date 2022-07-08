@@ -2,10 +2,15 @@ import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import { addJob } from "../../../utils/scheduler";
-import { IController, RaiseViewEvent, StatisticPayload } from './types';
-import { IContractProvider, RaiseViewClients } from '../providers/types';
+import {IContractMQProvider, IContractProvider, IContractWsProvider, RaiseViewClients} from '../providers/types';
 import { updateUserRaiseViewStatusJob } from "../../jobs/updateUserRaiseViewStatus";
 import { updateQuestRaiseViewStatusJob } from "../../jobs/updateQuestRaiseViewStatus";
+import {
+  IController,
+  RaiseViewEvent,
+  StatisticPayload,
+  IContractRpcProvider,
+} from './types';
 import {
   RaiseViewsPlatformStatisticFields,
   RaiseViewPromotedQuestEvent,
@@ -26,8 +31,8 @@ import {
 export class RaiseViewController implements IController {
   constructor(
     public readonly clients: RaiseViewClients,
-    public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
@@ -98,7 +103,7 @@ export class RaiseViewController implements IController {
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -320,7 +325,7 @@ export class RaiseViewController implements IController {
 
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -349,6 +354,20 @@ export class RaiseViewController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+  }
+}
+
+export class RaiseViewListenerController extends RaiseViewController {
+  constructor(
+    public readonly clients: RaiseViewClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()

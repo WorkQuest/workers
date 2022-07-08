@@ -1,11 +1,11 @@
-import { Transaction } from "web3-eth";
-import { Logger } from "../../logger/pino";
-import { IContractProvider } from "./types";
-import { PensionFundClients } from "./types";
-import { Contract, EventData } from "web3-eth-contract";
-import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
+import Web3 from "web3";
+import {Transaction} from "web3-eth";
+import {Logger} from "../../logger/pino";
+import {IContractMQProvider} from "./types";
+import {Contract, EventData} from "web3-eth-contract";
+import {TransactionBroker} from "../../../brokers/src/TransactionBroker";
 
-export class PensionFundProvider implements IContractProvider {
+export class PensionFundMQProvider implements IContractMQProvider {
   private readonly preParsingSteps = 6000;
   private readonly callbacks = { 'events': [], 'error': [] };
 
@@ -13,16 +13,15 @@ export class PensionFundProvider implements IContractProvider {
     public readonly address: string,
     public readonly eventViewingHeight: number,
     public readonly contract: Contract,
-    public readonly clients: PensionFundClients,
+    protected readonly web3: Web3,
+    protected readonly txBroker: TransactionBroker,
   ) {
   };
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.PensionFund];
-
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
+      .filter(tx => tx.to && tx.to.toLowerCase() === this.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber);
 
     if (tracedTxs.length === 0) {
@@ -46,7 +45,7 @@ export class PensionFundProvider implements IContractProvider {
   }
 
   public async startListener() {
-    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this))
+    await this.txBroker.initConsumer(this.onEventFromBroker.bind(this))
 
     Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
@@ -59,13 +58,9 @@ export class PensionFundProvider implements IContractProvider {
     }
   }
 
-  public isListening(): Promise<boolean> {
-    return new Promise(() => true)
-  }
-
-  public async getAllEvents(fromBlockNumber: number) {
+  public async getEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
