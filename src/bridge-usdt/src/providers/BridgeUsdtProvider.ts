@@ -59,6 +59,14 @@ export class BridgeUsdtWsProvider implements IContractWsProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
+
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
+
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
@@ -121,7 +129,15 @@ export class BridgeUsdtRpcProvider implements IContractRpcProvider {
     const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
-    let toBlock = fromBlock + this.preParsingSteps;
+        let toBlock = fromBlock + this.preParsingSteps;
+
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
+
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
 
     try {
       while (true) {

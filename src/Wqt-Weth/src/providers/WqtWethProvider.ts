@@ -25,6 +25,14 @@ export class WqtWethRpcProvider implements IContractRpcProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
+
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
+
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
@@ -126,7 +134,15 @@ export class WqtWethWsProvider implements IContractWsProvider {
     );
 
     let fromBlock = fromBlockNumber;
-    let toBlock = fromBlock + this.preParsingSteps;
+        let toBlock = fromBlock + this.preParsingSteps;
+
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
+
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
 
     try {
       while (true) {

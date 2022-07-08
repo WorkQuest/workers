@@ -65,6 +65,10 @@ export class PensionFundMQProvider implements IContractMQProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
+    if (fromBlock >= toBlock) {
+      return { events: [], lastBlockNumber: fromBlock }
+    }
+
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
