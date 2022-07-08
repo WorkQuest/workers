@@ -5,8 +5,8 @@ import configDatabase from './config/config.database';
 import {SavingProductClients} from "./src/providers/types";
 import {TransactionBroker} from "../brokers/src/TransactionBroker";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
-import {SavingProductProvider} from "./src/providers/SavingProductProvider";
-import {SavingProductController} from "./src/controllers/SavingProductController";
+import {SavingProductMQProvider} from "./src/providers/SavingProductProvider";
+import {SavingProductListenerController} from "./src/controllers/SavingProductController";
 import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
 import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
 
@@ -30,14 +30,15 @@ export async function init() {
 
   const savingProductContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const savingProductProvider = new SavingProductProvider(
+  const savingProductProvider = new SavingProductMQProvider(
     contractData.address,
     contractData.deploymentHeight,
-    clients,
     savingProductContract,
+    web3,
+    transactionsBroker,
   );
 
-  const savingProductController = new SavingProductController(
+  const savingProductController = new SavingProductListenerController(
     clients,
     configSavings.network as BlockchainNetworks,
     savingProductProvider,
@@ -48,6 +49,7 @@ export async function init() {
     savingProductController,
     savingProductProvider,
   )
+  .setHeightSyncOptions({ period: 300000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 

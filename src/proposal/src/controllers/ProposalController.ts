@@ -3,7 +3,13 @@ import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {addJob} from "../../../utils/scheduler";
 import {IController, ProposalEvents} from "./types";
-import {Clients, IContractProvider} from "../../../types";
+import {
+  Clients,
+  IContractProvider,
+  IContractMQProvider,
+  IContractWsProvider,
+  IContractRpcProvider,
+} from "../../../types";
 import {
   Proposal,
   Discussion,
@@ -20,7 +26,7 @@ export class ProposalController implements IController {
   constructor (
     public readonly clients: Clients,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
@@ -53,7 +59,7 @@ export class ProposalController implements IController {
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -269,7 +275,7 @@ export class ProposalController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -298,6 +304,21 @@ export class ProposalController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+
+  }
+}
+
+export class ProposalListenerController extends ProposalController {
+  constructor (
+    public readonly clients: Clients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()

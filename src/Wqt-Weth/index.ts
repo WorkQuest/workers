@@ -3,11 +3,11 @@ import {SupervisorContract} from "../supervisor";
 import {Logger} from "../bridge-usdt/logger/pino";
 import configWqtWeth from './config/config.WqtWeth';
 import configDatabase from './config/config.database';
-import { WqtWethClients } from "./src/providers/types";
-import { WqtWethProvider } from './src/providers/WqtWethProvider';
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
-import { WqtWethController } from './src/controllers/WqtWethController';
-import { OraclePricesProvider } from "./src/providers/OraclePricesProvider";
+import {WqtWethClients} from "./src/providers/types";
+import {WqtWethWsProvider} from './src/providers/WqtWethProvider';
+import {NotificationBroker} from "../brokers/src/NotificationBroker";
+import {WqtWethController} from './src/controllers/WqtWethController';
+import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
 import {EthNetworkContracts, Networks, Store} from "@workquest/contract-data-pools";
 import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
 
@@ -36,7 +36,7 @@ export async function init() {
 
   const clients: WqtWethClients = { web3, notificationsBroker };
 
-  const wqtWethProvider = new WqtWethProvider(
+  const wqtWethProvider = new WqtWethWsProvider(
     contractData.address,
     contractData.deploymentHeight,
     wqtWethContract,
@@ -44,10 +44,10 @@ export async function init() {
   );
 
   const wqtWethController = new WqtWethController(
-    wqtWethProvider,
-    new OraclePricesProvider(configWqtWeth.oracleLink),
     clients,
     BlockchainNetworks.ethMainNetwork,
+    new OraclePricesProvider(configWqtWeth.oracleLink),
+    wqtWethProvider,
   );
 
   await new SupervisorContract(

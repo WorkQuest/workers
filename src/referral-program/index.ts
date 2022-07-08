@@ -3,7 +3,7 @@ import {Logger} from "./logger/pino";
 import configDatabase from './config/config.database';
 import configReferral from './config/config.referral';
 import {ReferralClients} from "./src/providers/types";
-import {ReferralProvider} from "./src/providers/ReferralProvider";
+import {ReferralMQProvider} from "./src/providers/ReferralProvider";
 import {TransactionBroker} from "../brokers/src/TransactionBroker";
 import {NotificationBroker} from "../brokers/src/NotificationBroker";
 import {CommunicationBroker} from "../brokers/src/CommunicationBroker";
@@ -39,11 +39,12 @@ export async function init() {
 
   const referralContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const referralProvider = new ReferralProvider(
+  const referralProvider = new ReferralMQProvider(
     contractData.address,
     contractData.deploymentHeight,
-    clients,
     referralContract,
+    web3,
+    transactionsBroker,
   );
 
   const referralController = new ReferralController(
@@ -57,6 +58,7 @@ export async function init() {
     referralController,
     referralProvider,
   )
+  .setHeightSyncOptions({ period: 300000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 

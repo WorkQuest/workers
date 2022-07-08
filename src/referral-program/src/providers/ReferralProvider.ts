@@ -1,17 +1,20 @@
+import Web3 from "web3";
 import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
+import { IContractMQProvider } from "./types";
 import { Contract, EventData } from "web3-eth-contract";
-import { IContractProvider, ReferralClients } from "./types";
+import {TransactionBroker} from "../../../brokers/src/TransactionBroker";
 
-export class ReferralProvider implements IContractProvider {
+export class ReferralMQProvider implements IContractMQProvider {
   private readonly preParsingSteps = 6000;
   private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
     public readonly address: string,
     public readonly eventViewingHeight: number,
-    public readonly clients: ReferralClients,
     public readonly contract: Contract,
+    protected readonly web3: Web3,
+    protected readonly txBroker: TransactionBroker,
   ) {
   };
 
@@ -54,8 +57,8 @@ export class ReferralProvider implements IContractProvider {
   }
 
   public async startListener() {
-    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
-    await this.clients.communicationBroker.initConsumer(this.onEventFromCommunicationBroker.bind(this));
+    await this.txBroker.initConsumer(this.onEventFromBroker.bind(this));
+    await this.txBroker.initConsumer(this.onEventFromCommunicationBroker.bind(this));
 
     Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
@@ -68,13 +71,9 @@ export class ReferralProvider implements IContractProvider {
     }
   }
 
-  public isListening(): Promise<boolean> {
-    return new Promise(() => true)
-  }
-
-  public async getAllEvents(fromBlockNumber: number) {
+  public async getEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;

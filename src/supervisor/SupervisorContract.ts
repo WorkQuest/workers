@@ -1,4 +1,4 @@
-import {IContractProvider, IController} from "../types";
+import {IContractProvider, IContractWsProvider, IController} from "../types";
 
 export enum SupervisorContractTasks {
   None = 0,
@@ -9,8 +9,72 @@ export enum SupervisorContractTasks {
   AllTasks = SupervisorContractTasks.BlockHeightSync | SupervisorContractTasks.Heartbeat,
 }
 
+export type HeartbeatOptions = {
+  period: number,
+  maxLimit: number,
+  maxBacklog: number,
+}
+
+export type BlockHeightSync = {
+  period: number,
+}
+
 export class SupervisorContract {
-  protected readonly heartbeat = {
+  protected blockHeightSync = {
+    options: { period: 150000 },
+  }
+
+  constructor(
+    protected readonly Logger: any,
+    protected readonly controller: IController,
+    protected readonly contractProvider: IContractProvider,
+  ) {
+  }
+
+  private startBlockHeightSync() {
+    this.Logger.debug('Supervisor BlockHeightSync (network: %s): Start block height sync, options: %o',
+      this.controller.network,
+      this.blockHeightSync.options,
+    );
+
+    setInterval(async () => {
+      this.Logger.info('Supervisor BlockHeightSync (network: %s): Block height sync is started',
+        this.controller.network,
+      );
+
+      try {
+        await this.controller.syncBlocks();
+      } catch (error) {
+        this.Logger.error(error, 'Supervisor BlockHeightSync (network: %s): sync ended with an unknown error',
+          this.controller.network,
+        );
+
+        process.exit(-1);
+      }
+
+      this.Logger.info('Supervisor BlockHeightSync (network: %s): Block height sync is completed',
+        this.controller.network,
+      );
+    }, this.blockHeightSync.options.period);
+  }
+
+  public setHeightSyncOptions(options: BlockHeightSync): this {
+    this.blockHeightSync.options = options;
+
+    return this;
+  }
+
+  public async startTasks(includedTasks: SupervisorContractTasks = SupervisorContractTasks.AllTasks) {
+    await this.controller.start();
+
+    if ((includedTasks & SupervisorContractTasks.BlockHeightSync) != 0) {
+      this.startBlockHeightSync();
+    }
+  }
+}
+
+export class SupervisorListenerContract extends SupervisorContract {
+  protected heartbeat = {
     state: {
       limit: null,
       timestamp: null,
@@ -21,15 +85,13 @@ export class SupervisorContract {
       maxBacklog: 30000,
     },
   };
-  protected readonly blockHeightSync = {
-    options: { period: 150000 },
-  }
 
   constructor(
     protected readonly Logger: any,
     protected readonly controller: IController,
-    protected readonly contractProvider: IContractProvider,
+    protected readonly contractProvider: IContractWsProvider,
   ) {
+    super(Logger, controller, contractProvider);
   }
 
   private startHeartbeat() {
@@ -88,49 +150,17 @@ export class SupervisorContract {
     }, this.heartbeat.options.period + 5000);
   }
 
-  private startBlockHeightSync() {
-    this.Logger.debug('Supervisor BlockHeightSync (network: %s): Start block height sync, options: %o',
-      this.controller.network,
-      this.blockHeightSync.options,
-    );
+  public setHeartbeatOptions(options: HeartbeatOptions): this {
+    this.heartbeat.options = options;
 
-    setInterval(async () => {
-      this.Logger.info('Supervisor BlockHeightSync (network: %s): Block height sync is started',
-        this.controller.network,
-      );
-
-      try {
-        await this.controller.syncBlocks();
-      } catch (error) {
-        this.Logger.error(error, 'Supervisor BlockHeightSync (network: %s): sync ended with an unknown error',
-          this.controller.network,
-        );
-
-        process.exit(-1);
-      }
-
-      this.Logger.info('Supervisor BlockHeightSync (network: %s): Block height sync is completed',
-        this.controller.network,
-      );
-    }, this.blockHeightSync.options.period);
+    return this;
   }
 
   public async startTasks(includedTasks: SupervisorContractTasks = SupervisorContractTasks.AllTasks) {
-    try {
-      await this.controller.start();
+    await super.startTasks();
 
-      if ((includedTasks & SupervisorContractTasks.Heartbeat) != 0) {
-        this.startHeartbeat();
-      }
-      if ((includedTasks & SupervisorContractTasks.BlockHeightSync) != 0) {
-        this.startBlockHeightSync();
-      }
-    } catch (error) {
-      this.Logger.error(error, 'Supervisor (network: %s): supervisor crash with unknown error',
-        this.controller.network,
-      );
-
-      process.exit(-1);
+    if ((includedTasks & SupervisorContractTasks.Heartbeat) != 0) {
+      this.startHeartbeat();
     }
   }
 }

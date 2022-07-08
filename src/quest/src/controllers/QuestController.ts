@@ -1,17 +1,23 @@
-import { col, fn, Op } from "sequelize";
-import { Logger } from "../../logger/pino";
-import { EventData } from "web3-eth-contract";
-import { addJob } from "../../../utils/scheduler";
-import { UserModelController } from "./models/UserModelController";
-import { IContractProvider, QuestClients } from "../providers/types";
-import { QuestModelController } from "./models/QuestModelController";
-import { IController, QuestEvent, QuestNotificationActions, StatisticPayload } from "./types";
-import { updateQuestsStatisticJob } from "../../jobs/updateQuestsStatistic";
-import { QuestChatModelController } from "./models/QuestChatModelController";
-import { addUpdateReviewStatisticsJob } from "../../jobs/updateReviewStatistics";
-import { QuestDisputeModelController } from "./models/QuestDisputeModelController";
-import { QuestResponsesModelController } from "./models/QuestResponsesModelController";
-import { incrementAdminDisputeStatisticJob } from "../../jobs/incrementAdminDisputeStatistic";
+import {col, fn, Op} from "sequelize";
+import {Logger} from "../../logger/pino";
+import {EventData} from "web3-eth-contract";
+import {addJob} from "../../../utils/scheduler";
+import {UserModelController} from "./models/UserModelController";
+import {QuestModelController} from "./models/QuestModelController";
+import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
+import {QuestChatModelController} from "./models/QuestChatModelController";
+import {addUpdateReviewStatisticsJob} from "../../jobs/updateReviewStatistics";
+import {QuestDisputeModelController} from "./models/QuestDisputeModelController";
+import {QuestResponsesModelController} from "./models/QuestResponsesModelController";
+import {IController, QuestEvent, QuestNotificationActions, StatisticPayload} from "./types";
+import {incrementAdminDisputeStatisticJob} from "../../jobs/incrementAdminDisputeStatistic";
+import {
+  QuestClients,
+  IContractProvider,
+  IContractMQProvider,
+  IContractWsProvider,
+  IContractRpcProvider,
+} from "../providers/types";
 import {
   UserRole,
   QuestStatus,
@@ -48,12 +54,12 @@ import {
 export class QuestController implements IController {
   constructor(
     public readonly clients: QuestClients,
-    public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
-  private async onEvent(eventsData: EventData) {
+  public async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
@@ -925,7 +931,7 @@ export class QuestController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -954,6 +960,20 @@ export class QuestController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+  }
+}
+
+export class QuestListenerController extends QuestController {
+  constructor(
+    public readonly clients: QuestClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()

@@ -1,12 +1,19 @@
 import { Op } from "sequelize";
 import BigNumber from 'bignumber.js';
-import {IController, WqtWethEvent, WqtWethNotificationActions} from './types';
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import {
+  IContractMQProvider,
+  IContractRpcProvider, IContractWsProvider,
+  IController,
+  WqtWethEvent,
+  WqtWethNotificationActions,
+} from './types';
+import {
   Coin,
+  WqtWethClients,
   IContractProvider,
-  TokenPriceProvider, WqtWethClients,
+  TokenPriceProvider,
 } from '../providers/types';
 import {
   WqtWethBlockInfo,
@@ -17,13 +24,14 @@ import {
   BlockchainNetworks,
   DailyLiquidityWqtWeth,
 } from '@workquest/database-models/lib/models';
+import {BridgeUsdtListenerController} from "../../../bridge-usdt/src/controllers/BridgeUsdtController";
 
 export class WqtWethController implements IController {
   constructor(
-    public readonly contractProvider: IContractProvider,
-    private readonly tokenPriceProvider: TokenPriceProvider,
-    private readonly clients: WqtWethClients,
+    public readonly clients: WqtWethClients,
     public readonly network: BlockchainNetworks,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
@@ -52,7 +60,7 @@ export class WqtWethController implements IController {
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -350,7 +358,7 @@ export class WqtWethController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    const { events, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
     for (const event of events) {
       try {
@@ -379,6 +387,21 @@ export class WqtWethController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
+  }
+}
+
+export class WqtWethListenerController extends WqtWethController {
+  constructor(
+    public readonly clients: WqtWethClients,
+    public readonly network: BlockchainNetworks,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, tokenPriceProvider, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
 
     this.contractProvider.startListener(
       await this.getLastCollectedBlock()
