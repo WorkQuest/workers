@@ -114,7 +114,7 @@ export async function init() {
     bscBridgeController,
     bscSwapUsdtProvider,
   )
-  .setHeightSyncOptions({ period: 10000 })
+  .setHeightSyncOptions({ period: 20000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
@@ -122,7 +122,7 @@ export async function init() {
     ethBridgeController,
     ethSwapUsdtProvider,
   )
-  .setHeightSyncOptions({ period: 10000 })
+  .setHeightSyncOptions({ period: 20000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
@@ -130,7 +130,7 @@ export async function init() {
     polygonBridgeController,
     polygonSwapUsdtProvider,
   )
-  .setHeightSyncOptions({ period: 10000 })
+  .setHeightSyncOptions({ period: 20000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 
