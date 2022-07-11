@@ -92,19 +92,23 @@ export default async function (payload: SendFirstWqtPayload) {
           network: configSwapUsdt.workQuestNetwork,
         });
 
-        if (receipt.status) {
+        transmissionData.status = TransactionStatus.Success;
+        transmissionData.transactionHashTransmissionWqt = transaction.hash;
+
+        if (!receipt.status) {
+          await notificationsBroker.sendNotification({
+            action: 'TransactionError',
+            recipients: [payload.recipientAddress.toLowerCase()],
+            data: {}
+          });
+
+          transmissionData.status = TransactionStatus.TransactionError;
+        } else {
           await notificationsBroker.sendNotification({
             action: 'TransactionSuccessful',
             recipients: [payload.recipientAddress.toLowerCase()],
             data: transaction
           });
-        }
-
-        transmissionData.status = TransactionStatus.Success;
-        transmissionData.transactionHashTransmissionWqt = transaction.hash;
-
-        if (!receipt.status) {
-          transmissionData.status = TransactionStatus.TransactionError;
         }
 
         await Promise.all([
@@ -116,6 +120,12 @@ export default async function (payload: SendFirstWqtPayload) {
         await transmissionData.update({
           error: error.toString(),
           status: TransactionStatus.BroadcastError,
+        });
+
+        await notificationsBroker.sendNotification({
+          action: 'TransactionError',
+          recipients: [payload.recipientAddress.toLowerCase()],
+          data: {}
         });
       })
 
