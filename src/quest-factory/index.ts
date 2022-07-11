@@ -1,20 +1,17 @@
 import Web3 from 'web3';
-import { createClient } from 'redis';
-import { Logger } from "./logger/pino";
+import {createClient} from 'redis';
+import {Logger} from "./logger/pino";
 import configDatabase from './config/config.database';
 import configQuestFactory from './config/config.questFactory';
-import { QuestFactoryClients } from "./src/providers/types";
-import { TransactionBroker } from "../brokers/src/TransactionBroker";
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
-import { QuestFactoryProvider } from "./src/providers/QuestFactoryProvider";
-import { QuestCacheProvider } from "../quest/src/providers/QuestCacheProvider";
-import { QuestFactoryController } from './src/controllers/QuestFactoryController';
-import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
-import {
-  initDatabase,
-  BlockchainNetworks,
-  QuestFactoryBlockInfo,
-} from '@workquest/database-models/lib/models';
+import {QuestFactoryClients} from "./src/providers/types";
+import {TransactionBroker} from "../brokers/src/TransactionBroker";
+import {NotificationBroker} from "../brokers/src/NotificationBroker";
+import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
+import {QuestFactoryMQProvider} from "./src/providers/QuestFactoryProvider";
+import {QuestCacheProvider} from "../quest/src/providers/QuestCacheProvider";
+import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
+import {QuestFactoryListenerController} from './src/controllers/QuestFactoryController';
+import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
 
 export async function init() {
   Logger.info('Start worker "Quest factory". Network: "%s"', configQuestFactory.network);
@@ -50,20 +47,26 @@ export async function init() {
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
   const clients: QuestFactoryClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker };
 
-  const [questFactoryInfo] = await QuestFactoryBlockInfo.findOrCreate({
-    where: { network: BlockchainNetworks.workQuestDevNetwork },
-    defaults: {
-      network: BlockchainNetworks.workQuestDevNetwork,
-      lastParsedBlock: contractData.deploymentHeight,
-    },
-  });
+  const questFactoryProvider = new QuestFactoryMQProvider(
+    contractData.address,
+    contractData.deploymentHeight,
+    questFactoryContract,
+    clients,
+  );
 
-  const questFactoryProvider = new QuestFactoryProvider(clients, questFactoryContract);
-  const questFactoryController = new QuestFactoryController(clients, questFactoryProvider, configQuestFactory.network as BlockchainNetworks);
+  const questFactoryController = new QuestFactoryListenerController(
+    clients,
+    configQuestFactory.network as BlockchainNetworks,
+    questFactoryProvider,
+  );
 
-  await questFactoryController.collectAllUncollectedEvents(questFactoryInfo.lastParsedBlock);
-
-  await questFactoryProvider.startListener();
+  await new SupervisorContract(
+    Logger,
+    questFactoryController,
+    questFactoryProvider,
+  )
+  .setHeightSyncOptions({ period: 300000 })
+  .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 
 init().catch(e => {

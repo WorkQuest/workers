@@ -1,10 +1,7 @@
-import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
-import { onEventCallBack, IContractProvider, QuestClients } from "./types";
-import { EventData } from "web3-eth-contract";
-import { Logger } from "../../logger/pino";
 import { Transaction } from "web3-eth";
-
-const abi = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest].getAbi();
+import { Logger } from "../../logger/pino";
+import { EventData } from "web3-eth-contract";
+import {IContractMQProvider, QuestClients} from "./types";
 
 const asyncFilter = async (arr, predicate) => {
   const results = await Promise.all(arr.map(predicate));
@@ -12,18 +9,16 @@ const asyncFilter = async (arr, predicate) => {
   return arr.filter((_v, index) => results[index]);
 }
 
-export class QuestProvider implements IContractProvider {
-  private readonly onEventCallBacks: onEventCallBack[] = [];
-
-  private readonly preParsingSteps = 100;
+export class QuestMQProvider implements IContractMQProvider {
+  private readonly preParsingSteps = 6000;
+  private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
+    protected readonly abi: any[],
+    public readonly eventViewingHeight: number,
     public readonly clients: QuestClients,
-  ) {};
-
-  private async initBrokerListener() {
-    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
-  }
+  ) {
+  };
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
     Logger.info('Quest queue listener provider: received messages from the queue');
@@ -41,7 +36,7 @@ export class QuestProvider implements IContractProvider {
      const fromBlock = tx.blockNumber;
      const toBlock = tx.blockNumber;
 
-     const contract = new this.clients.web3.eth.Contract(abi, questAddress);
+     const contract = new this.clients.web3.eth.Contract(this.abi, questAddress);
      const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
      Logger.debug('Quest queue listener provider (address "%s"): contract events %o', questAddress, eventsData);
@@ -59,21 +54,25 @@ export class QuestProvider implements IContractProvider {
 
   private onEventData(eventData) {
     return Promise.all(
-      this.onEventCallBacks.map(async callBack => callBack(eventData))
+      this.callbacks['events'].map(async callBack => callBack(eventData)),
     );
   }
 
   public async startListener() {
-    Logger.info('Start listening');
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
 
-    await this.initBrokerListener();
+    Logger.info('Start listener');
   }
 
-  public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
-    this.onEventCallBacks.push(onEventCallBack);
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
   }
 
-  public async getAllEvents(fromBlockNumber: number) {
+  public async getEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
@@ -115,7 +114,7 @@ export class QuestProvider implements IContractProvider {
           for (const tx of tracedTxs) {
             Logger.debug('Traceable transaction: %o', tx);
 
-            const contract = new this.clients.web3.eth.Contract(abi, tx.to);
+            const contract = new this.clients.web3.eth.Contract(this.abi, tx.to);
             const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
             collectedEvents.push(...eventsData);
@@ -156,7 +155,7 @@ export class QuestProvider implements IContractProvider {
         for (const tx of tracedTxs) {
           Logger.debug('Traceable transaction: %o', { to: tx.to, from: tx.from, hash: tx.hash });
 
-          const contract = new this.clients.web3.eth.Contract(abi, tx.to);
+          const contract = new this.clients.web3.eth.Contract(this.abi, tx.to);
           const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
           collectedEvents.push(...eventsData);
@@ -173,9 +172,9 @@ export class QuestProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, error, lastBlockNumber: fromBlock };
+      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, lastBlockNumber };
+    return { events: collectedEvents, lastBlockNumber };
   }
 }

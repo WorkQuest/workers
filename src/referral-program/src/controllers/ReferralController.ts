@@ -1,9 +1,15 @@
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
-import { ReferralClients } from "../providers/types";
 import { IController, ReferralEvent, IContractProvider } from './types';
 import {
+  ReferralClients,
+  IContractMQProvider,
+  IContractWsProvider,
+  IContractRpcProvider,
+} from "../providers/types";
+import {
   User,
+  Media,
   Wallet,
   RewardStatus,
   ReferralStatus,
@@ -13,21 +19,18 @@ import {
   ReferralProgramParseBlock,
   ReferralProgramEventPaidReferral,
   ReferralProgramEventRewardClaimed,
-  ReferralProgramEventRegisteredAffiliate, Media,
+  ReferralProgramEventRegisteredAffiliate,
 } from '@workquest/database-models/lib/models';
 
 export class ReferralController implements IController {
   constructor(
     public readonly clients: ReferralClients,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
-    });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
@@ -43,12 +46,26 @@ export class ReferralController implements IController {
     }
   }
 
-  protected updateBlockViewHeight(blockHeight: number) {
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await ReferralProgramParseBlock.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return ReferralProgramParseBlock.update(
+    await ReferralProgramParseBlock.update(
       { lastParsedBlock: blockHeight },
-      { where: { network: this.network } }
+      { where: { network: this.network } },
     );
   }
 
@@ -266,9 +283,9 @@ export class ReferralController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -285,4 +302,37 @@ export class ReferralController implements IController {
     }
   }
 
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+  }
+}
+
+export class ReferralListenerController extends ReferralController {
+  constructor(
+    public readonly clients: ReferralClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
+  }
 }

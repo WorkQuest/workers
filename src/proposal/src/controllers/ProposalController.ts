@@ -1,33 +1,65 @@
-import { Op } from "sequelize";
-import { Logger } from "../../logger/pino";
-import { EventData } from "web3-eth-contract";
-import { IController, ProposalEvents } from "./types";
-import { Clients, IContractProvider } from "../providers/types";
-import { addJob } from "../../../utils/scheduler";
+import {Op} from "sequelize";
+import {Logger} from "../../logger/pino";
+import {EventData} from "web3-eth-contract";
+import {addJob} from "../../../utils/scheduler";
+import {IController, ProposalEvents} from "./types";
 import {
-  BlockchainNetworks,
-  DaoPlatformStatisticFields,
-  Discussion,
+  Clients,
+  IContractProvider,
+  IContractMQProvider,
+  IContractWsProvider,
+  IContractRpcProvider,
+} from "../../../types";
+import {
   Proposal,
+  Discussion,
+  ProposalStatus,
+  BlockchainNetworks,
+  ProposalParseBlock,
   ProposalCreatedEvent,
   ProposalExecutedEvent,
-  ProposalParseBlock,
-  ProposalStatus,
   ProposalVoteCastEvent,
+  DaoPlatformStatisticFields,
 } from "@workquest/database-models/lib/models";
 
 export class ProposalController implements IController {
   constructor (
     public readonly clients: Clients,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      await this.onEvent(eventData);
+  }
+
+  private writeDaoStatistic(incrementField: DaoPlatformStatisticFields, by?: string | number) {
+    return addJob('writeActionStatistics', { incrementField, statistic: 'dao', by });
+  }
+
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await ProposalParseBlock.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async updateBlockViewHeight(blockHeight: number) {
+    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+
+    await ProposalParseBlock.update({ lastParsedBlock: blockHeight }, {
+      where: {
+        network: this.network,
+        lastParsedBlock: { [Op.lt]: blockHeight },
+      }
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -41,21 +73,6 @@ export class ProposalController implements IController {
     } else if (eventsData.event === ProposalEvents.ProposalExecuted) {
       return this.proposalExecutedEventHandler(eventsData);
     }
-  }
-
-  private writeDaoStatistic(incrementField: DaoPlatformStatisticFields, by?: string | number) {
-    return addJob('writeActionStatistics', { incrementField, statistic: 'dao', by });
-  }
-
-  protected updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
-
-    return ProposalParseBlock.update({ lastParsedBlock: blockHeight }, {
-      where: {
-        network: this.network,
-        lastParsedBlock: { [Op.lt]: blockHeight },
-      }
-    });
   }
 
   protected async proposalCreatedEventHandler(eventsData: EventData) {
@@ -258,9 +275,9 @@ export class ProposalController implements IController {
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (e) {
@@ -275,5 +292,40 @@ export class ProposalController implements IController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+
+  }
+}
+
+export class ProposalListenerController extends ProposalController {
+  constructor (
+    public readonly clients: Clients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }

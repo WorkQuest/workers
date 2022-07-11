@@ -2,10 +2,15 @@ import { Op } from "sequelize";
 import { Logger } from "../../logger/pino";
 import { EventData } from 'web3-eth-contract';
 import { addJob } from "../../../utils/scheduler";
-import { IController, RaiseViewEvent, StatisticPayload } from './types';
-import { IContractProvider, RaiseViewClients } from '../providers/types';
+import {IContractMQProvider, IContractProvider, IContractWsProvider, RaiseViewClients} from '../providers/types';
 import { updateUserRaiseViewStatusJob } from "../../jobs/updateUserRaiseViewStatus";
 import { updateQuestRaiseViewStatusJob } from "../../jobs/updateQuestRaiseViewStatus";
+import {
+  IController,
+  RaiseViewEvent,
+  StatisticPayload,
+  IContractRpcProvider,
+} from './types';
 import {
   RaiseViewsPlatformStatisticFields,
   RaiseViewPromotedQuestEvent,
@@ -26,12 +31,9 @@ import {
 export class RaiseViewController implements IController {
   constructor(
     public readonly clients: RaiseViewClients,
-    public readonly contractProvider: IContractProvider,
     public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
-    this.contractProvider.subscribeOnEvents(async (eventData) => {
-      return this.onEvent(eventData);
-    });
   }
 
   private async writeUserStatistic(payload: StatisticPayload) {
@@ -76,10 +78,24 @@ export class RaiseViewController implements IController {
     return new Date(Date.now() + 86400000 * period);
   }
 
-  protected updateBlockViewHeight(blockHeight: number): Promise<any> {
+  public async getLastCollectedBlock(): Promise<number> {
+    const [{ lastParsedBlock }, ] = await RaiseViewBlockInfo.findOrCreate({
+      where: { network: this.network },
+      defaults: {
+        network: this.network,
+        lastParsedBlock: this.contractProvider.eventViewingHeight,
+      },
+    });
+
+    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+
+    return lastParsedBlock;
+  }
+
+  protected async updateBlockViewHeight(blockHeight: number) {
     Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
-    return RaiseViewBlockInfo.update({ lastParsedBlock: blockHeight }, {
+    await RaiseViewBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
         network: this.network,
         lastParsedBlock: { [Op.lt]: blockHeight },
@@ -87,7 +103,7 @@ export class RaiseViewController implements IController {
     });
   }
 
-  private async onEvent(eventsData: EventData) {
+  protected async onEvent(eventsData: EventData) {
     Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -306,11 +322,12 @@ export class RaiseViewController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
+
     Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { collectedEvents, error, lastBlockNumber } = await this.contractProvider.getAllEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
-    for (const event of collectedEvents) {
+    for (const event of events) {
       try {
         await this.onEvent(event);
       } catch (error) {
@@ -325,5 +342,39 @@ export class RaiseViewController implements IController {
     if (error) {
       throw error;
     }
+  }
+
+  public async syncBlocks() {
+    const lastParsedBlock = await this.getLastCollectedBlock();
+
+    await this.collectAllUncollectedEvents(lastParsedBlock);
+  }
+
+  public async start() {
+    await this.collectAllUncollectedEvents(
+      await this.getLastCollectedBlock()
+    );
+  }
+}
+
+export class RaiseViewListenerController extends RaiseViewController {
+  constructor(
+    public readonly clients: RaiseViewClients,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+  ) {
+    super(clients, network, contractProvider);
+  }
+
+  public async start() {
+    await super.start();
+
+    this.contractProvider.startListener(
+      await this.getLastCollectedBlock()
+    );
+
+    this.contractProvider.on('events', (async (eventData) => {
+      await this.onEvent(eventData);
+    }));
   }
 }

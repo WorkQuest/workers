@@ -30,7 +30,7 @@ export enum QuestNotificationActions {
   QuestEdited = 'QuestEditedOnContract',
 
   OpenDispute = 'OpenDispute',
-  DisputeDecision = 'DisputeDecision'
+  DisputeDecision = 'DisputeDecisionOnContract'
 }
 
 export type StatisticPayload = {

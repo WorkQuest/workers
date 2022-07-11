@@ -1,37 +1,27 @@
-import { Transaction } from "web3-eth";
-import { Logger } from "../../logger/pino";
-import configRaiseView from '../../config/config.raiseView';
-import { Contract, EventData } from "web3-eth-contract";
-import {
-  onEventCallBack,
-  IContractProvider,
-  RaiseViewClients,
-} from "./types";
-import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
+import {Transaction} from "web3-eth";
+import {Logger} from "../../logger/pino";
+import {Contract, EventData} from "web3-eth-contract";
+import {IContractMQProvider, RaiseViewClients} from "./types";
 
-export class RaiseViewProvider implements IContractProvider {
-  private readonly onEventCallBacks: onEventCallBack[] = [];
-
+export class RaiseViewMQProvider implements IContractMQProvider {
   private readonly preParsingSteps = 6000;
+  private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
-    public readonly clients: RaiseViewClients,
+    public readonly address: string,
+    public readonly eventViewingHeight: number,
     public readonly contract: Contract,
-  ) {};
-
-  private async initBrokerListener() {
-    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
-  }
+    public readonly clients: RaiseViewClients,
+  ) {
+  };
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
     Logger.info('Raise-view listener: message "onEventFromBroker"');
     Logger.debug('Raise-view listener: message "onEventFromBroker" with payload %o', payload);
 
-    const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.Promotion];
-
     const tracedTxs = payload
       .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === contractData.address.toLowerCase())
+      .filter(tx => tx.to && tx.to.toLowerCase() === this.address.toLowerCase())
       .sort((a, b) => a.blockNumber = b.blockNumber)
 
     Logger.info('Raise-view listener provider: number of contract transactions "%s"', tracedTxs.length);
@@ -64,21 +54,25 @@ export class RaiseViewProvider implements IContractProvider {
 
   private onEventData(eventData) {
     return Promise.all(
-      this.onEventCallBacks.map(async callBack => callBack(eventData))
+      this.callbacks['events'].map(async callBack => callBack(eventData)),
     );
   }
 
   public async startListener() {
-    Logger.info('Start listening');
+    await this.clients.transactionsBroker.initConsumer(this.onEventFromBroker.bind(this));
 
-    await this.initBrokerListener();
+    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
-  public subscribeOnEvents(onEventCallBack: onEventCallBack): void {
-    this.onEventCallBacks.push(onEventCallBack);
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
   }
 
-  public async getAllEvents(fromBlockNumber: number) {
+  public async getEvents(fromBlockNumber: number) {
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.clients.web3.eth.getBlockNumber();
 
@@ -120,9 +114,9 @@ export class RaiseViewProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { collectedEvents, error, lastBlockNumber: fromBlock };
+      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
     }
 
-    return { collectedEvents, lastBlockNumber };
+    return { events: collectedEvents, lastBlockNumber };
   }
 }
