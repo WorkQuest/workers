@@ -2,12 +2,16 @@ import Web3 from "web3";
 import BigNumber from "bignumber.js";
 import { Logger } from "../logger/pino";
 import { addJob } from "../utils/scheduler";
+import configDatabase from "../config/config.common";
 import configSwapUsdt from "../config/config.swapUsdt";
+import { NotificationBroker } from "../../brokers/src/NotificationBroker";
 import {
   Transaction,
   TransactionStatus,
   FirstWqtTransmissionData,
 } from "@workquest/database-models/lib/models";
+
+const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
 
 export interface SendFirstWqtPayload {
   readonly ratio: number;
@@ -88,6 +92,13 @@ export default async function (payload: SendFirstWqtPayload) {
           network: configSwapUsdt.workQuestNetwork,
         });
 
+        if (receipt.status) {
+          await notificationsBroker.sendNotification({
+            action: 'TransactionSuccessful',
+            recipients: [payload.recipientAddress.toLowerCase()],
+            data: transaction
+          });
+        }
 
         transmissionData.status = TransactionStatus.Success;
         transmissionData.transactionHashTransmissionWqt = transaction.hash;
