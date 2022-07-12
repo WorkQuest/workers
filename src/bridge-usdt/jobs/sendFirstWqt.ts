@@ -96,25 +96,22 @@ export default async function (payload: SendFirstWqtPayload) {
         transmissionData.transactionHashTransmissionWqt = transaction.hash;
 
         if (!receipt.status) {
-          await notificationsBroker.sendNotification({
-            action: 'TransactionError',
-            recipients: [payload.recipientAddress.toLowerCase()],
-            data: {}
-          });
-
           transmissionData.status = TransactionStatus.TransactionError;
-        } else {
-          await notificationsBroker.sendNotification({
-            action: 'TransactionSuccessful',
-            recipients: [payload.recipientAddress.toLowerCase()],
-            data: transaction
-          });
         }
 
         await Promise.all([
           transaction.save(),
           transmissionData.save(),
         ]);
+
+        await notificationsBroker.sendNotification({
+          data: {},
+          recipients: [payload.recipientAddress.toLowerCase()],
+          action: 
+            receipt.status
+              ? 'TransactionSuccessful'
+              : 'TransactionError'
+        });
       })
       .catch(async error => {
         await transmissionData.update({
@@ -125,7 +122,7 @@ export default async function (payload: SendFirstWqtPayload) {
         await notificationsBroker.sendNotification({
           action: 'TransactionError',
           recipients: [payload.recipientAddress.toLowerCase()],
-          data: {}
+          data: {},
         });
       })
 
