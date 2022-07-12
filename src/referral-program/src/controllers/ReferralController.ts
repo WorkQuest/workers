@@ -190,12 +190,13 @@ export class ReferralController implements IController {
       }],
     });
 
-    eventsData['timestamp'] = timestamp
-
     await this.clients.notificationsBroker.sendNotification({
-      data: { referral: userInfo, event: eventsData },
       action: eventsData.event,
       recipients: [affiliateAddress, affiliateInfo.id],
+      data: {
+        referral: userInfo,
+        event: { ...eventsData, timestamp },
+      },
     });
 
     const [referralWallet,] = await Promise.all([
