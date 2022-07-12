@@ -30,6 +30,8 @@ export async function sendFirstWqtJob(payload: SendFirstWqtPayload) {
 
 export default async function (payload: SendFirstWqtPayload) {
   try {
+    await notificationsBroker.init();
+
     const transmissionData = await FirstWqtTransmissionData.findOne({
       where: { txHashSwapInitialized: payload.txHashSwapInitialized }
     });
@@ -105,7 +107,7 @@ export default async function (payload: SendFirstWqtPayload) {
         ]);
 
         await notificationsBroker.sendNotification({
-          data: {},
+          data: { ...(receipt.status && { hash: receipt.transactionHash.toLowerCase() }) },
           recipients: [payload.recipientAddress.toLowerCase()],
           action: 
             receipt.status
