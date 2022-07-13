@@ -55,7 +55,7 @@ export async function init() {
   const web3Eth = new Web3(ethRpcProvider);
   const web3Polygon = new Web3(polygonRpcProvider);
 
-  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'SwapUsdt');
+  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
 
   const SwapUsdtBscContract = new web3Bsc.eth.Contract(contractBnbData.getAbi(), contractBnbData.address);
   const SwapUsdtEthContract = new web3Eth.eth.Contract(contractEthData.getAbi(), contractEthData.address);

@@ -2,12 +2,16 @@ import Web3 from "web3";
 import BigNumber from "bignumber.js";
 import { Logger } from "../logger/pino";
 import { addJob } from "../utils/scheduler";
+import configDatabase from "../config/config.common";
 import configSwapUsdt from "../config/config.swapUsdt";
+import { NotificationBroker } from "../../brokers/src/NotificationBroker";
 import {
   Transaction,
   TransactionStatus,
   FirstWqtTransmissionData,
 } from "@workquest/database-models/lib/models";
+
+const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
 
 export interface SendFirstWqtPayload {
   readonly ratio: number;
@@ -26,6 +30,8 @@ export async function sendFirstWqtJob(payload: SendFirstWqtPayload) {
 
 export default async function (payload: SendFirstWqtPayload) {
   try {
+    await notificationsBroker.init();
+
     const transmissionData = await FirstWqtTransmissionData.findOne({
       where: { txHashSwapInitialized: payload.txHashSwapInitialized }
     });
@@ -100,11 +106,26 @@ export default async function (payload: SendFirstWqtPayload) {
           transaction.save(),
           transmissionData.save(),
         ]);
+
+        await notificationsBroker.sendNotification({
+          data: { ...(receipt.status && { hash: receipt.transactionHash.toLowerCase() }) },
+          recipients: [payload.recipientAddress.toLowerCase()],
+          action:
+            receipt.status
+              ? 'TransactionSuccessful'
+              : 'TransactionError'
+        });
       })
       .catch(async error => {
         await transmissionData.update({
           error: error.toString(),
           status: TransactionStatus.BroadcastError,
+        });
+
+        await notificationsBroker.sendNotification({
+          action: 'TransactionError',
+          recipients: [payload.recipientAddress.toLowerCase()],
+          data: {},
         });
       })
 
