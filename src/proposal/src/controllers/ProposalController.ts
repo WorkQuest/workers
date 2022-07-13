@@ -1,25 +1,25 @@
-import {Op} from "sequelize";
-import {Logger} from "../../logger/pino";
-import {EventData} from "web3-eth-contract";
-import {addJob} from "../../../utils/scheduler";
-import {IController, ProposalEvents} from "./types";
+import { Op } from "sequelize";
+import { Logger } from "../../logger/pino";
+import { EventData } from "web3-eth-contract";
+import { addJob } from "../../../utils/scheduler";
+import { IController, ProposalEvents } from "./types";
 import {
   Clients,
-  IContractProvider,
   IContractMQProvider,
-  IContractWsProvider,
+  IContractProvider,
   IContractRpcProvider,
+  IContractWsProvider,
 } from "../../../types";
 import {
-  Proposal,
-  Discussion,
-  ProposalStatus,
   BlockchainNetworks,
-  ProposalParseBlock,
+  DaoPlatformStatisticFields,
+  Discussion,
+  Proposal,
   ProposalCreatedEvent,
   ProposalExecutedEvent,
+  ProposalParseBlock,
+  ProposalStatus,
   ProposalVoteCastEvent,
-  DaoPlatformStatisticFields,
 } from "@workquest/database-models/lib/models";
 
 export class ProposalController implements IController {
@@ -259,9 +259,13 @@ export class ProposalController implements IController {
       return this.updateBlockViewHeight(eventsData.blockNumber);
     }
 
-    const proposalStatus = executedEvent.succeeded
-      ? ProposalStatus.Accepted
-      : ProposalStatus.Rejected
+
+    let proposalStatus = ProposalStatus.Active;
+    if (executedEvent.succeeded && !executedEvent.defeated) {
+      proposalStatus = ProposalStatus.Accepted;
+    } else if (executedEvent.defeated && !executedEvent.succeeded) {
+      proposalStatus = ProposalStatus.Rejected;
+    }
 
     return Promise.all([
       this.updateBlockViewHeight(eventsData.blockNumber),
