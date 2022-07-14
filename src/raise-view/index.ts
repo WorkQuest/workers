@@ -3,7 +3,7 @@ import {Logger} from "./logger/pino";
 import configDatabase from "./config/config.database";
 import configRaiseView from "./config/config.raiseView";
 import {RaiseViewClients} from "./src/providers/types";
-import {TransactionBroker} from "../brokers/src/TransactionBroker";
+import {TransactionBroker} from "../middleware/src/TransactionBroker";
 import {RaiseViewMQProvider} from "./src/providers/RaiseViewProvider";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {RaiseViewListenerController} from "./src/controllers/RaiseViewController";

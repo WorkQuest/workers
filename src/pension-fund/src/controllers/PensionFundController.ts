@@ -1,13 +1,14 @@
+import Web3 from "web3";
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
+import {PensionFundEvents} from './types';
 import {EventData} from 'web3-eth-contract';
-import {IContractProvider, IController, PensionFundClients} from "../providers/types";
+import {INotificationClient} from "../../../middleware";
 import {
-  PensionFundEvents,
-  IContractMQProvider,
-  IContractWsProvider,
-  IContractRpcProvider,
-} from './types';
+  IController,
+  IContractProvider,
+  IContractListenerProvider,
+} from "../../../types";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
@@ -18,9 +19,10 @@ import {
 
 export class PensionFundController implements IController {
   constructor(
-    public readonly clients: PensionFundClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
+    public readonly contractProvider: IContractProvider,
+    public readonly notificationClient: INotificationClient,
   ) {
   }
 
@@ -66,7 +68,7 @@ export class PensionFundController implements IController {
   }
 
   protected async receivedEventHandler(eventsData: EventData) {
-    const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const block = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
@@ -98,7 +100,7 @@ export class PensionFundController implements IController {
       return;
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [user],
       action: eventsData.event,
       data: eventsData
@@ -108,7 +110,7 @@ export class PensionFundController implements IController {
   }
 
   protected async withdrewEventHandler(eventsData: EventData) {
-    const block = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const block = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
@@ -141,7 +143,7 @@ export class PensionFundController implements IController {
       return;
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [user],
       action: eventsData.event,
       data: eventsData
@@ -151,7 +153,7 @@ export class PensionFundController implements IController {
   }
 
   protected async walletUpdatedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
@@ -185,7 +187,7 @@ export class PensionFundController implements IController {
       return;
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [user],
       action: eventsData.event,
       data: eventsData
@@ -231,11 +233,12 @@ export class PensionFundController implements IController {
 
 export class PensionFundListenerController extends PensionFundController {
   constructor(
-    public readonly clients: PensionFundClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly notificationClient: INotificationClient,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, contractProvider);
+    super(web3, network, contractProvider, notificationClient);
   }
 
   public async start() {

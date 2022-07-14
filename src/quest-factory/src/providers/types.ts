@@ -1,7 +1,7 @@
 import { Clients } from '../../../types';
 import {IQuestCacheProvider} from '../../../quest/src/providers/types'
-import { TransactionBroker } from "../../../brokers/src/TransactionBroker";
-import { NotificationBroker } from "../../../brokers/src/NotificationBroker";
+import { TransactionBroker } from "../../../middleware/src/TransactionBroker";
+import { NotificationBroker } from "../../../middleware/src/NotificationBroker";
 
 export interface QuestFactoryClients extends Clients {
   readonly questCacheProvider: IQuestCacheProvider;

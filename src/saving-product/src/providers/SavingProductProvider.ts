@@ -3,7 +3,7 @@ import { Transaction } from "web3-eth";
 import { Logger } from "../../logger/pino";
 import { IContractMQProvider } from "./types";
 import { Contract, EventData } from "web3-eth-contract";
-import {TransactionBroker} from "../../../brokers/src/TransactionBroker";
+import {TransactionBroker} from "../../../middleware/src/TransactionBroker";
 
 export class SavingProductMQProvider implements IContractMQProvider {
   private readonly preParsingSteps = 6000;

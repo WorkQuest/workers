@@ -585,9 +585,7 @@ export class QuestController implements IController {
       addUpdateReviewStatisticsJob({ userId: questModelController.quest.assignedWorkerId }),
       updateQuestsStatisticJob({ userId: questModelController.quest.userId, role: UserRole.Employer }),
       updateQuestsStatisticJob({ userId: questModelController.quest.assignedWorkerId, role: UserRole.Worker }),
-      this.clients.communicationBroker.sendMessage({
-        blockNumber: eventsData.blockNumber
-      }),
+      this.clients.communicationBroker.sendMessage({ blockNumber: eventsData.blockNumber }),
       this.clients.notificationsBroker.sendNotification({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
         action: QuestNotificationActions.QuestStatusUpdated,

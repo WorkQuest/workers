@@ -1,10 +1,8 @@
 import Web3 from 'web3';
 import {Logger} from "./logger/pino";
 import configDatabase from './config/config.database';
-import {PensionFundClients} from "./src/providers/types";
 import configPensionFund from './config/config.pensionFund';
-import {TransactionBroker} from "../brokers/src/TransactionBroker";
-import { NotificationBroker} from "../brokers/src/NotificationBroker";
+import {NotificationMQClient, TransactionMQListener} from "../middleware";
 import {PensionFundMQProvider} from "./src/providers/PensionFundProvider";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {PensionFundListenerController} from "./src/controllers/PensionFundController";
@@ -22,17 +20,10 @@ export async function init() {
   Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
   Logger.debug('Pension Fund starts on "%s" network', configPensionFund.network);
 
-  const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
+  const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  const web3 = new Web3(rpcProvider);
-
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'pension-fund');
-  await transactionsBroker.init();
-
-  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'pension_fund');
-  await notificationsBroker.init();
-
-  const clients: PensionFundClients = { web3, transactionsBroker, notificationsBroker };
+  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'pension-fund');
+  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBrokerLink, 'pension_fund');
 
   const pensionFundContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
@@ -41,12 +32,13 @@ export async function init() {
     contractData.deploymentHeight,
     pensionFundContract,
     web3,
-    transactionsBroker,
+    transactionListener,
   );
 
   const pensionFundController = new PensionFundListenerController(
-    clients,
+    web3,
     configPensionFund.network as BlockchainNetworks,
+    notificationClient,
     pensionFundProvider,
   );
 

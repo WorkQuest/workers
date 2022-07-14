@@ -1,5 +1,5 @@
 import { Clients } from "../../../types";
-import { NotificationBroker } from "../../../brokers/src/NotificationBroker";
+import { NotificationBroker } from "../../../middleware/src/NotificationBroker";
 
 export enum Coin {
   WQT = 'WQT',

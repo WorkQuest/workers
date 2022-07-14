@@ -1,5 +1,5 @@
 import Web3 from "web3";
-import { BrokerRouter } from "../../brokers/src/BrokerRouter";
+import { BrokerRouter } from "../../middleware/src/BrokerRouter";
 import { Logger } from "../logger/pino";
 
 export class TransactionsFetcher {

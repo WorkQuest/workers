@@ -4,7 +4,7 @@ import configWqtWbnb from './config/config.WqtWbnb';
 import {WqtWbnbClients} from "./src/providers/types";
 import configDatabase from './config/config.database';
 import {WqtWbnbRpcProvider} from './src/providers/WqtWbnbProvider';
-import {NotificationBroker} from "../brokers/src/NotificationBroker";
+import {NotificationBroker} from "../middleware/src/NotificationBroker";
 import {WqtWbnbController} from './src/controllers/WqtWbnbController';
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";

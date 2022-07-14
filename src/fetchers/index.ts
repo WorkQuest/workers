@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import configFetcher from "./config/config.fetcher";
-import { BrokerRouter } from "../brokers/src/BrokerRouter";
+import { BrokerRouter } from "../middleware/src/BrokerRouter";
 import { TransactionsFetcher } from "./src/TransactionsFetcher";
 import { Logger } from "./logger/pino";
 

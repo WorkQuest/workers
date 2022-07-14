@@ -2,14 +2,11 @@ import Web3 from "web3";
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
+import {IContractProvider} from "../../../types";
+import {IController, BridgeEvents} from "./types";
 import configBridge from "../../config/config.bridge";
-import {IContractProvider, IContractRpcProvider} from "../../../types";
-import {BridgeClients, IContractMQProvider} from "../providers/types";
-import {
-  IController,
-  BridgeEvents,
-  IContractWsProvider,
-} from "./types";
+import {INotificationClient} from "../../../middleware";
+import {IContractListenerProvider} from "../../../types";
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,
@@ -18,9 +15,10 @@ import {
 
 export class BridgeController implements IController {
   constructor(
-    public readonly clients: BridgeClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
+    public readonly contractProvider: IContractProvider,
+    public readonly notificationClient: INotificationClient,
   ) {
   }
 
@@ -75,7 +73,7 @@ export class BridgeController implements IController {
     );
 
     /** Не трогать последовательность */
-    const messageHash = this.clients.web3.eth.accounts.sign(Web3.utils.soliditySha3(
+    const messageHash = this.web3.eth.accounts.sign(Web3.utils.soliditySha3(
       eventsData.returnValues.nonce,
       eventsData.returnValues.amount,
       eventsData.returnValues.recipient,
@@ -113,7 +111,7 @@ export class BridgeController implements IController {
       return;
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [recipient],
       action: BridgeEvents.SwapRedeemed,
       data: eventsData
@@ -133,7 +131,7 @@ export class BridgeController implements IController {
     );
 
     /** Не трогать последовательность */
-    const messageHash = this.clients.web3.eth.accounts.sign(Web3.utils.soliditySha3(
+    const messageHash = this.web3.eth.accounts.sign(Web3.utils.soliditySha3(
       eventsData.returnValues.nonce,
       eventsData.returnValues.amount,
       eventsData.returnValues.recipient,
@@ -172,7 +170,7 @@ export class BridgeController implements IController {
     }
 
     /** Не трогать последовательность */
-    const sign = await this.clients.web3.eth.accounts.sign(this.clients.web3.utils.soliditySha3(
+    const sign = await this.web3.eth.accounts.sign(this.web3.utils.soliditySha3(
       eventsData.returnValues.nonce,
       eventsData.returnValues.amount,
       recipient,
@@ -193,7 +191,7 @@ export class BridgeController implements IController {
       eventsData.returnValues.symbol,
     ]
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [recipient],
       action: BridgeEvents.SwapInitialized,
       data: eventsData
@@ -239,11 +237,12 @@ export class BridgeController implements IController {
 
 export class BridgeListenerController extends BridgeController {
   constructor(
-    public readonly clients: BridgeClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly contractProvider: IContractListenerProvider,
+    public readonly notificationClient: INotificationClient,
   ) {
-    super(clients, network, contractProvider);
+    super(web3, network, contractProvider, notificationClient);
   }
 
   public async start() {

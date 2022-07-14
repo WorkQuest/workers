@@ -3,7 +3,7 @@ import {Logger} from "./logger/pino";
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
 import {ProposalClients} from "./src/providers/types";
-import {TransactionBroker} from "../brokers/src/TransactionBroker";
+import {TransactionBroker} from "../middleware/src/TransactionBroker";
 import {ProposalMQProvider} from './src/providers/ProposalProvider';
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {ProposalListenerController} from "./src/controllers/ProposalController";

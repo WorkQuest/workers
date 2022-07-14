@@ -3,7 +3,7 @@ import {Logger} from "./logger/pino";
 import configSavings from "./config/config.savings";
 import configDatabase from './config/config.database';
 import {SavingProductClients} from "./src/providers/types";
-import {TransactionBroker} from "../brokers/src/TransactionBroker";
+import {TransactionBroker} from "../middleware/src/TransactionBroker";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {SavingProductMQProvider} from "./src/providers/SavingProductProvider";
 import {SavingProductListenerController} from "./src/controllers/SavingProductController";

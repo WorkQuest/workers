@@ -4,14 +4,14 @@ import { Logger } from "../logger/pino";
 import { addJob } from "../utils/scheduler";
 import configDatabase from "../config/config.common";
 import configSwapUsdt from "../config/config.swapUsdt";
-import { NotificationBroker } from "../../brokers/src/NotificationBroker";
+import { NotificationMQClient } from "../../middleware";
 import {
   Transaction,
   TransactionStatus,
   FirstWqtTransmissionData,
 } from "@workquest/database-models/lib/models";
 
-const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
+const notificationsBroker = new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
 
 export interface SendFirstWqtPayload {
   readonly ratio: number;
@@ -106,10 +106,10 @@ export default async function (payload: SendFirstWqtPayload) {
           transmissionData.save(),
         ]);
 
-        await notificationsBroker.sendNotification({
+        await notificationsBroker.notify({
           data: { ...(receipt.status && { hash: receipt.transactionHash.toLowerCase() }) },
           recipients: [payload.recipientAddress.toLowerCase()],
-          action: 
+          action:
             receipt.status
               ? 'TransactionSuccessful'
               : 'TransactionError'
@@ -121,7 +121,7 @@ export default async function (payload: SendFirstWqtPayload) {
           status: TransactionStatus.BroadcastError,
         });
 
-        await notificationsBroker.sendNotification({
+        await notificationsBroker.notify({
           action: 'TransactionError',
           recipients: [payload.recipientAddress.toLowerCase()],
           data: {},

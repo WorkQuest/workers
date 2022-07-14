@@ -1,18 +1,13 @@
 import Web3 from "web3";
 import {run} from 'graphile-worker';
 import {Logger} from "./logger/pino";
-import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import configDatabase from ".//config/config.common";
 import configSwapUsdt from "./config/config.swapUsdt";
-import {SwapUsdtEthClients} from "./src/providers/types";
-import {BridgeUsdtRpcProvider} from "./src/providers/BridgeUsdtProvider";
-import {NotificationBroker} from "../brokers/src/NotificationBroker";
-import {BridgeUsdtController} from "./src/controllers/BridgeUsdtController";
+import {BridgeUsdtProvider} from "./src/providers/BridgeUsdtProvider";
+import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
-import {
-  initDatabase,
-  BlockchainNetworks,
-} from "@workquest/database-models/lib/models";
+import {BridgeUsdtController} from "./src/controllers/BridgeUsdtController";
+import {initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/models";
 import {
   Store,
   Networks,
@@ -55,8 +50,6 @@ export async function init() {
   const web3Eth = new Web3(ethRpcProvider);
   const web3Polygon = new Web3(polygonRpcProvider);
 
-  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
-
   const SwapUsdtBscContract = new web3Bsc.eth.Contract(contractBnbData.getAbi(), contractBnbData.address);
   const SwapUsdtEthContract = new web3Eth.eth.Contract(contractEthData.getAbi(), contractEthData.address);
   const SwapUsdtPolygonContract = new web3Polygon.eth.Contract(contractPolygonScanData.getAbi(), contractPolygonScanData.address);
@@ -65,25 +58,21 @@ export async function init() {
   Logger.debug('Ethereum network contract address: "%s"', contractEthData.address);
   Logger.debug('Polygon network contract address: "%s"', contractPolygonScanData.address);
 
-  const bscClients: SwapUsdtEthClients = { web3: web3Bsc, webSocketProvider: bscRpcProvider, notificationsBroker };
-  const ethClients: SwapUsdtEthClients = { web3: web3Eth, webSocketProvider: ethRpcProvider, notificationsBroker };
-  const polygonClients: SwapUsdtEthClients = { web3: web3Polygon, webSocketProvider: polygonRpcProvider, notificationsBroker };
-
   const oracleProvider = new OraclePricesProvider(configSwapUsdt.oracleLink);
 
-  const bscSwapUsdtProvider = new BridgeUsdtRpcProvider(
+  const bscSwapUsdtProvider = new BridgeUsdtProvider(
     contractBnbData.address,
     contractBnbData.deploymentHeight,
     SwapUsdtBscContract,
     web3Bsc,
   );
-  const ethSwapUsdtProvider = new BridgeUsdtRpcProvider(
+  const ethSwapUsdtProvider = new BridgeUsdtProvider(
     contractEthData.address,
     contractEthData.deploymentHeight,
     SwapUsdtEthContract,
     web3Eth,
   );
-  const polygonSwapUsdtProvider = new BridgeUsdtRpcProvider(
+  const polygonSwapUsdtProvider = new BridgeUsdtProvider(
     contractPolygonScanData.address,
     contractPolygonScanData.deploymentHeight,
     SwapUsdtPolygonContract,
@@ -91,22 +80,19 @@ export async function init() {
   );
 
   const bscBridgeController = new BridgeUsdtController(
-    bscClients,
     configSwapUsdt.bscNetwork as BlockchainNetworks,
-    oracleProvider,
     bscSwapUsdtProvider,
+    oracleProvider,
   );
   const ethBridgeController = new BridgeUsdtController(
-    ethClients,
     configSwapUsdt.ethereumNetwork as BlockchainNetworks,
-    oracleProvider,
     ethSwapUsdtProvider,
+    oracleProvider,
   );
   const polygonBridgeController = new BridgeUsdtController(
-    polygonClients,
     configSwapUsdt.polygonscanNetwork as BlockchainNetworks,
-    oracleProvider,
     polygonSwapUsdtProvider,
+    oracleProvider,
   );
 
   await new SupervisorContract(

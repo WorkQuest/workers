@@ -3,14 +3,9 @@ import BigNumber from "bignumber.js";
 import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
 import { IController, SwapUsdtEvents } from "./types";
+import {TokenPriceProvider} from "../providers/types";
 import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
-import { SwapUsdtClients, TokenPriceProvider } from "../providers/types";
-import {
-  IContractProvider,
-  IContractMQProvider,
-  IContractWsProvider,
-  IContractRpcProvider,
-} from "../../../types";
+import {IContractProvider, IContractListenerProvider} from "../../../types";
 import {
   CommissionTitle,
   BlockchainNetworks,
@@ -24,10 +19,9 @@ import {
 
 export class BridgeUsdtController implements IController {
   constructor(
-    public readonly clients: SwapUsdtClients,
     public readonly network: BlockchainNetworks,
-    protected readonly tokenPriceProvider: TokenPriceProvider,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
+    public readonly contractProvider: IContractProvider,
+    public readonly tokenPriceProvider: TokenPriceProvider,
   ) {
   }
 
@@ -191,12 +185,11 @@ export class BridgeUsdtController implements IController {
 
 export class BridgeUsdtListenerController extends BridgeUsdtController {
   constructor(
-    public readonly clients: SwapUsdtClients,
     public readonly network: BlockchainNetworks,
-    protected readonly tokenPriceProvider: TokenPriceProvider,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly tokenPriceProvider: TokenPriceProvider,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, tokenPriceProvider, contractProvider);
+    super(network, contractProvider, tokenPriceProvider);
   }
 
   public async start() {

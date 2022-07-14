@@ -30,23 +30,12 @@ export interface IContractProvider {
   getEvents(fromBlockNumber: number): Promise<ReceivedEvents>;
 }
 
-export interface IContractWsProvider extends IContractProvider {
+export interface IContractListenerProvider extends IContractProvider {
   on(type: 'error', callback: (error) => void);
   on(type: 'events', callback: (eventData) => void);
 
   isListening(): Promise<boolean>;
   startListener(fromBlockNumber?: number): void;
-}
-
-export interface IContractMQProvider extends IContractProvider {
-  on(type: 'error', callback: (error) => void);
-  on(type: 'events', callback: (eventData) => void);
-
-  startListener(fromBlockNumber?: number): void;
-}
-
-export interface IContractRpcProvider extends IContractProvider {
-
 }
 
 export interface IController {

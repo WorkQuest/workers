@@ -1,13 +1,11 @@
 import Web3 from "web3";
-import { Logger } from "./logger/pino";
+import {Logger} from "./logger/pino";
 import configBridge from "./config/config.bridge";
 import configDatabase from "../bridge/config/config.common";
-import { TransactionBroker } from "../brokers/src/TransactionBroker";
-import { NotificationBroker } from "../brokers/src/NotificationBroker";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
-import { BridgeEthClients, BridgeWorkNetClients } from "./src/providers/types";
-import { BridgeRpcProvider, BridgeMQProvider } from "./src/providers/BridgeProvider";
-import { initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/models";
+import {TransactionMQListener, NotificationMQClient} from "../middleware";
+import {BridgeProvider, BridgeMQProvider} from "./src/providers/BridgeProvider";
+import {initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/models";
 import {BridgeController, BridgeListenerController} from "./src/controllers/BridgeController";
 import {
   Store,
@@ -43,11 +41,8 @@ export async function init() {
   const web3Bsc = new Web3(bscRpcProvider);
   const web3Eth = new Web3(ethRpcProvider);
 
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'bridge');
-  await transactionsBroker.init();
-
-  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'bridge');
-  await notificationsBroker.init();
+  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'bridge');
+  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'bridge');
 
   const bridgeWqContract = new web3Wq.eth.Contract(contractWorkNetData.getAbi(), contractWorkNetData.address);
   const bridgeBscContract = new web3Bsc.eth.Contract(contractBnbData.getAbi(), contractBnbData.address);
@@ -57,45 +52,47 @@ export async function init() {
   Logger.debug('Binance smart chain contract address: "%s"', contractBnbData.contractAddress);
   Logger.debug('Ethereum network contract address: "%s"', contractEthData.contractAddress);
 
-  const wqClients: BridgeWorkNetClients = { web3: web3Wq, transactionsBroker, notificationsBroker };
-  const bscClients: BridgeEthClients = { web3: web3Bsc, webSocketProvider: bscRpcProvider, notificationsBroker };
-  const ethClients: BridgeEthClients = { web3: web3Eth, webSocketProvider: ethRpcProvider, notificationsBroker };
-
   const wqBridgeProvider = new BridgeMQProvider(
     contractWorkNetData.address,
     contractWorkNetData.deploymentHeight,
-    bridgeWqContract,
     web3Wq,
-    transactionsBroker
+    bridgeWqContract,
+    transactionListener,
   );
-  const bscBridgeProvider = new BridgeRpcProvider(
+  const bscBridgeProvider = new BridgeProvider(
     contractBnbData.address,
     contractBnbData.deploymentHeight,
-    bridgeBscContract,
     web3Bsc,
+    bridgeBscContract,
   );
-  const ethBridgeProvider = new BridgeRpcProvider(
+  const ethBridgeProvider = new BridgeProvider(
     contractEthData.address,
     contractEthData.deploymentHeight,
-    bridgeEthContract,
     web3Eth,
+    bridgeEthContract,
   );
 
   const wqBridgeController = new BridgeListenerController(
-    wqClients,
+    web3Wq,
     configBridge.workQuestNetwork as BlockchainNetworks,
     wqBridgeProvider,
+    notificationClient,
   );
   const bscBridgeController = new BridgeController(
-    bscClients,
+    web3Bsc,
     configBridge.bscNetwork as BlockchainNetworks,
     bscBridgeProvider,
+    notificationClient,
   );
   const ethBridgeController = new BridgeController(
-    ethClients,
+    web3Eth,
     configBridge.ethereumNetwork as BlockchainNetworks,
     ethBridgeProvider,
+    notificationClient,
   );
+
+  await notificationClient.init();
+  await transactionListener.init();
 
   await new SupervisorContract(
     Logger,

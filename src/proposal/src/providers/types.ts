@@ -1,4 +1,4 @@
-import {TransactionBroker} from "../../../brokers/src/TransactionBroker";
+import {TransactionBroker} from "../../../middleware/src/TransactionBroker";
 import { Clients } from '../../../types';
 
 export interface ProposalClients extends Clients {

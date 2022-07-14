@@ -5,7 +5,7 @@ import configWqtWeth from './config/config.WqtWeth';
 import configDatabase from './config/config.database';
 import {WqtWethClients} from "./src/providers/types";
 import {WqtWethRpcProvider} from './src/providers/WqtWethProvider';
-import {NotificationBroker} from "../brokers/src/NotificationBroker";
+import {NotificationBroker} from "../middleware/src/NotificationBroker";
 import {WqtWethController} from './src/controllers/WqtWethController';
 import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
 import {EthNetworkContracts, Networks, Store} from "@workquest/contract-data-pools";

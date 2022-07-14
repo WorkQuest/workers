@@ -1,61 +1,19 @@
 import Web3 from "web3";
-import { Transaction } from "web3-eth";
-import { Logger } from "../../logger/pino";
-import {IContractMQProvider} from "./types";
-import { Contract, EventData } from "web3-eth-contract";
-import {TransactionBroker} from "../../../brokers/src/TransactionBroker";
+import {Transaction} from "web3-eth";
+import {Logger} from "../../logger/pino";
+import {IContractProvider} from "./types";
+import {Contract, EventData} from "web3-eth-contract";
+import {ITransactionListener} from "../../../middleware";
 
-export class ProposalMQProvider implements IContractMQProvider {
+export class ProposalProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
-  private readonly callbacks = { 'events': [], 'error': [] };
 
-  constructor (
+  constructor(
     public readonly address: string,
     public readonly eventViewingHeight: number,
-    public readonly contract: Contract,
     protected readonly web3: Web3,
-    protected readonly txBroker: TransactionBroker,
+    public readonly contract: Contract,
   ) {
-  };
-
-  private async onEventFromBroker(payload: { transactions: Transaction[] }) {
-    const tracedTxs = payload
-      .transactions
-      .filter(tx => tx.to && tx.to.toLowerCase() === this.address.toLowerCase())
-      .sort((a, b) => a.blockNumber = b.blockNumber);
-
-    if (tracedTxs.length === 0) {
-      return;
-    }
-
-    const eventsData = await this.contract.getPastEvents('allEvents', {
-      toBlock: tracedTxs[tracedTxs.length - 1].blockNumber,
-      fromBlock: tracedTxs[0].blockNumber,
-    });
-
-    return Promise.all(
-      eventsData.map(async data => this.onEventData(data))
-    );
-  }
-
-  private onEventData(eventData) {
-    return Promise.all(
-      this.callbacks['events'].map(async callBack => callBack(eventData)),
-    );
-  }
-
-  public async startListener() {
-    await this.txBroker.initConsumer(this.onEventFromBroker.bind(this));
-
-    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
-  }
-
-  public on(type, callBack): void {
-    if (type === 'error') {
-      this.callbacks['error'].push(callBack);
-    } else if (type === 'events') {
-      this.callbacks['events'].push(callBack);
-    }
   }
 
   public async getEvents(fromBlockNumber: number) {
@@ -104,5 +62,59 @@ export class ProposalMQProvider implements IContractMQProvider {
     }
 
     return { events: collectedEvents, lastBlockNumber };
+  }
+}
+
+export class ProposalMQProvider extends ProposalProvider implements ProposalProvider {
+  private readonly callbacks = { 'events': [], 'error': [] };
+
+  constructor (
+    public readonly address: string,
+    public readonly eventViewingHeight: number,
+    protected readonly web3: Web3,
+    public readonly contract: Contract,
+    protected readonly txListener: ITransactionListener,
+  ) {
+    super(address, eventViewingHeight, web3, contract);
+  }
+
+  private transactionFilter(tx: Transaction): boolean {
+    return tx.to && tx.to.toLowerCase() === this.address.toLowerCase();
+  }
+
+  private async onTransactions(payload: { transactions: Transaction[] }) {
+    if (payload.transactions.length === 0) {
+      return;
+    }
+
+    const eventsData = await this.contract.getPastEvents('allEvents', {
+      toBlock: payload.transactions[payload.transactions.length - 1].blockNumber,
+      fromBlock: payload.transactions[0].blockNumber,
+    });
+
+    return Promise.all(
+      eventsData.map(async data => this.onEventData(data))
+    );
+  }
+
+  private onEventData(eventData) {
+    return Promise.all(
+      this.callbacks['events'].map(async callBack => callBack(eventData)),
+    );
+  }
+
+  public async startListener() {
+    this.txListener.setFiltering(this.transactionFilter.bind(this));
+    this.txListener.on('transactions', this.onTransactions.bind(this));
+
+    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
+  }
+
+  public on(type, callBack): void {
+    if (type === 'error') {
+      this.callbacks['error'].push(callBack);
+    } else if (type === 'events') {
+      this.callbacks['events'].push(callBack);
+    }
   }
 }
