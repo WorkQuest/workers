@@ -237,7 +237,7 @@ export class ProposalController implements IController {
         network: this.network,
         proposalId: proposalCreatedEvent ? proposalCreatedEvent.proposalId : null,
         contractProposalId: eventsData.returnValues.id,
-        succeded: eventsData.returnValues.succeded,
+        succeeded: eventsData.returnValues.succeded,
         defeated: eventsData.returnValues.defeated,
       }
     });
