@@ -2,24 +2,21 @@ import Web3 from "web3";
 import {createClient} from "redis";
 import {Logger} from "./logger/pino";
 import configQuest from "./config/config.quest";
-import {QuestClients } from "./src/providers/types";
 import configDatabase from "./config/config.database";
 import {QuestMQProvider} from "./src/providers/QuestProvider";
-import {TransactionBroker} from "../middleware/src/TransactionBroker";
-import {NotificationBroker} from "../middleware/src/NotificationBroker";
 import {QuestCacheProvider} from "./src/providers/QuestCacheProvider";
-import {CommunicationBroker} from "../middleware/src/CommunicationBroker";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {QuestListenerController} from "./src/controllers/QuestController";
 import {Networks, Store, WorkQuestNetworkContracts} from "@workquest/contract-data-pools";
 import {initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/models";
+import {BridgeMQBetweenWorkers, NotificationMQClient, TransactionMQListener} from "../middleware";
 
 export async function init() {
+  await initDatabase(configDatabase.dbLink, false, true);
+
   Logger.info('Start worker "Quest". Network: "%s"', configQuest.network);
 
   const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.QuestFactory];
-
-  await initDatabase(configDatabase.dbLink, false, true);
 
   const redisConfig = configDatabase.redis.defaultConfigNetwork();
   const { linkRpcProvider } = configQuest.defaultConfigNetwork();
@@ -35,31 +32,34 @@ export async function init() {
   });
   await redisClient.connect();
 
+  const questCacheProvider = new QuestCacheProvider(redisClient as any);
+
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest');
-  await transactionsBroker.init();
-
-  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'quest');
-  await notificationsBroker.init();
-
-  const communicationBroker = new CommunicationBroker(configDatabase.mqLink);
-  await communicationBroker.init();
-
-  const questCacheProvider = new QuestCacheProvider(redisClient as any);
-  const clients: QuestClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker, communicationBroker };
+  const bridgeBetweenWorkers = new BridgeMQBetweenWorkers(configDatabase.mqLink);
+  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'quest');
+  const notificationsBroker = new NotificationMQClient(configDatabase.notificationMessageBrokerLink, 'quest');
 
   const questProvider = new QuestMQProvider(
     contractData.getAbi(),
+    web3,
     contractData.deploymentHeight,
-    clients
+    transactionListener,
+    questCacheProvider,
   );
 
   const questController = new QuestListenerController(
-    clients,
+    web3,
     configQuest.network as BlockchainNetworks,
+    notificationsBroker,
+    questCacheProvider,
     questProvider,
+    bridgeBetweenWorkers,
   );
+
+  await transactionListener.init();
+  await notificationsBroker.init();
+  await bridgeBetweenWorkers.init();
 
   await new SupervisorContract(
     Logger,

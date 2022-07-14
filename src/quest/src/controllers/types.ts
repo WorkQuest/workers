@@ -1,8 +1,9 @@
 import { IController } from '../../../types';
 import {
-  DisputesPlatformStatisticFields, DisputeStatus,
+  QuestStatus,
+  DisputeStatus,
   QuestsPlatformStatisticFields,
-  QuestStatus
+  DisputesPlatformStatisticFields,
 } from "@workquest/database-models/lib/models";
 
 export enum QuestEvent {

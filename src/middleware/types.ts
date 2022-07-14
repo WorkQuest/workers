@@ -24,9 +24,9 @@ export interface INotificationClient {
 export interface IBridgeBetweenWorkers {
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
-  on(type: 'worker-message', callback: (type: string, payload: object) => void);
+  on(type: 'worker-message', callback: (whose: string, type: string, payload: object) => void);
 
-  sendMessage(type: string, payload: object): Promise<void>;
+  sendMessage(whose: string, type: string, payload: object): Promise<void>;
 }
 
 export interface IRouterWorkers {

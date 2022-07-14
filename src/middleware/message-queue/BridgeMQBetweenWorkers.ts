@@ -49,9 +49,9 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
     try {
       const msg = JSON.parse(message.content);
 
-      if ('type' in msg && 'payload' in msg) {
+      if ('type' in msg && 'payload' in msg && 'whose' in msg) {
         await Promise.all([
-          this.onWorkerMessage(msg.type, msg.payload),
+          this.onWorkerMessage(msg.whose, msg.type, msg.payload),
           this.channel.ack(message),
         ]);
       }
@@ -60,7 +60,7 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
     }
   }
 
-  protected async onWorkerMessage(type: string, payload: object) {
+  protected async onWorkerMessage(whose: string, type: string, payload: object) {
     await this.callBackSubscribers('worker-message', type, payload);
   }
 
@@ -82,7 +82,7 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
     await this.channel.sendToQueue(this.queueName, payloadBuffer);
   }
 
-  public async sendMessage(type: string, payload: object) {
-    await this.sendToQueue({ type, payload });
+  public async sendMessage(whose: string, type: string, payload: object) {
+    await this.sendToQueue({ whose, type, payload });
   }
 }

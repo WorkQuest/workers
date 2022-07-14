@@ -3,9 +3,7 @@ import {createClient} from 'redis';
 import {Logger} from "./logger/pino";
 import configDatabase from './config/config.database';
 import configQuestFactory from './config/config.questFactory';
-import {QuestFactoryClients} from "./src/providers/types";
-import {TransactionBroker} from "../middleware/src/TransactionBroker";
-import {NotificationBroker} from "../middleware/src/NotificationBroker";
+import {NotificationMQClient, TransactionMQListener} from "../middleware";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {QuestFactoryMQProvider} from "./src/providers/QuestFactoryProvider";
 import {QuestCacheProvider} from "../quest/src/providers/QuestCacheProvider";
@@ -38,27 +36,29 @@ export async function init() {
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
   const questFactoryContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'quest-factory');
-  await transactionsBroker.init()
-
-  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBrokerLink, 'quest');
-  await notificationsBroker.init();
-
   const questCacheProvider = new QuestCacheProvider(redisClient as any);
-  const clients: QuestFactoryClients = { web3, questCacheProvider, transactionsBroker, notificationsBroker };
+
+  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'quest-factory');
+  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBrokerLink, 'quest');
 
   const questFactoryProvider = new QuestFactoryMQProvider(
     contractData.address,
     contractData.deploymentHeight,
+    web3,
     questFactoryContract,
-    clients,
+    transactionListener,
   );
 
   const questFactoryController = new QuestFactoryListenerController(
-    clients,
+    web3,
     configQuestFactory.network as BlockchainNetworks,
+    notificationClient,
+    questCacheProvider,
     questFactoryProvider,
   );
+
+  await notificationClient.init();
+  await transactionListener.init();
 
   await new SupervisorContract(
     Logger,

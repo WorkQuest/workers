@@ -1,5 +1,5 @@
-import { RedisClusterType } from "@node-redis/client";
-import { IQuestCacheProvider, QuestPayload } from "./types";
+import {RedisClusterType} from "@node-redis/client";
+import {IQuestCacheProvider, QuestPayload} from "./types";
 
 export class QuestCacheProvider implements IQuestCacheProvider {
   constructor(

@@ -1,9 +1,8 @@
 import Web3 from 'web3';
 import {Logger} from "./logger/pino";
+import {TransactionMQListener} from "../middleware";
 import configDatabase from "./config/config.database";
 import configRaiseView from "./config/config.raiseView";
-import {RaiseViewClients} from "./src/providers/types";
-import {TransactionBroker} from "../middleware/src/TransactionBroker";
 import {RaiseViewMQProvider} from "./src/providers/RaiseViewProvider";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {RaiseViewListenerController} from "./src/controllers/RaiseViewController";
@@ -25,23 +24,23 @@ export async function init() {
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
   const raiseViewContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'raise-view');
-  await transactionsBroker.init();
-
-  const clients: RaiseViewClients = { web3, transactionsBroker };
+  const transactionsListener = new TransactionMQListener(configDatabase.mqLink, 'raise-view');
 
   const raiseViewProvider = new RaiseViewMQProvider(
     contractData.address,
     contractData.deploymentHeight,
+    web3,
     raiseViewContract,
-    clients,
+    transactionsListener
   );
 
   const raiseViewController = new RaiseViewListenerController(
-    clients,
+    web3,
     configRaiseView.network as BlockchainNetworks,
     raiseViewProvider,
   );
+
+  await transactionsListener.init();
 
   await new SupervisorContract(
     Logger,

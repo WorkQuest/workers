@@ -1,9 +1,8 @@
 import Web3 from 'web3';
 import {Logger} from "./logger/pino";
+import {TransactionMQListener} from "../middleware";
 import configProposal from './config/config.proposal';
 import configDatabase from './config/config.database';
-import {ProposalClients} from "./src/providers/types";
-import {TransactionBroker} from "../middleware/src/TransactionBroker";
 import {ProposalMQProvider} from './src/providers/ProposalProvider';
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {ProposalListenerController} from "./src/controllers/ProposalController";
@@ -20,29 +19,26 @@ export async function init() {
   Logger.debug('WorkQuest network: link Rpc provider "%s"', linkRpcProvider);
   Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
 
-  const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
+  const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  const web3 = new Web3(rpcProvider);
-
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'proposal');
-  await transactionsBroker.init();
-
-  const clients: ProposalClients = { web3, transactionsBroker };
+  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'proposal');
 
   const proposalContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const proposalProvider = new ProposalMQProvider(
     contractData.address,
     contractData.deploymentHeight,
-    proposalContract,
     web3,
-    transactionsBroker,
+    proposalContract,
+    transactionListener,
   );
   const proposalController = new ProposalListenerController(
-    clients,
+    web3,
     configProposal.network as BlockchainNetworks,
     proposalProvider,
   );
+
+  await transactionListener.init();
 
   await new SupervisorContract(
     Logger,

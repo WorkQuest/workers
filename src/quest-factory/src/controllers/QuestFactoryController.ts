@@ -1,18 +1,16 @@
+import Web3 from "web3";
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
 import {EventData} from 'web3-eth-contract';
 import {addJob} from "../../../utils/scheduler";
+import {INotificationClient} from "../../../middleware";
+import {IQuestCacheProvider} from "../../../quest/src/providers/types";
 import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
-import {
-  IContractProvider,
-  QuestFactoryClients,
-  IContractRpcProvider,
-} from '../providers/types';
 import {
   IController,
   QuestFactoryEvent,
-  IContractMQProvider,
-  IContractWsProvider,
+  IContractProvider,
+  IContractListenerProvider,
   QuestFactoryNotificationActions,
 } from './types';
 import {
@@ -28,9 +26,11 @@ import {
 
 export class QuestFactoryController implements IController {
   constructor(
-    public readonly clients: QuestFactoryClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
+    public readonly contractProvider: IContractProvider,
+    public readonly notificationClient: INotificationClient,
+    public readonly questCacheProvider: IQuestCacheProvider,
   ) {
   }
 
@@ -72,7 +72,7 @@ export class QuestFactoryController implements IController {
   }
 
   protected async createdEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const nonce = eventsData.returnValues.nonce;
     const jobHash = eventsData.returnValues.jobHash.toLowerCase();
@@ -153,9 +153,12 @@ export class QuestFactoryController implements IController {
 
     await Promise.all([
       quest.update({ contractAddress, status: QuestStatus.Recruitment }),
-      this.clients.questCacheProvider.set(contractAddress, { transactionHash, nonce }),
+
+      this.questCacheProvider.set(contractAddress, { transactionHash, nonce }),
+
       updateQuestsStatisticJob({ userId: quest.userId, role: UserRole.Employer }),
-      this.clients.notificationsBroker.sendNotification({
+
+      this.notificationClient.notify({
         recipients: [quest.userId],
         action: QuestFactoryNotificationActions.QuestStatusUpdated,
         data: quest
@@ -202,11 +205,13 @@ export class QuestFactoryController implements IController {
 
 export class QuestFactoryListenerController extends QuestFactoryController {
   constructor(
-    public readonly clients: QuestFactoryClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly notificationClient: INotificationClient,
+    public readonly questCacheProvider: IQuestCacheProvider,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, contractProvider);
+    super(web3, network, contractProvider, notificationClient, questCacheProvider);
   }
 
   public async start() {

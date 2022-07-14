@@ -1,12 +1,13 @@
-import { Logger } from "../../logger/pino";
-import { EventData } from 'web3-eth-contract';
-import { IController, ReferralEvent, IContractProvider } from './types';
+import Web3 from "web3";
+import {Logger} from "../../logger/pino";
+import {EventData} from 'web3-eth-contract';
+import {INotificationClient} from "../../../middleware";
 import {
-  ReferralClients,
-  IContractMQProvider,
-  IContractWsProvider,
-  IContractRpcProvider,
-} from "../providers/types";
+  IController,
+  ReferralEvent,
+  IContractProvider,
+  IContractListenerProvider,
+} from './types';
 import {
   User,
   Media,
@@ -24,9 +25,10 @@ import {
 
 export class ReferralController implements IController {
   constructor(
-    public readonly clients: ReferralClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
+    public readonly contractProvider: IContractProvider,
+    public readonly notificationsClient: INotificationClient,
   ) {
   }
 
@@ -74,7 +76,7 @@ export class ReferralController implements IController {
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliate.toLowerCase();
 
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     Logger.debug(
       'Registered affiliate event handler: timestamp "%s", event data %o',
@@ -103,7 +105,7 @@ export class ReferralController implements IController {
       return;
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationsClient.notify({
       data: eventsData,
       action: eventsData.event,
       recipients: [referralAddress],
@@ -136,7 +138,7 @@ export class ReferralController implements IController {
     const referralAddress = eventsData.returnValues.referral.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliate.toLowerCase();
 
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     Logger.debug('Paid referral event handler: timestamp "%s", event data %o',
       timestamp,
@@ -181,7 +183,7 @@ export class ReferralController implements IController {
 
     eventsData['timestamp'] = timestamp
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationsClient.notify({
       data: { referral: userInfo, event: eventsData },
       action: eventsData.event,
       recipients: [affiliateAddress],
@@ -213,7 +215,7 @@ export class ReferralController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const affiliateAddress = eventsData.returnValues.affiliate.toLowerCase();
 
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     Logger.debug(
       'Reward claimed event handler: timestamp "%s", event data %o',
@@ -241,7 +243,7 @@ export class ReferralController implements IController {
       return;
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationsClient.notify({
       data: eventsData,
       action: eventsData.event,
       recipients: [affiliateAddress],
@@ -306,11 +308,12 @@ export class ReferralController implements IController {
 
 export class ReferralListenerController extends ReferralController {
   constructor(
-    public readonly clients: ReferralClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly notificationsClient: INotificationClient,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, contractProvider);
+    super(web3, network, contractProvider, notificationsClient);
   }
 
   public async start() {

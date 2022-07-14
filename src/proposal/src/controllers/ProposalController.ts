@@ -1,32 +1,27 @@
-import { Op } from "sequelize";
-import { Logger } from "../../logger/pino";
-import { EventData } from "web3-eth-contract";
-import { addJob } from "../../../utils/scheduler";
-import { IController, ProposalEvents } from "./types";
+import Web3 from "web3";
+import {Op} from "sequelize";
+import {Logger} from "../../logger/pino";
+import {EventData} from "web3-eth-contract";
+import {addJob} from "../../../utils/scheduler";
+import {IController, ProposalEvents} from "./types";
+import {IContractProvider, IContractListenerProvider} from "../../../types";
 import {
-  Clients,
-  IContractMQProvider,
-  IContractProvider,
-  IContractRpcProvider,
-  IContractWsProvider,
-} from "../../../types";
-import {
-  BlockchainNetworks,
-  DaoPlatformStatisticFields,
-  Discussion,
   Proposal,
+  Discussion,
+  ProposalStatus,
+  ProposalParseBlock,
+  BlockchainNetworks,
   ProposalCreatedEvent,
   ProposalExecutedEvent,
-  ProposalParseBlock,
-  ProposalStatus,
   ProposalVoteCastEvent,
+  DaoPlatformStatisticFields,
 } from "@workquest/database-models/lib/models";
 
 export class ProposalController implements IController {
   constructor (
-    public readonly clients: Clients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
+    public readonly contractProvider: IContractProvider,
   ) {
   }
 
@@ -76,7 +71,7 @@ export class ProposalController implements IController {
   }
 
   protected async proposalCreatedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const proposer = eventsData.returnValues.proposer.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -152,7 +147,7 @@ export class ProposalController implements IController {
   }
 
   protected async voteCastEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const voter = eventsData.returnValues.voter.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -213,7 +208,7 @@ export class ProposalController implements IController {
   }
 
   protected async proposalExecutedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
@@ -308,17 +303,16 @@ export class ProposalController implements IController {
     await this.collectAllUncollectedEvents(
       await this.getLastCollectedBlock()
     );
-
   }
 }
 
 export class ProposalListenerController extends ProposalController {
   constructor (
-    public readonly clients: Clients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, contractProvider);
+    super(web3, network, contractProvider);
   }
 
   public async start() {

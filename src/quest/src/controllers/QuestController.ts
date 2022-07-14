@@ -1,23 +1,20 @@
+import Web3 from "web3";
 import {col, fn, Op} from "sequelize";
 import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {addJob} from "../../../utils/scheduler";
+import {IQuestCacheProvider} from "../providers/types";
 import {UserModelController} from "./models/UserModelController";
 import {QuestModelController} from "./models/QuestModelController";
 import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
 import {QuestChatModelController} from "./models/QuestChatModelController";
+import {IContractProvider, IContractListenerProvider} from "../../../types";
+import {INotificationClient, IBridgeBetweenWorkers} from "../../../middleware";
 import {addUpdateReviewStatisticsJob} from "../../jobs/updateReviewStatistics";
 import {QuestDisputeModelController} from "./models/QuestDisputeModelController";
 import {QuestResponsesModelController} from "./models/QuestResponsesModelController";
 import {IController, QuestEvent, QuestNotificationActions, StatisticPayload} from "./types";
 import {incrementAdminDisputeStatisticJob} from "../../jobs/incrementAdminDisputeStatistic";
-import {
-  QuestClients,
-  IContractProvider,
-  IContractMQProvider,
-  IContractWsProvider,
-  IContractRpcProvider,
-} from "../providers/types";
 import {
   UserRole,
   QuestStatus,
@@ -53,9 +50,12 @@ import {
 
 export class QuestController implements IController {
   constructor(
-    public readonly clients: QuestClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
+    public readonly contractProvider: IContractProvider,
+    public readonly notificationClient: INotificationClient,
+    public readonly questCacheProvider: IQuestCacheProvider,
+    public readonly bridgeBetweenWorkers: IBridgeBetweenWorkers,
   ) {
   }
 
@@ -161,7 +161,7 @@ export class QuestController implements IController {
   }
 
   protected async jobEditedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -229,7 +229,7 @@ export class QuestController implements IController {
 
     if (questsResponseWorkerIds.length !== 0) {
       for (const response of questsResponseWorkerIds) {
-        await this.clients.notificationsBroker.sendNotification({
+        await this.notificationClient.notify({
           action: QuestNotificationActions.QuestEdited,
           recipients: response.getDataValue('workerIds'),
           data: { ...questModelController.quest.toJSON(), responseType: response.type },
@@ -237,7 +237,7 @@ export class QuestController implements IController {
       }
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [questModelController.quest.userId],
       action: QuestNotificationActions.QuestEdited,
       data: questModelController.quest,
@@ -245,7 +245,7 @@ export class QuestController implements IController {
   }
 
   protected async jobCancelledEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -304,10 +304,10 @@ export class QuestController implements IController {
       questModelController.closeQuest(),
       questChatModelController.closeAllChats(),
       questResponsesModelController.closeAllResponses(),
-      this.clients.questCacheProvider.remove(contractAddress),
+      this.questCacheProvider.remove(contractAddress),
     ]);
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [questModelController.quest.userId],
       action: QuestNotificationActions.QuestStatusUpdated,
       data: questModelController.quest
@@ -315,7 +315,7 @@ export class QuestController implements IController {
   }
 
   protected async assignedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -377,7 +377,7 @@ export class QuestController implements IController {
     });
 
     await questModelController.assignWorkerOnQuest(workerModelController.user);
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [questModelController.quest.userId, workerModelController.user.id],
       action: QuestNotificationActions.QuestStatusUpdated,
       data: questModelController.quest,
@@ -385,7 +385,7 @@ export class QuestController implements IController {
   }
 
   protected async jobStartedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -448,7 +448,7 @@ export class QuestController implements IController {
       questChatModelController.closeAllWorkChatsExceptAssignedWorker(),
     ]);
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
       action: QuestNotificationActions.QuestStatusUpdated,
       data: questModelController.quest
@@ -456,7 +456,7 @@ export class QuestController implements IController {
   }
 
   protected async jobDoneEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -512,7 +512,7 @@ export class QuestController implements IController {
     });
 
     await questModelController.finishWork();
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
       action: QuestNotificationActions.QuestStatusUpdated,
       data: questModelController.quest
@@ -520,7 +520,7 @@ export class QuestController implements IController {
   }
 
   protected async jobFinishedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -577,7 +577,7 @@ export class QuestController implements IController {
 
     await Promise.all([
       questModelController.completeQuest(),
-      this.clients.questCacheProvider.remove(contractAddress),
+      this.questCacheProvider.remove(contractAddress),
     ]);
 
     await Promise.all([
@@ -585,8 +585,10 @@ export class QuestController implements IController {
       addUpdateReviewStatisticsJob({ userId: questModelController.quest.assignedWorkerId }),
       updateQuestsStatisticJob({ userId: questModelController.quest.userId, role: UserRole.Employer }),
       updateQuestsStatisticJob({ userId: questModelController.quest.assignedWorkerId, role: UserRole.Worker }),
-      this.clients.communicationBroker.sendMessage({ blockNumber: eventsData.blockNumber }),
-      this.clients.notificationsBroker.sendNotification({
+
+      this.bridgeBetweenWorkers.sendMessage('referral', 'check-block', { blockNumber: eventsData.blockNumber }),
+
+      this.notificationClient.notify({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
         action: QuestNotificationActions.QuestStatusUpdated,
         data: questModelController.quest
@@ -657,7 +659,7 @@ export class QuestController implements IController {
     await questModelController.freezeQuestForDispute();
     await questDisputeModelController.confirmDispute();
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
       action: QuestNotificationActions.OpenDispute,
       data: questDisputeModelController.dispute,
@@ -733,7 +735,7 @@ export class QuestController implements IController {
     await questDisputeModelController.closeDispute(DisputeDecision.AcceptWork, timestamp);
     await questChatModelController.closeAllChats();
 
-    await this.clients.questCacheProvider.remove(contractAddress);
+    await this.questCacheProvider.remove(contractAddress);
 
     await Promise.all([
       addUpdateReviewStatisticsJob({ userId: questModelController.quest.userId }),
@@ -747,12 +749,12 @@ export class QuestController implements IController {
           questDisputeModelController.dispute.acceptedAt.getTime()
         ) / 1000,
       }),
-      this.clients.notificationsBroker.sendNotification({
+      this.notificationClient.notify({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
         action: QuestNotificationActions.QuestStatusUpdated,
         data: questModelController.quest
       }),
-      this.clients.notificationsBroker.sendNotification({
+      this.notificationClient.notify({
         recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
         action: QuestNotificationActions.DisputeDecision,
         data: questDisputeModelController.dispute,
@@ -829,7 +831,7 @@ export class QuestController implements IController {
     await questDisputeModelController.closeDispute(DisputeDecision.RejectWork, timestamp);
     await questChatModelController.closeAllChats();
 
-    await this.clients.questCacheProvider.remove(contractAddress);
+    await this.questCacheProvider.remove(contractAddress);
 
     await Promise.all([
       incrementAdminDisputeStatisticJob({
@@ -839,12 +841,12 @@ export class QuestController implements IController {
           questDisputeModelController.dispute.acceptedAt.getTime()
         ) / 1000,
       }),
-      this.clients.notificationsBroker.sendNotification({
+      this.notificationClient.notify({
         recipients: [questModelController.quest.assignedWorkerId, questModelController.quest.userId],
         action: QuestNotificationActions.QuestStatusUpdated,
         data: questModelController.quest
       }),
-      this.clients.notificationsBroker.sendNotification({
+      this.notificationClient.notify({
         recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
         action: QuestNotificationActions.DisputeDecision,
         data: questDisputeModelController.dispute,
@@ -919,7 +921,7 @@ export class QuestController implements IController {
     await questModelController.restartQuest();
     await questDisputeModelController.closeDispute(DisputeDecision.Rework, timestamp);
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       recipients: [questModelController.quest.userId, questModelController.quest.assignedWorkerId],
       action: QuestNotificationActions.DisputeDecision,
       data: questDisputeModelController.dispute,
@@ -963,11 +965,21 @@ export class QuestController implements IController {
 
 export class QuestListenerController extends QuestController {
   constructor(
-    public readonly clients: QuestClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly notificationClient: INotificationClient,
+    public readonly questCacheProvider: IQuestCacheProvider,
+    public readonly contractProvider: IContractListenerProvider,
+    public readonly bridgeBetweenWorkers: IBridgeBetweenWorkers,
   ) {
-    super(clients, network, contractProvider);
+    super(
+      web3,
+      network,
+      contractProvider,
+      notificationClient,
+      questCacheProvider,
+      bridgeBetweenWorkers,
+    );
   }
 
   public async start() {

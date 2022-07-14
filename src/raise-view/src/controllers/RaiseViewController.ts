@@ -1,38 +1,34 @@
-import { Op } from "sequelize";
-import { Logger } from "../../logger/pino";
-import { EventData } from 'web3-eth-contract';
-import { addJob } from "../../../utils/scheduler";
-import {IContractMQProvider, IContractProvider, IContractWsProvider, RaiseViewClients} from '../providers/types';
-import { updateUserRaiseViewStatusJob } from "../../jobs/updateUserRaiseViewStatus";
-import { updateQuestRaiseViewStatusJob } from "../../jobs/updateQuestRaiseViewStatus";
+import Web3 from "web3";
+import {Op} from "sequelize";
+import {Logger} from "../../logger/pino";
+import {EventData} from 'web3-eth-contract';
+import {addJob} from "../../../utils/scheduler";
+import {RaiseViewEvent, StatisticPayload} from './types';
+import {updateUserRaiseViewStatusJob} from "../../jobs/updateUserRaiseViewStatus";
+import {updateQuestRaiseViewStatusJob} from "../../jobs/updateQuestRaiseViewStatus";
+import {IController, IContractProvider, IContractListenerProvider} from '../../../types';
 import {
-  IController,
-  RaiseViewEvent,
-  StatisticPayload,
-  IContractRpcProvider,
-} from './types';
-import {
-  RaiseViewsPlatformStatisticFields,
-  RaiseViewPromotedQuestEvent,
-  RaiseViewPromotedUserEvent,
-  RaiseViewBlockInfo,
-  BlockchainNetworks,
-  QuestRaiseStatus,
-  UserRaiseStatus,
-  QuestRaiseView,
-  QuestRaiseType,
+  User,
+  Quest,
+  Wallet,
   UserRaiseView,
   UserRaiseType,
-  Wallet,
-  Quest,
-  User,
+  QuestRaiseType,
+  QuestRaiseView,
+  UserRaiseStatus,
+  QuestRaiseStatus,
+  RaiseViewBlockInfo,
+  BlockchainNetworks,
+  RaiseViewPromotedUserEvent,
+  RaiseViewPromotedQuestEvent,
+  RaiseViewsPlatformStatisticFields,
 } from '@workquest/database-models/lib/models';
 
 export class RaiseViewController implements IController {
   constructor(
-    public readonly clients: RaiseViewClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
+    public readonly contractProvider: IContractProvider,
   ) {
   }
 
@@ -118,7 +114,7 @@ export class RaiseViewController implements IController {
   }
 
   protected async promotedQuestEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const tariff = eventsData.returnValues.tariff;
     const period = eventsData.returnValues.period;
@@ -217,7 +213,7 @@ export class RaiseViewController implements IController {
   }
 
   protected async promotedUserEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const tariff = eventsData.returnValues.tariff;
     const period = eventsData.returnValues.period;
@@ -359,11 +355,11 @@ export class RaiseViewController implements IController {
 
 export class RaiseViewListenerController extends RaiseViewController {
   constructor(
-    public readonly clients: RaiseViewClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, contractProvider);
+    super(web3, network, contractProvider);
   }
 
   public async start() {

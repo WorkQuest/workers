@@ -1,9 +1,9 @@
 import Web3 from "web3";
 import {Transaction} from "web3-eth";
 import {Logger} from "../../logger/pino";
-import {IContractProvider} from "./types";
 import {Contract, EventData} from "web3-eth-contract";
 import {ITransactionListener} from "../../../middleware";
+import {IContractListenerProvider, IContractProvider} from "./types";
 
 export class ProposalProvider implements IContractProvider {
   private readonly preParsingSteps = 6000;
@@ -65,7 +65,7 @@ export class ProposalProvider implements IContractProvider {
   }
 }
 
-export class ProposalMQProvider extends ProposalProvider implements ProposalProvider {
+export class ProposalMQProvider extends ProposalProvider implements IContractListenerProvider {
   private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
@@ -108,6 +108,11 @@ export class ProposalMQProvider extends ProposalProvider implements ProposalProv
     this.txListener.on('transactions', this.onTransactions.bind(this));
 
     Logger.info('Start listener on contract: "%s"', this.contract.options.address);
+  }
+
+  public isListening(): Promise<boolean> {
+    // @ts-ignore
+    return true;
   }
 
   public on(type, callBack): void {

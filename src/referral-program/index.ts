@@ -2,15 +2,12 @@ import Web3 from 'web3';
 import {Logger} from "./logger/pino";
 import configDatabase from './config/config.database';
 import configReferral from './config/config.referral';
-import {ReferralClients} from "./src/providers/types";
 import {ReferralMQProvider} from "./src/providers/ReferralProvider";
-import {TransactionBroker} from "../middleware/src/TransactionBroker";
-import {NotificationBroker} from "../middleware/src/NotificationBroker";
-import {CommunicationBroker} from "../middleware/src/CommunicationBroker";
 import {ReferralController} from "./src/controllers/ReferralController";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
-import { Store, Networks, WorkQuestNetworkContracts } from '@workquest/contract-data-pools';
+import {Store, Networks, WorkQuestNetworkContracts} from '@workquest/contract-data-pools';
+import {BridgeMQBetweenWorkers, NotificationMQClient, TransactionMQListener} from "../middleware";
 
 export async function init() {
   await initDatabase(configDatabase.dbLink, true, false);
@@ -26,32 +23,31 @@ export async function init() {
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  const transactionsBroker = new TransactionBroker(configDatabase.mqLink, 'referral-program');
-  await transactionsBroker.init();
-
-  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker.link, 'referral')
-  await notificationsBroker.init();
-
-  const communicationBroker = new CommunicationBroker(configDatabase.mqLink);
-  await communicationBroker.init();
-
-  const clients: ReferralClients = { web3, transactionsBroker, notificationsBroker, communicationBroker };
+  const bridgeBetweenWorkers = new BridgeMQBetweenWorkers(configDatabase.mqLink);
+  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'referral-program');
+  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'referral');
 
   const referralContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const referralProvider = new ReferralMQProvider(
     contractData.address,
     contractData.deploymentHeight,
-    referralContract,
     web3,
-    transactionsBroker,
+    referralContract,
+    transactionListener,
+    bridgeBetweenWorkers,
   );
 
   const referralController = new ReferralController(
-    clients,
+    web3,
     network,
     referralProvider,
+    notificationClient,
   );
+
+  await notificationClient.init();
+  await transactionListener.init();
+  await bridgeBetweenWorkers.init();
 
   await new SupervisorContract(
     Logger,
