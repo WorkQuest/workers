@@ -1,19 +1,19 @@
-import { Op } from "sequelize";
+import Web3 from "web3";
+import {Op} from "sequelize";
 import BigNumber from 'bignumber.js';
-import { Logger } from "../../logger/pino";
-import { EventData } from 'web3-eth-contract';
+import {Logger} from "../../logger/pino";
+import {EventData} from 'web3-eth-contract';
+import {INotificationClient} from "../../../middleware";
 import {
-  IContractMQProvider,
-  IContractRpcProvider, IContractWsProvider,
   IController,
   WqtWethEvent,
   WqtWethNotificationActions,
 } from './types';
 import {
   Coin,
-  WqtWethClients,
   IContractProvider,
   TokenPriceProvider,
+  IContractListenerProvider,
 } from '../providers/types';
 import {
   WqtWethBlockInfo,
@@ -24,14 +24,14 @@ import {
   BlockchainNetworks,
   DailyLiquidityWqtWeth,
 } from '@workquest/database-models/lib/models';
-import {BridgeUsdtListenerController} from "../../../bridge-usdt/src/controllers/BridgeUsdtController";
 
 export class WqtWethController implements IController {
   constructor(
-    public readonly clients: WqtWethClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider,
+    public readonly notificationClient: INotificationClient,
     protected readonly tokenPriceProvider: TokenPriceProvider,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
@@ -79,7 +79,7 @@ export class WqtWethController implements IController {
   }
 
   protected async syncEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
 
@@ -200,7 +200,7 @@ export class WqtWethController implements IController {
       });
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       action: WqtWethNotificationActions.Sync,
       recipients: [],
       data: await DailyLiquidityWqtWeth.findOne({
@@ -210,7 +210,7 @@ export class WqtWethController implements IController {
   }
 
   protected async swapEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const to = eventsData.returnValues.to.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -277,7 +277,7 @@ export class WqtWethController implements IController {
   }
 
   protected async mintEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const sender = eventsData.returnValues.sender.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -312,7 +312,7 @@ export class WqtWethController implements IController {
   }
 
   protected async burnEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const to = eventsData.returnValues.to.toLowerCase();
     const sender = eventsData.returnValues.sender.toLowerCase();
@@ -392,12 +392,13 @@ export class WqtWethController implements IController {
 
 export class WqtWethListenerController extends WqtWethController {
   constructor(
-    public readonly clients: WqtWethClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
+    public readonly notificationClient: INotificationClient,
     protected readonly tokenPriceProvider: TokenPriceProvider,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, tokenPriceProvider, contractProvider);
+    super(web3, network, contractProvider, notificationClient, tokenPriceProvider);
   }
 
   public async start() {

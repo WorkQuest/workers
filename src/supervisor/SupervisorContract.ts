@@ -1,4 +1,4 @@
-import {IContractProvider, IContractWsProvider, IController} from "../types";
+import {IContractProvider, IContractListenerProvider, IController} from "../types";
 
 export enum SupervisorContractTasks {
   None = 0,
@@ -89,7 +89,7 @@ export class SupervisorListenerContract extends SupervisorContract {
   constructor(
     protected readonly Logger: any,
     protected readonly controller: IController,
-    protected readonly contractProvider: IContractWsProvider,
+    protected readonly contractProvider: IContractListenerProvider,
   ) {
     super(Logger, controller, contractProvider);
   }

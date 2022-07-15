@@ -1,11 +1,10 @@
 import Web3 from "web3";
-import { BrokerRouter } from "../../middleware/src/BrokerRouter";
 import { Logger } from "../logger/pino";
 
 export class TransactionsFetcher {
   constructor(
     public readonly web3Provider: Web3,
-    public readonly brokerRouter: BrokerRouter,
+    public readonly brokerRouter,
   ) {}
 
   private _fetchedUpToBlockNumber;

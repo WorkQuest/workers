@@ -1,6 +1,5 @@
 import Web3 from "web3";
 import configFetcher from "./config/config.fetcher";
-import { BrokerRouter } from "../middleware/src/BrokerRouter";
 import { TransactionsFetcher } from "./src/TransactionsFetcher";
 import { Logger } from "./logger/pino";
 
@@ -16,10 +15,10 @@ async function init() {
   const rpcProvider = new Web3.providers.HttpProvider(linkRpcProvider);
   const web3 = new Web3(rpcProvider);
 
-  const router = new BrokerRouter(linkMessageBroker, 'transactions');
-  await router.init();
+  // const router = new BrokerRouter(linkMessageBroker, 'transactions');
+  // await router.init();
 
-  const fetcher = new TransactionsFetcher(web3, router);
+  const fetcher = new TransactionsFetcher(web3, null);
 
   await fetcher.startFetcher();
 }

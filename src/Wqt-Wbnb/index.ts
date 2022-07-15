@@ -1,10 +1,9 @@
 import Web3 from 'web3';
 import {Logger} from "../bridge-usdt/logger/pino";
+import {NotificationMQClient} from "../middleware";
 import configWqtWbnb from './config/config.WqtWbnb';
-import {WqtWbnbClients} from "./src/providers/types";
 import configDatabase from './config/config.database';
-import {WqtWbnbRpcProvider} from './src/providers/WqtWbnbProvider';
-import {NotificationBroker} from "../middleware/src/NotificationBroker";
+import {WqtWbnbProvider} from './src/providers/WqtWbnbProvider';
 import {WqtWbnbController} from './src/controllers/WqtWbnbController';
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
@@ -16,28 +15,28 @@ export async function init() {
 
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const notificationsBroker = new NotificationBroker(configDatabase.notificationMessageBroker, 'daily_liquidity');
-  await notificationsBroker.init();
+  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBroker, 'daily_liquidity');
 
   const web3 = new Web3( new Web3.providers.HttpProvider(configWqtWbnb.rpcProvider));
 
   const wqtWbnbContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const clients: WqtWbnbClients = { web3, notificationsBroker };
-
-  const wqtWbnbProvider = new WqtWbnbRpcProvider(
+  const wqtWbnbProvider = new WqtWbnbProvider(
     contractData.address,
     contractData.deploymentHeight,
-    wqtWbnbContract,
     web3,
+    wqtWbnbContract,
   );
 
   const wqtWbnbController = new WqtWbnbController(
-    clients,
+    web3,
     BlockchainNetworks.bscMainNetwork,
-    new OraclePricesProvider(configWqtWbnb.oracleLink),
     wqtWbnbProvider,
+    notificationClient,
+    new OraclePricesProvider(configWqtWbnb.oracleLink),
   );
+
+  await notificationClient.init();
 
   await new SupervisorContract(
     Logger,

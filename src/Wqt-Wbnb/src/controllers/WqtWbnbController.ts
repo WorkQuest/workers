@@ -1,20 +1,19 @@
-import { Op } from "sequelize";
+import Web3 from "web3";
+import {Op} from "sequelize";
 import BigNumber from 'bignumber.js';
-import { Logger } from "../../logger/pino";
-import { EventData } from 'web3-eth-contract';
+import {Logger} from "../../logger/pino";
+import {EventData} from 'web3-eth-contract';
+import {INotificationClient} from "../../../middleware";
 import {
-  IContractMQProvider,
-  IContractRpcProvider,
-  IContractWsProvider,
   IController,
   WqtWbnbEvent,
-  WqtWbnbNotificationActions
+  WqtWbnbNotificationActions,
 } from './types';
 import {
   Coin,
-  WqtWbnbClients,
   IContractProvider,
   TokenPriceProvider,
+  IContractListenerProvider,
 } from '../providers/types';
 import {
   WqtWbnbBlockInfo,
@@ -28,10 +27,11 @@ import {
 
 export class WqtWbnbController implements IController {
   constructor(
-    protected readonly clients: WqtWbnbClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractProvider,
+    public readonly notificationClient: INotificationClient,
     protected  readonly tokenPriceProvider: TokenPriceProvider,
-    public readonly contractProvider: IContractProvider | IContractRpcProvider,
   ) {
   }
 
@@ -79,7 +79,7 @@ export class WqtWbnbController implements IController {
   }
 
   protected async syncEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
 
@@ -200,7 +200,7 @@ export class WqtWbnbController implements IController {
       });
     }
 
-    await this.clients.notificationsBroker.sendNotification({
+    await this.notificationClient.notify({
       action: WqtWbnbNotificationActions.Sync,
       recipients: [],
       data: await DailyLiquidityWqtWbnb.findOne({
@@ -210,7 +210,7 @@ export class WqtWbnbController implements IController {
   }
 
   protected async swapEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const to = eventsData.returnValues.to.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -275,7 +275,7 @@ export class WqtWbnbController implements IController {
   }
 
   protected async mintEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const sender = eventsData.returnValues.sender.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
@@ -310,7 +310,7 @@ export class WqtWbnbController implements IController {
   }
 
   protected async burnEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const to = eventsData.returnValues.to.toLowerCase();
     const sender = eventsData.returnValues.sender.toLowerCase();
@@ -390,12 +390,13 @@ export class WqtWbnbController implements IController {
 
 export class WqtWbnbListenerController extends WqtWbnbController {
   constructor(
-    protected readonly clients: WqtWbnbClients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
+    public readonly notificationClient: INotificationClient,
     protected readonly tokenPriceProvider: TokenPriceProvider,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, tokenPriceProvider, contractProvider);
+    super(web3, network, contractProvider, notificationClient, tokenPriceProvider);
   }
 
   public async start() {

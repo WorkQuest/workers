@@ -1,13 +1,12 @@
+import Web3 from "web3";
 import {Op} from "sequelize";
 import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {
-  Clients,
   IController,
   TrackedEvents,
   IContractProvider,
-  IContractWsProvider,
-  IContractMQProvider
+  IContractListenerProvider,
 } from "./types";
 import {
   BlockchainNetworks,
@@ -20,7 +19,7 @@ import {
 
 export class SavingProductController implements IController {
   constructor (
-    public readonly clients: Clients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -70,7 +69,7 @@ export class SavingProductController implements IController {
   }
 
   protected async borrowedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
@@ -106,7 +105,7 @@ export class SavingProductController implements IController {
   }
 
   protected async claimedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
@@ -142,7 +141,7 @@ export class SavingProductController implements IController {
   }
 
   protected async receivedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
@@ -178,7 +177,7 @@ export class SavingProductController implements IController {
   }
 
   protected async refundedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
@@ -248,11 +247,11 @@ export class SavingProductController implements IController {
 
 export class SavingProductListenerController extends SavingProductController {
   constructor(
-    public readonly clients: Clients,
+    public readonly web3: Web3,
     public readonly network: BlockchainNetworks,
-    public readonly contractProvider: IContractWsProvider | IContractMQProvider,
+    public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(clients, network, contractProvider);
+    super(web3, network, contractProvider);
   }
 
   public async start() {

@@ -20,10 +20,6 @@ export interface IContractCacheProvider<Payload> {
   remove(contractAddress: string): Promise<void>;
 }
 
-export interface Clients {
-  readonly web3: Web3;
-}
-
 export interface IContractProvider {
   readonly eventViewingHeight: number;
 
