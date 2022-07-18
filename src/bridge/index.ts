@@ -121,7 +121,9 @@ export async function init() {
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configBridge.workQuestNetwork})"`,
+    }),
     wqBridgeController,
     wqBridgeProvider,
   )
@@ -129,7 +131,9 @@ export async function init() {
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configBridge.bscNetwork})"`,
+    }),
     bscBridgeController,
     bscBridgeProvider,
   )
@@ -137,7 +141,9 @@ export async function init() {
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configBridge.ethereumNetwork})"`,
+    }),
     ethBridgeController,
     ethBridgeProvider,
   )

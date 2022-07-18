@@ -1,4 +1,4 @@
-import {IContractProvider, IContractListenerProvider, IController} from "../types";
+import {IContractProvider, IContractListenerProvider, IController, ILogger} from "../types";
 
 export enum SupervisorContractTasks {
   None = 0,
@@ -25,7 +25,7 @@ export class SupervisorContract {
   }
 
   constructor(
-    protected readonly Logger: any,
+    protected readonly Logger: ILogger,
     protected readonly controller: IController,
     protected readonly contractProvider: IContractProvider,
   ) {
@@ -87,7 +87,7 @@ export class SupervisorListenerContract extends SupervisorContract {
   };
 
   constructor(
-    protected readonly Logger: any,
+    protected readonly Logger: ILogger,
     protected readonly controller: IController,
     protected readonly contractProvider: IContractListenerProvider,
   ) {

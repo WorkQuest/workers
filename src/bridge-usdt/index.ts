@@ -65,38 +65,58 @@ export async function init() {
     contractBnbData.deploymentHeight,
     SwapUsdtBscContract,
     web3Bsc,
+    Logger.child({
+      target: `SwapUsdtProvider ("${configSwapUsdt.bscNetwork})"`,
+    }),
   );
   const ethSwapUsdtProvider = new BridgeUsdtProvider(
     contractEthData.address,
     contractEthData.deploymentHeight,
     SwapUsdtEthContract,
     web3Eth,
+    Logger.child({
+      target: `SwapUsdtProvider ("${configSwapUsdt.ethereumNetwork})"`,
+    }),
   );
   const polygonSwapUsdtProvider = new BridgeUsdtProvider(
     contractPolygonScanData.address,
     contractPolygonScanData.deploymentHeight,
     SwapUsdtPolygonContract,
     web3Polygon,
+    Logger.child({
+      target: `SwapUsdtProvider ("${configSwapUsdt.polygonscanNetwork})"`,
+    }),
   );
 
   const bscBridgeController = new BridgeUsdtController(
+    Logger.child({
+      target: `BridgeController ("${configSwapUsdt.bscNetwork})"`,
+    }),
     configSwapUsdt.bscNetwork as BlockchainNetworks,
     bscSwapUsdtProvider,
     oracleProvider,
   );
   const ethBridgeController = new BridgeUsdtController(
+    Logger.child({
+      target: `BridgeController ("${configSwapUsdt.ethereumNetwork})"`,
+    }),
     configSwapUsdt.ethereumNetwork as BlockchainNetworks,
     ethSwapUsdtProvider,
     oracleProvider,
   );
   const polygonBridgeController = new BridgeUsdtController(
+    Logger.child({
+      target: `BridgeController ("${configSwapUsdt.polygonscanNetwork})"`,
+    }),
     configSwapUsdt.polygonscanNetwork as BlockchainNetworks,
     polygonSwapUsdtProvider,
     oracleProvider,
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configSwapUsdt.bscNetwork})"`,
+    }),
     bscBridgeController,
     bscSwapUsdtProvider,
   )
@@ -104,7 +124,9 @@ export async function init() {
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configSwapUsdt.ethereumNetwork})"`,
+    }),
     ethBridgeController,
     ethSwapUsdtProvider,
   )
@@ -112,7 +134,9 @@ export async function init() {
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configSwapUsdt.polygonscanNetwork})"`,
+    }),
     polygonBridgeController,
     polygonSwapUsdtProvider,
   )
