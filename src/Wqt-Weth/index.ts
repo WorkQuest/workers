@@ -30,10 +30,16 @@ export async function init() {
     contractData.deploymentHeight,
     web3,
     wqtWethContract,
+    Logger.child({
+      target: `WqtWethRpcProvider ("${BlockchainNetworks.ethMainNetwork})"`,
+    }),
   );
 
   const wqtWethController = new WqtWethController(
     web3,
+    Logger.child({
+      target: `WqtWethController ("${BlockchainNetworks.ethMainNetwork})"`,
+    }),
     BlockchainNetworks.ethMainNetwork,
     wqtWethProvider,
     notificationClient,
@@ -41,7 +47,9 @@ export async function init() {
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${BlockchainNetworks.ethMainNetwork})"`,
+    }),
     wqtWethController,
     wqtWethProvider,
   )
