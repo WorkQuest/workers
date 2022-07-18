@@ -21,7 +21,12 @@ export async function init() {
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'proposal');
+  const transactionListener = await new TransactionMQListener(configDatabase.mqLink, 'proposal')
+    .on('error', (error) => {
+      Logger.error(error, 'Tx listener stopped with error');
+      process.exit(-1);
+    })
+    .init()
 
   const proposalContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 

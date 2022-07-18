@@ -13,13 +13,15 @@ export class NotificationMQClient implements INotificationClient {
   ) {
   }
 
-  public async init() {
+  public async init(): Promise<this> {
     this.connection = await amqp.connect(this.link, 'heartbeat=60');
 
     this.connection.on('error', this.onError.bind(this));
     this.connection.on('close', this.onClose.bind(this));
 
     this.channel = await this.connection.createChannel();
+
+    return this;
   }
 
   private async sendToQueue(payload: object) {
@@ -44,7 +46,7 @@ export class NotificationMQClient implements INotificationClient {
     await this.callBackSubscribers('error', error);
   }
 
-  public on(type, callback) {
+  public on(type, callback): this {
     if (type === 'close') {
       this.callbacks[type].push(callback);
     } else if (type === 'error') {

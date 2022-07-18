@@ -22,12 +22,28 @@ export async function init() {
   Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-
-  const bridgeBetweenWorkers = new BridgeMQBetweenWorkers(configDatabase.mqLink);
-  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'referral-program');
-  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'referral');
-
   const referralContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
+
+  const bridgeBetweenWorkers = await new BridgeMQBetweenWorkers(configDatabase.mqLink)
+    .on('error', (error) => {
+      Logger.error(error, 'Quest cache provider stopped with error');
+      process.exit(-1);
+    })
+    .init()
+
+  const transactionListener = await  new TransactionMQListener(configDatabase.mqLink, 'referral-program')
+    .on('error', (error) => {
+      Logger.error(error, 'Transaction listener stopped with error');
+      process.exit(-1);
+    })
+    .init()
+
+  const notificationClient = await  new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'referral')
+    .on('error', (error) => {
+      Logger.error(error, 'Notification client stopped with error');
+      process.exit(-1);
+    })
+    .init()
 
   const referralProvider = new ReferralMQProvider(
     contractData.address,
@@ -44,10 +60,6 @@ export async function init() {
     referralProvider,
     notificationClient,
   );
-
-  await notificationClient.init();
-  await transactionListener.init();
-  await bridgeBetweenWorkers.init();
 
   await new SupervisorContract(
     Logger,

@@ -41,8 +41,19 @@ export async function init() {
   const web3Bsc = new Web3(bscRpcProvider);
   const web3Eth = new Web3(ethRpcProvider);
 
-  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'bridge');
-  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'bridge');
+  const transactionListener = await new TransactionMQListener(configDatabase.mqLink, 'bridge')
+    .on('error', (error) => {
+      Logger.error(error, 'Tx listener stopped with error');
+      process.exit(-1);
+    })
+    .init()
+
+  const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'bridge')
+    .on('error', (error) => {
+      Logger.error(error, 'Notification client stopped with error');
+      process.exit(-1);
+    })
+    .init()
 
   const bridgeWqContract = new web3Wq.eth.Contract(contractWorkNetData.getAbi(), contractWorkNetData.address);
   const bridgeBscContract = new web3Bsc.eth.Contract(contractBnbData.getAbi(), contractBnbData.address);
@@ -90,9 +101,6 @@ export async function init() {
     ethBridgeProvider,
     notificationClient,
   );
-
-  await notificationClient.init();
-  await transactionListener.init();
 
   await new SupervisorContract(
     Logger,

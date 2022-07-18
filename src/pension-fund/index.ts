@@ -22,8 +22,19 @@ export async function init() {
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  const transactionListener = new TransactionMQListener(configDatabase.mqLink, 'pension-fund');
-  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBrokerLink, 'pension_fund');
+  const transactionListener = await new TransactionMQListener(configDatabase.mqLink, 'pension-fund')
+    .on('error', (error) => {
+      Logger.error(error, 'Tx listener stopped with error');
+      process.exit(-1);
+    })
+    .init()
+
+  const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBrokerLink, 'pension_fund')
+    .on('error', (error) => {
+      Logger.error(error, 'Notification client stopped with error');
+      process.exit(-1);
+    })
+    .init()
 
   const pensionFundContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 

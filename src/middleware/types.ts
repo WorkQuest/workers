@@ -35,3 +35,12 @@ export interface IRouterWorkers {
 
   notifyAboutTransactions(...transactions: Transaction[]): Promise<void>;
 }
+
+export interface IKeyValueRepository<TPayload> {
+  on(type: 'close', callback: () => void);
+  on(type: 'error', callback: (error) => void);
+
+  remove(key: string): Promise<void>;
+  get(key: string): Promise<TPayload | null>;
+  set(key: string, payload: TPayload): Promise<void>;
+}

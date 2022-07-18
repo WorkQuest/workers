@@ -22,7 +22,7 @@ export class TransactionMQListener implements ITransactionListener {
   ) {
   }
 
-  public async init() {
+  public async init(): Promise<this> {
     this.connection = await amqp.connect(this.link, 'heartbeat=60');
 
     this.connection.on('error', this.onError.bind(this));
@@ -34,6 +34,8 @@ export class TransactionMQListener implements ITransactionListener {
       this.queueName,
       this.onMessage.bind(this),
     );
+
+    return this;
   }
 
   public on(type, callback): this {
