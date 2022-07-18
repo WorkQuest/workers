@@ -94,7 +94,6 @@ export default async function (payload: SendFirstWqtPayload) {
           network: configSwapUsdt.workQuestNetwork,
         });
 
-
         transmissionData.status = TransactionStatus.Success;
         transmissionData.transactionHashTransmissionWqt = transaction.hash;
 
