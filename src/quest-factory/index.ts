@@ -52,11 +52,17 @@ export async function init() {
     contractData.deploymentHeight,
     web3,
     questFactoryContract,
+    Logger.child({
+      target: `QuestFactoryMQProvider ("${configQuestFactory.network})"`,
+    }),
     transactionListener,
   );
 
   const questFactoryController = new QuestFactoryListenerController(
     web3,
+    Logger.child({
+      target: `QuestFactoryListenerController ("${configQuestFactory.network})"`,
+    }),
     configQuestFactory.network as BlockchainNetworks,
     notificationClient,
     questCacheProvider,
@@ -64,7 +70,9 @@ export async function init() {
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configQuestFactory.network})"`,
+    }),
     questFactoryController,
     questFactoryProvider,
   )

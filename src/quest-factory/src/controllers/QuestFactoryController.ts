@@ -1,10 +1,9 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
-import {Logger} from "../../logger/pino";
 import {EventData} from 'web3-eth-contract';
 import {addJob} from "../../../utils/scheduler";
 import {INotificationClient} from "../../../middleware";
-import {IQuestCacheProvider} from "../../../quest/src/providers/types";
+import {ILogger, IQuestCacheProvider} from "../../../quest/src/providers/types";
 import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
 import {
   IController,
@@ -27,6 +26,7 @@ import {
 export class QuestFactoryController implements IController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
     public readonly notificationClient: INotificationClient,
@@ -43,13 +43,13 @@ export class QuestFactoryController implements IController {
       },
     });
 
-    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block: "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected async updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     await QuestFactoryBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -60,7 +60,7 @@ export class QuestFactoryController implements IController {
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name %s, block number %s, address %s',
+    this.Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -80,7 +80,7 @@ export class QuestFactoryController implements IController {
     const employerAddress = eventsData.returnValues.employer.toLowerCase();
     const contractAddress = eventsData.returnValues.workquest.toLowerCase();
 
-    Logger.debug('Created event handler (quest nonce "%s"): timestamp "%s", event data %o', nonce, timestamp, eventsData);
+    this.Logger.debug('Created event handler (quest nonce "%s"): timestamp "%s", event data %o', nonce, timestamp, eventsData);
 
     const quest = await Quest.findOne({ where: { nonce } });
 
@@ -88,7 +88,7 @@ export class QuestFactoryController implements IController {
       ? QuestFactoryStatus.Successfully
       : QuestFactoryStatus.QuestEntityNotFound
 
-    Logger.debug('Created event handler (quest nonce "%s"): quest factory status "%s"', nonce, questFactoryStatus);
+    this.Logger.debug('Created event handler (quest nonce "%s"): quest factory status "%s"', nonce, questFactoryStatus);
 
     const [, isCreated] = await QuestFactoryCreatedEvent.findOrCreate({
       where: {
@@ -108,7 +108,7 @@ export class QuestFactoryController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Created event handler (quest nonce "%s"): event "%s" handling is skipped because it has already been created',
+      this.Logger.warn('Created event handler (quest nonce "%s"): event "%s" handling is skipped because it has already been created',
         nonce,
         eventsData.event
       );
@@ -119,7 +119,7 @@ export class QuestFactoryController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!quest) {
-      Logger.warn('Created event handler (quest nonce "%s"): event "%s" quest handling is skipped because quest not found',
+      this.Logger.warn('Created event handler (quest nonce "%s"): event "%s" quest handling is skipped because quest not found',
         nonce,
         eventsData.event,
       );
@@ -127,10 +127,10 @@ export class QuestFactoryController implements IController {
       return;
     }
 
-    Logger.debug('Created event handler: quest id "%s", quest status "%s"', quest.id, quest.status);
+    this.Logger.debug('Created event handler: quest id "%s", quest status "%s"', quest.id, quest.status);
 
     if (quest.status != QuestStatus.Pending) {
-      Logger.warn('Created event handler (quest nonce "%s"): event "%s" quest handling is skipped because quest status does not match. ' +
+      this.Logger.warn('Created event handler (quest nonce "%s"): event "%s" quest handling is skipped because quest status does not match. ' +
         'Current quest status "%s"',
         nonce,
         eventsData.event,
@@ -165,11 +165,11 @@ export class QuestFactoryController implements IController {
       }),
     ]);
 
-    Logger.debug('Created event handler: set into redis key "%s", value %o', contractAddress, { transactionHash, nonce });
+    this.Logger.debug('Created event handler: set into redis key "%s", value %o', contractAddress, { transactionHash, nonce });
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, lastBlockNumber, error } = await this.contractProvider.getEvents(fromBlockNumber);
 
@@ -177,7 +177,7 @@ export class QuestFactoryController implements IController {
       try {
         await this.onEvent(event);
       } catch (error) {
-        Logger.error(error, 'Event processing ended with error');
+        this.Logger.error(error, 'Event processing ended with error');
 
         throw error;
       }
@@ -206,12 +206,13 @@ export class QuestFactoryController implements IController {
 export class QuestFactoryListenerController extends QuestFactoryController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly notificationClient: INotificationClient,
     public readonly questCacheProvider: IQuestCacheProvider,
     public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(web3, network, contractProvider, notificationClient, questCacheProvider);
+    super(web3, Logger, network, contractProvider, notificationClient, questCacheProvider);
   }
 
   public async start() {
