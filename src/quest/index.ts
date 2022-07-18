@@ -56,6 +56,9 @@ export async function init() {
   const questProvider = new QuestMQProvider(
     contractData.getAbi(),
     web3,
+    Logger.child({
+      target: `QuestMQProvider ("${configQuest.network})"`,
+    }),
     contractData.deploymentHeight,
     transactionListener,
     questCacheProvider,
@@ -63,6 +66,9 @@ export async function init() {
 
   const questController = new QuestListenerController(
     web3,
+    Logger.child({
+      target: `QuestListenerController ("${configQuest.network})"`,
+    }),
     configQuest.network as BlockchainNetworks,
     notificationClient,
     questCacheProvider,
@@ -71,7 +77,9 @@ export async function init() {
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configQuest.network})"`,
+    }),
     questController,
     questProvider,
   )

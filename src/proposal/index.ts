@@ -20,6 +20,7 @@ export async function init() {
   Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
+  const proposalContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const transactionListener = await new TransactionMQListener(configDatabase.mqLink, 'proposal')
     .on('error', (error) => {
@@ -28,25 +29,29 @@ export async function init() {
     })
     .init()
 
-  const proposalContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
-
   const proposalProvider = new ProposalMQProvider(
     contractData.address,
     contractData.deploymentHeight,
     web3,
     proposalContract,
+    Logger.child({
+      target: `ProposalMQProvider ("${configProposal.network})"`,
+    }),
     transactionListener,
   );
   const proposalController = new ProposalListenerController(
     web3,
+    Logger.child({
+      target: `ProposalListenerController ("${configProposal.network})"`,
+    }),
     configProposal.network as BlockchainNetworks,
     proposalProvider,
   );
 
-  await transactionListener.init();
-
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configProposal.network})"`,
+    }),
     proposalController,
     proposalProvider,
   )

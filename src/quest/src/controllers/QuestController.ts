@@ -1,9 +1,8 @@
 import Web3 from "web3";
 import {col, fn, Op} from "sequelize";
-import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {addJob} from "../../../utils/scheduler";
-import {IQuestCacheProvider} from "../providers/types";
+import {ILogger, IQuestCacheProvider} from "../providers/types";
 import {UserModelController} from "./models/UserModelController";
 import {QuestModelController} from "./models/QuestModelController";
 import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
@@ -51,6 +50,7 @@ import {
 export class QuestController implements IController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
     public readonly notificationClient: INotificationClient,
@@ -60,7 +60,7 @@ export class QuestController implements IController {
   }
 
   public async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name %s, block number %s, address %s',
+    this.Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -144,13 +144,13 @@ export class QuestController implements IController {
       },
     });
 
-    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block: "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected updateBlockViewHeight(blockHeight: number): Promise<any> {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     return QuestBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -184,7 +184,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Job edited event handler: event "%s" handling is skipped because it has already been created',
+      this.Logger.warn('Job edited event handler: event "%s" handling is skipped because it has already been created',
         eventsData.event,
       );
 
@@ -194,7 +194,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      Logger.warn('Job edited event handler: event "%s" handling is skipped because quest entity not found',
+      this.Logger.warn('Job edited event handler: event "%s" handling is skipped because quest entity not found',
         eventsData.event,
       );
 
@@ -203,7 +203,7 @@ export class QuestController implements IController {
     if (!questModelController.statusDoesMatch(
       QuestStatus.Recruitment,
     )) {
-      Logger.warn('Job edited event handler: event "%s" handling is skipped because quest status does not match',
+      this.Logger.warn('Job edited event handler: event "%s" handling is skipped because quest status does not match',
         eventsData.event,
       );
 
@@ -269,7 +269,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Job cancelled event handler: event "%s" handling is skipped because it has already been created',
+      this.Logger.warn('Job cancelled event handler: event "%s" handling is skipped because it has already been created',
         eventsData.event,
       );
 
@@ -279,7 +279,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      Logger.warn('Job cancelled event handler: event "%s" handling is skipped because quest entity not found',
+      this.Logger.warn('Job cancelled event handler: event "%s" handling is skipped because quest entity not found',
         eventsData.event,
       );
 
@@ -288,7 +288,7 @@ export class QuestController implements IController {
     if (!questModelController.statusDoesMatch(
       QuestStatus.Recruitment,
     )) {
-      Logger.warn('Job cancelled event handler: event "%s" handling is skipped because quest status does not match',
+      this.Logger.warn('Job cancelled event handler: event "%s" handling is skipped because quest status does not match',
         eventsData.event,
       );
 
@@ -321,7 +321,7 @@ export class QuestController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const workerAddress = eventsData.returnValues.worker.toLowerCase();
 
-    Logger.debug('Assigned event handler: timestamp "%s", event data %o', timestamp, eventsData);
+    this.Logger.debug('Assigned event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const workerModelController = await UserModelController.byWalletAddress(workerAddress);
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
@@ -342,7 +342,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Assigned event handler: event "%s" handling is skipped because it has already been created',
+      this.Logger.warn('Assigned event handler: event "%s" handling is skipped because it has already been created',
         eventsData.event,
       );
 
@@ -352,7 +352,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!workerModelController || !questModelController) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because worker or quest entity not found',
+      this.Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because worker or quest entity not found',
         workerAddress,
         eventsData.event,
       );
@@ -363,7 +363,7 @@ export class QuestController implements IController {
       QuestStatus.Recruitment,
       QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     )) {
-      Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
+      this.Logger.warn('Assigned event handler (worker address: "%s") event "%s" handling is skipped because quest status does not match',
         workerAddress,
         eventsData.event,
       );
@@ -390,7 +390,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Job started event handler: timestamp "%s", event data %o', timestamp, eventsData);
+    this.Logger.debug('Job started event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questResponsesModelController = new QuestResponsesModelController(questModelController);
@@ -411,7 +411,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Job started event handler: event "%s" handling is skipped because it has already been created',
+      this.Logger.warn('Job started event handler: event "%s" handling is skipped because it has already been created',
         eventsData.event
       );
 
@@ -421,7 +421,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      Logger.warn('Job started event handler: event "%s" handling is skipped because quest entity not found',
+      this.Logger.warn('Job started event handler: event "%s" handling is skipped because quest entity not found',
         eventsData.event,
       );
 
@@ -430,7 +430,7 @@ export class QuestController implements IController {
     if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForConfirmFromWorkerOnAssign,
     )) {
-      Logger.warn('Job started event handler: event "%s" handling is skipped because quest status does not match',
+      this.Logger.warn('Job started event handler: event "%s" handling is skipped because quest status does not match',
         eventsData.event,
       );
 
@@ -461,7 +461,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Job done event handler: timestamp "%s", event data %o', timestamp, eventsData);
+    this.Logger.debug('Job done event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 
@@ -480,7 +480,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Job done event handler: event "%s" handling is skipped because it has already been created',
+      this.Logger.warn('Job done event handler: event "%s" handling is skipped because it has already been created',
         eventsData.event
       );
 
@@ -490,7 +490,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      Logger.warn('Job done event handler: event "%s" handling is skipped because quest entity not found',
+      this.Logger.warn('Job done event handler: event "%s" handling is skipped because quest entity not found',
         eventsData.event,
       );
 
@@ -499,7 +499,7 @@ export class QuestController implements IController {
     if (!questModelController.statusDoesMatch(
       QuestStatus.ExecutionOfWork,
     )) {
-      Logger.warn('Job done event handler: event "%s" handling is skipped because quest status does not match',
+      this.Logger.warn('Job done event handler: event "%s" handling is skipped because quest status does not match',
         eventsData.event,
       );
 
@@ -525,7 +525,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Job finished event handler: timestamp "%s", event data %o', timestamp, eventsData);
+    this.Logger.debug('Job finished event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
 
@@ -544,7 +544,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Job finished event handler: event "%s" handling is skipped because it has already been created',
+      this.Logger.warn('Job finished event handler: event "%s" handling is skipped because it has already been created',
         eventsData.event
       );
 
@@ -554,7 +554,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questModelController) {
-      Logger.warn('Job finished event handler: event "%s" handling is skipped because quest entity not found',
+      this.Logger.warn('Job finished event handler: event "%s" handling is skipped because quest entity not found',
         eventsData.event,
       );
 
@@ -563,7 +563,7 @@ export class QuestController implements IController {
     if (!questModelController.statusDoesMatch(
       QuestStatus.WaitingForEmployerConfirmationWork,
     )) {
-      Logger.warn('Job finished event handler: event "%s" handling is skipped because quest status does not match',
+      this.Logger.warn('Job finished event handler: event "%s" handling is skipped because quest status does not match',
         eventsData.event,
       );
 
@@ -601,7 +601,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Arbitration started event handler: timestamp "%s", event data %o', timestamp, eventsData);
+    this.Logger.debug('Arbitration started event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
@@ -622,7 +622,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Arbitration started event handler: event "%s" is skipped because is has already been created',
+      this.Logger.warn('Arbitration started event handler: event "%s" is skipped because is has already been created',
         eventsData.event
       );
 
@@ -632,7 +632,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questDisputeModelController) {
-      Logger.warn('Arbitration started event handler: event "%s" is skipped because dispute entity not found',
+      this.Logger.warn('Arbitration started event handler: event "%s" is skipped because dispute entity not found',
         eventsData.event
       );
 
@@ -640,7 +640,7 @@ export class QuestController implements IController {
     }
 
     if (!questDisputeModelController.statusDoesMatch(DisputeStatus.Pending)) {
-      Logger.warn('Arbitration started event handler: event "%s" is skipped because dispute status does not match',
+      this.Logger.warn('Arbitration started event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
 
@@ -671,7 +671,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Arbitration accept work event handler: timestamp "%s", event data %o', timestamp, eventsData);
+    this.Logger.debug('Arbitration accept work event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
@@ -693,7 +693,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Arbitration accept work event handler: event "%s" is skipped because is has already been created',
+      this.Logger.warn('Arbitration accept work event handler: event "%s" is skipped because is has already been created',
         eventsData.event
       );
 
@@ -703,7 +703,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questDisputeModelController) {
-      Logger.warn('Arbitration accept work event handler: event "%s" is skipped because dispute entity not found',
+      this.Logger.warn('Arbitration accept work event handler: event "%s" is skipped because dispute entity not found',
         eventsData.event
       );
 
@@ -711,7 +711,7 @@ export class QuestController implements IController {
     }
 
     if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
-      Logger.warn('Arbitration accept work event handler: event "%s" is skipped because dispute status does not match',
+      this.Logger.warn('Arbitration accept work event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
 
@@ -719,7 +719,7 @@ export class QuestController implements IController {
     }
 
     if (!questModelController) {
-      Logger.warn('Arbitration accept work event handler: event "%s" is skipped because quest entity not found',
+      this.Logger.warn('Arbitration accept work event handler: event "%s" is skipped because quest entity not found',
         eventsData.event
       )
 
@@ -767,7 +767,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Arbitration reject work event handler: timestamp "%s", event data %o', timestamp, eventsData);
+    this.Logger.debug('Arbitration reject work event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
@@ -789,7 +789,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Arbitration reject work event handler: event "%s" is skipped because is has already been created',
+      this.Logger.warn('Arbitration reject work event handler: event "%s" is skipped because is has already been created',
         eventsData.event
       );
 
@@ -799,7 +799,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questDisputeModelController) {
-      Logger.warn('Arbitration reject work event handler: event "%s" is skipped because dispute entity not found',
+      this.Logger.warn('Arbitration reject work event handler: event "%s" is skipped because dispute entity not found',
         eventsData.event
       );
 
@@ -807,7 +807,7 @@ export class QuestController implements IController {
     }
 
     if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
-      Logger.warn('Arbitration reject work event handler: event "%s" is skipped because dispute status does not match',
+      this.Logger.warn('Arbitration reject work event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
 
@@ -815,7 +815,7 @@ export class QuestController implements IController {
     }
 
     if (!questModelController) {
-      Logger.warn('Arbitration reject work event handler: event "%s" is skipped because quest entity not found',
+      this.Logger.warn('Arbitration reject work event handler: event "%s" is skipped because quest entity not found',
         eventsData.event
       )
 
@@ -859,7 +859,7 @@ export class QuestController implements IController {
     const contractAddress = eventsData.address.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Arbitration rework event handler: timestamp "%s", event data %o', timestamp, eventsData);
+    this.Logger.debug('Arbitration rework event handler: timestamp "%s", event data %o', timestamp, eventsData);
 
     const questModelController = await QuestModelController.byContractAddress(contractAddress);
     const questDisputeModelController = await QuestDisputeModelController.byContractAddress(contractAddress);
@@ -880,7 +880,7 @@ export class QuestController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Arbitration rework event handler: event "%s" is skipped because is has already been created',
+      this.Logger.warn('Arbitration rework event handler: event "%s" is skipped because is has already been created',
         eventsData.event
       );
 
@@ -890,7 +890,7 @@ export class QuestController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!questDisputeModelController) {
-      Logger.warn('Arbitration rework event handler: event "%s" is skipped because dispute entity not found',
+      this.Logger.warn('Arbitration rework event handler: event "%s" is skipped because dispute entity not found',
         eventsData.event
       );
 
@@ -898,7 +898,7 @@ export class QuestController implements IController {
     }
 
     if (!questDisputeModelController.statusDoesMatch(DisputeStatus.PendingClosed)) {
-      Logger.warn('Arbitration rework event handler: event "%s" is skipped because dispute status does not match',
+      this.Logger.warn('Arbitration rework event handler: event "%s" is skipped because dispute status does not match',
         eventsData.event
       );
 
@@ -906,7 +906,7 @@ export class QuestController implements IController {
     }
 
     if (!questModelController) {
-      Logger.warn('Arbitration rework work event handler: event "%s" is skipped because quest entity not found',
+      this.Logger.warn('Arbitration rework work event handler: event "%s" is skipped because quest entity not found',
         eventsData.event
       )
 
@@ -929,7 +929,7 @@ export class QuestController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
@@ -937,7 +937,7 @@ export class QuestController implements IController {
       try {
         await this.onEvent(event);
       } catch (err) {
-        Logger.error(err, 'Event processing ended with error');
+        this.Logger.error(err, 'Event processing ended with error');
 
         throw err;
       }
@@ -966,6 +966,7 @@ export class QuestController implements IController {
 export class QuestListenerController extends QuestController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly notificationClient: INotificationClient,
     public readonly questCacheProvider: IQuestCacheProvider,
@@ -974,6 +975,7 @@ export class QuestListenerController extends QuestController {
   ) {
     super(
       web3,
+      Logger,
       network,
       contractProvider,
       notificationClient,

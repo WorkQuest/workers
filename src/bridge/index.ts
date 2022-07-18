@@ -69,7 +69,7 @@ export async function init() {
     web3Wq,
     bridgeWqContract,
     Logger.child({
-      target: `BridgeProvider ("${configBridge.workQuestNetwork})"`,
+      target: `BridgeMQProvider ("${configBridge.workQuestNetwork})"`,
     }),
     transactionListener,
   );

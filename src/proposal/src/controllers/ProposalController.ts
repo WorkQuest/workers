@@ -1,10 +1,9 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
-import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {addJob} from "../../../utils/scheduler";
 import {IController, ProposalEvents} from "./types";
-import {IContractProvider, IContractListenerProvider} from "../../../types";
+import {IContractProvider, IContractListenerProvider, ILogger} from "../../../types";
 import {
   Proposal,
   Discussion,
@@ -20,6 +19,7 @@ import {
 export class ProposalController implements IController {
   constructor (
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -38,13 +38,13 @@ export class ProposalController implements IController {
       },
     });
 
-    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block: "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected async updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     await ProposalParseBlock.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -55,7 +55,7 @@ export class ProposalController implements IController {
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -76,7 +76,7 @@ export class ProposalController implements IController {
     const proposer = eventsData.returnValues.proposer.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Proposal created event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
@@ -103,7 +103,7 @@ export class ProposalController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Proposal created event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Proposal created event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         transactionHash,
         eventsData.event,
       );
@@ -111,7 +111,7 @@ export class ProposalController implements IController {
       return;
     }
     if (!proposal) {
-      Logger.warn('Proposal created event handler: event "%s" (tx hash "%s") handling is skipped because proposal (nonce "%s") not found',
+      this.Logger.warn('Proposal created event handler: event "%s" (tx hash "%s") handling is skipped because proposal (nonce "%s") not found',
         eventsData.event,
         transactionHash,
         eventsData.returnValues.nonce,
@@ -120,7 +120,7 @@ export class ProposalController implements IController {
       return this.updateBlockViewHeight(eventsData.blockNumber);
     }
 
-    Logger.debug('Proposal created event handler: event "%s" (tx hash "%s") found proposal (nonce "%s") %o',
+    this.Logger.debug('Proposal created event handler: event "%s" (tx hash "%s") found proposal (nonce "%s") %o',
       eventsData.event,
       transactionHash,
       eventsData.returnValues.nonce,
@@ -133,7 +133,7 @@ export class ProposalController implements IController {
       description: proposal.description,
     });
 
-    Logger.debug('Proposal created event handler: event "%s" (tx hash "%s") discussion was created for proposal %o',
+    this.Logger.debug('Proposal created event handler: event "%s" (tx hash "%s") discussion was created for proposal %o',
       eventsData.event,
       transactionHash,
       discussion,
@@ -152,7 +152,7 @@ export class ProposalController implements IController {
     const voter = eventsData.returnValues.voter.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Proposal vote cast event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
@@ -180,7 +180,7 @@ export class ProposalController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Proposal vote cast event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Proposal vote cast event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -188,7 +188,7 @@ export class ProposalController implements IController {
       return;
     }
     if (!proposalCreatedEvent) {
-      Logger.warn('Proposal vote cast event handler: event "%s" (tx hash "%s") handling is skipped because proposal created event not found',
+      this.Logger.warn('Proposal vote cast event handler: event "%s" (tx hash "%s") handling is skipped because proposal created event not found',
         eventsData.event,
         transactionHash,
       );
@@ -212,7 +212,7 @@ export class ProposalController implements IController {
 
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Proposal executed event handler: timestamp "%s", event data %o',
       timestamp, eventsData
     );
@@ -238,7 +238,7 @@ export class ProposalController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Proposal executed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Proposal executed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -246,7 +246,7 @@ export class ProposalController implements IController {
       return;
     }
     if (!proposalCreatedEvent) {
-      Logger.warn('Proposal vote cast event handler: event "%s" (tx hash "%s") handling is skipped because proposal created event not found',
+      this.Logger.warn('Proposal vote cast event handler: event "%s" (tx hash "%s") handling is skipped because proposal created event not found',
         eventsData.event,
         transactionHash,
       );
@@ -272,7 +272,7 @@ export class ProposalController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
@@ -280,7 +280,7 @@ export class ProposalController implements IController {
       try {
         await this.onEvent(event);
       } catch (e) {
-        Logger.error(e, 'Event processing ended with error');
+        this.Logger.error(e, 'Event processing ended with error');
 
         throw e;
       }
@@ -309,10 +309,11 @@ export class ProposalController implements IController {
 export class ProposalListenerController extends ProposalController {
   constructor (
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(web3, network, contractProvider);
+    super(web3, Logger, network, contractProvider);
   }
 
   public async start() {

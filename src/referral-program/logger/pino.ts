@@ -7,8 +7,8 @@ export const Logger = pino({
     target: 'pino-pretty',
     options: {
       ignore: 'workerName,hostName',
-      messageFormat: '{workerName}: {msg}',
+      messageFormat: 'Worker: "{workerName}", Target: "{target}": {msg}',
       translateTime: "dd-mm-yyyy HH:MM:ss",
     },
   },
-}).child({ workerName: 'Referral Program' });
+}).child({ workerName: 'Referral Program', target: 'Common' });

@@ -44,7 +44,7 @@ export async function init() {
     pensionFundContract,
     web3,
     Logger.child({
-      target: `PensionFundProvider ("${configPensionFund.network})"`,
+      target: `PensionFundMQProvider ("${configPensionFund.network})"`,
     }),
     transactionListener,
   );
@@ -52,7 +52,7 @@ export async function init() {
   const pensionFundController = new PensionFundListenerController(
     web3,
     Logger.child({
-      target: `PensionFundController ("${configPensionFund.network})"`,
+      target: `PensionFundListenerController ("${configPensionFund.network})"`,
     }),
     configPensionFund.network as BlockchainNetworks,
     notificationClient,

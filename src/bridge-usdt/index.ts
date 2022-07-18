@@ -66,7 +66,7 @@ export async function init() {
     SwapUsdtBscContract,
     web3Bsc,
     Logger.child({
-      target: `SwapUsdtProvider ("${configSwapUsdt.bscNetwork})"`,
+      target: `BridgeUsdtProvider ("${configSwapUsdt.bscNetwork})"`,
     }),
   );
   const ethSwapUsdtProvider = new BridgeUsdtProvider(
@@ -75,7 +75,7 @@ export async function init() {
     SwapUsdtEthContract,
     web3Eth,
     Logger.child({
-      target: `SwapUsdtProvider ("${configSwapUsdt.ethereumNetwork})"`,
+      target: `BridgeUsdtProvider ("${configSwapUsdt.ethereumNetwork})"`,
     }),
   );
   const polygonSwapUsdtProvider = new BridgeUsdtProvider(
@@ -84,13 +84,13 @@ export async function init() {
     SwapUsdtPolygonContract,
     web3Polygon,
     Logger.child({
-      target: `SwapUsdtProvider ("${configSwapUsdt.polygonscanNetwork})"`,
+      target: `BridgeUsdtProvider ("${configSwapUsdt.polygonscanNetwork})"`,
     }),
   );
 
   const bscBridgeController = new BridgeUsdtController(
     Logger.child({
-      target: `BridgeController ("${configSwapUsdt.bscNetwork})"`,
+      target: `BridgeUsdtController ("${configSwapUsdt.bscNetwork})"`,
     }),
     configSwapUsdt.bscNetwork as BlockchainNetworks,
     bscSwapUsdtProvider,
@@ -98,7 +98,7 @@ export async function init() {
   );
   const ethBridgeController = new BridgeUsdtController(
     Logger.child({
-      target: `BridgeController ("${configSwapUsdt.ethereumNetwork})"`,
+      target: `BridgeUsdtController ("${configSwapUsdt.ethereumNetwork})"`,
     }),
     configSwapUsdt.ethereumNetwork as BlockchainNetworks,
     ethSwapUsdtProvider,
@@ -106,7 +106,7 @@ export async function init() {
   );
   const polygonBridgeController = new BridgeUsdtController(
     Logger.child({
-      target: `BridgeController ("${configSwapUsdt.polygonscanNetwork})"`,
+      target: `BridgeUsdtController ("${configSwapUsdt.polygonscanNetwork})"`,
     }),
     configSwapUsdt.polygonscanNetwork as BlockchainNetworks,
     polygonSwapUsdtProvider,
