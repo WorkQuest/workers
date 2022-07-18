@@ -1,9 +1,8 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
-import {Logger} from "../../logger/pino";
 import {EventData} from 'web3-eth-contract';
 import {addJob} from "../../../utils/scheduler";
-import {RaiseViewEvent, StatisticPayload} from './types';
+import {ILogger, RaiseViewEvent, StatisticPayload} from './types';
 import {updateUserRaiseViewStatusJob} from "../../jobs/updateUserRaiseViewStatus";
 import {updateQuestRaiseViewStatusJob} from "../../jobs/updateQuestRaiseViewStatus";
 import {IController, IContractProvider, IContractListenerProvider} from '../../../types';
@@ -27,6 +26,7 @@ import {
 export class RaiseViewController implements IController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
@@ -83,13 +83,13 @@ export class RaiseViewController implements IController {
       },
     });
 
-    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block: "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected async updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     await RaiseViewBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -100,7 +100,7 @@ export class RaiseViewController implements IController {
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -124,14 +124,14 @@ export class RaiseViewController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const questContractAddress = eventsData.returnValues.quest.toLowerCase();
 
-    Logger.debug('Promoted quest event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Promoted quest event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
 
     const quest = await Quest.findOne({ where: { contractAddress: questContractAddress } });
 
-    Logger.debug('Promoted quest event handler: quest data %o', quest);
+    this.Logger.debug('Promoted quest event handler: quest data %o', quest);
 
     const [promotedQuestEvent, isCreated] = await RaiseViewPromotedQuestEvent.findOrCreate({
       where: { transactionHash, network: this.network },
@@ -148,7 +148,7 @@ export class RaiseViewController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Promoted quest event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Promoted quest event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -159,14 +159,14 @@ export class RaiseViewController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!quest) {
-      Logger.warn('Promoted quest event handler: event "%s" handling is skipped because quest entity not found',
+      this.Logger.warn('Promoted quest event handler: event "%s" handling is skipped because quest entity not found',
         eventsData.event,
       );
 
       return;
     }
 
-    Logger.debug('Promoted quest event handler: event "%s" (tx hash "%s") quest data %o',
+    this.Logger.debug('Promoted quest event handler: event "%s" (tx hash "%s") quest data %o',
       eventsData.event,
       transactionHash,
       { questId: quest.id, role: quest.status },
@@ -177,14 +177,14 @@ export class RaiseViewController implements IController {
       defaults: { questId: quest.id },
     });
 
-    Logger.debug('Promoted quest event handler: event "%s" (tx hash "%s") quest raise view data %o',
+    this.Logger.debug('Promoted quest event handler: event "%s" (tx hash "%s") quest raise view data %o',
       eventsData.event,
       transactionHash,
       questRaiseView,
     );
 
     if (questRaiseView.status === QuestRaiseStatus.Paid) {
-      Logger.warn('Promoted quest event handler: quest (quest address "%s", tx hash "%s") promotion already activated, data will be overwritten',
+      this.Logger.warn('Promoted quest event handler: quest (quest address "%s", tx hash "%s") promotion already activated, data will be overwritten',
         questContractAddress,
         transactionHash,
       );
@@ -209,7 +209,7 @@ export class RaiseViewController implements IController {
       }),
     ]);
 
-    Logger.debug('Promoted quest event handler: create "%s"', transactionHash);
+    this.Logger.debug('Promoted quest event handler: create "%s"', transactionHash);
   }
 
   protected async promotedUserEventHandler(eventsData: EventData) {
@@ -223,7 +223,7 @@ export class RaiseViewController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const userWalletAddress = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug('Promoted user event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Promoted user event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -236,7 +236,7 @@ export class RaiseViewController implements IController {
       },
     });
 
-    Logger.debug('Promoted user event handler: quest data %o', user);
+    this.Logger.debug('Promoted user event handler: quest data %o', user);
 
     const [promotedUserEvent, isCreated] = await RaiseViewPromotedUserEvent.findOrCreate({
       where: { transactionHash, network: this.network },
@@ -253,7 +253,7 @@ export class RaiseViewController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Promoted user event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Promoted user event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -264,14 +264,14 @@ export class RaiseViewController implements IController {
     await this.updateBlockViewHeight(eventsData.blockNumber);
 
     if (!user) {
-      Logger.warn('Promoted user event handler: event "%s" handling is skipped because user entity not found',
+      this.Logger.warn('Promoted user event handler: event "%s" handling is skipped because user entity not found',
         eventsData.event,
       );
 
       return;
     }
 
-    Logger.debug('Promoted user event handler: event "%s" (tx hash "%s") user data %o',
+    this.Logger.debug('Promoted user event handler: event "%s" (tx hash "%s") user data %o',
       eventsData.event,
       transactionHash,
       { userId: user.id, role: user.role },
@@ -282,14 +282,14 @@ export class RaiseViewController implements IController {
       defaults: { userId: user.id },
     });
 
-    Logger.debug('Promoted user event handler: event "%s" (tx hash "%s") user raise view data %o',
+    this.Logger.debug('Promoted user event handler: event "%s" (tx hash "%s") user raise view data %o',
       eventsData.event,
       transactionHash,
       userRaiseView,
     );
 
     if (userRaiseView.status === UserRaiseStatus.Paid) {
-      Logger.warn('Promoted user event handler: user (address "%s", tx hash "%s") promotion already activated, data will be overwritten',
+      this.Logger.warn('Promoted user event handler: user (address "%s", tx hash "%s") promotion already activated, data will be overwritten',
         userWalletAddress,
         transactionHash,
       );
@@ -314,12 +314,12 @@ export class RaiseViewController implements IController {
       }),
     ]);
 
-    Logger.debug('Promoted user event handler: create "%s"', transactionHash);
+    this.Logger.debug('Promoted user event handler: create "%s"', transactionHash);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
 
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
@@ -327,7 +327,7 @@ export class RaiseViewController implements IController {
       try {
         await this.onEvent(event);
       } catch (error) {
-        Logger.error(error, 'Event processing ended with error');
+        this.Logger.error(error, 'Event processing ended with error');
 
         throw error;
       }
@@ -356,10 +356,11 @@ export class RaiseViewController implements IController {
 export class RaiseViewListenerController extends RaiseViewController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(web3, network, contractProvider);
+    super(web3, Logger, network, contractProvider);
   }
 
   public async start() {

@@ -36,17 +36,25 @@ export async function init() {
     contractData.deploymentHeight,
     web3,
     raiseViewContract,
+    Logger.child({
+      target: `RaiseViewMQProvider ("${configRaiseView.network})"`,
+    }),
     transactionListener,
   );
 
   const raiseViewController = new RaiseViewListenerController(
     web3,
+    Logger.child({
+      target: `RaiseViewListenerController ("${configRaiseView.network})"`,
+    }),
     configRaiseView.network as BlockchainNetworks,
     raiseViewProvider,
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configRaiseView.network})"`,
+    }),
     raiseViewController,
     raiseViewProvider,
   )
