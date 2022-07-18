@@ -30,10 +30,16 @@ export async function init() {
     contractData.deploymentHeight,
     web3,
     wqtWbnbContract,
+    Logger.child({
+      target: `WqtWbnbProvider ("${BlockchainNetworks.bscMainNetwork})"`,
+    }),
   );
 
   const wqtWbnbController = new WqtWbnbController(
     web3,
+    Logger.child({
+      target: `WqtWbnbController ("${BlockchainNetworks.bscMainNetwork})"`,
+    }),
     BlockchainNetworks.bscMainNetwork,
     wqtWbnbProvider,
     notificationClient,
@@ -41,7 +47,9 @@ export async function init() {
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${BlockchainNetworks.bscMainNetwork})"`,
+    }),
     wqtWbnbController,
     wqtWbnbProvider,
   )
