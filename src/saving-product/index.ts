@@ -2,7 +2,6 @@ import Web3 from 'web3';
 import {Logger} from "./logger/pino";
 import configSavings from "./config/config.savings";
 import configDatabase from './config/config.database';
-
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {SavingProductMQProvider} from "./src/providers/SavingProductProvider";
 import {SavingProductListenerController} from "./src/controllers/SavingProductController";
@@ -36,17 +35,25 @@ export async function init() {
     contractData.deploymentHeight,
     web3,
     savingProductContract,
+    Logger.child({
+      target: `SavingProductMQProvider ("${configSavings.network})"`,
+    }),
     transactionListener,
   );
 
   const savingProductController = new SavingProductListenerController(
     web3,
+    Logger.child({
+      target: `SavingProductListenerController ("${configSavings.network})"`,
+    }),
     configSavings.network as BlockchainNetworks,
     savingProductProvider,
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configSavings.network})"`,
+    }),
     savingProductController,
     savingProductProvider,
   )

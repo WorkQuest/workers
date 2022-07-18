@@ -1,8 +1,8 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
-import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
 import {
+  ILogger,
   IController,
   TrackedEvents,
   IContractProvider,
@@ -20,13 +20,14 @@ import {
 export class SavingProductController implements IController {
   constructor (
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
   ) {
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -52,13 +53,13 @@ export class SavingProductController implements IController {
       },
     });
 
-    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block: "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected async updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     await SavingProductParseBlock.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -74,7 +75,7 @@ export class SavingProductController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug('Borrowed event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Borrowed event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -93,7 +94,7 @@ export class SavingProductController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Borrowed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Borrowed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -110,7 +111,7 @@ export class SavingProductController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug('Claimed event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Claimed event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -129,7 +130,7 @@ export class SavingProductController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Claimed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Claimed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -146,7 +147,7 @@ export class SavingProductController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug('Received event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Received event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -165,7 +166,7 @@ export class SavingProductController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Received event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Received event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -182,7 +183,7 @@ export class SavingProductController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug('Refunded event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Refunded event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -201,7 +202,7 @@ export class SavingProductController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Refunded event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Refunded event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -219,7 +220,7 @@ export class SavingProductController implements IController {
       try {
         await this.onEvent(event);
       } catch (e) {
-        Logger.error(e, 'Event processing ended with error');
+        this.Logger.error(e, 'Event processing ended with error');
 
         throw e;
       }
@@ -248,10 +249,11 @@ export class SavingProductController implements IController {
 export class SavingProductListenerController extends SavingProductController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(web3, network, contractProvider);
+    super(web3, Logger, network, contractProvider);
   }
 
   public async start() {
