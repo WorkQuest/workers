@@ -50,19 +50,27 @@ export async function init() {
     contractData.deploymentHeight,
     web3,
     referralContract,
+    Logger.child({
+      target: `ReferralMQProvider ("${configReferral.network})"`,
+    }),
     transactionListener,
     bridgeBetweenWorkers,
   );
 
   const referralController = new ReferralController(
     web3,
+    Logger.child({
+      target: `ReferralController ("${configReferral.network})"`,
+    }),
     network,
     referralProvider,
     notificationClient,
   );
 
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configReferral.network})"`,
+    }),
     referralController,
     referralProvider,
   )

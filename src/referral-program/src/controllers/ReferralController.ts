@@ -1,8 +1,8 @@
 import Web3 from "web3";
-import {Logger} from "../../logger/pino";
 import {EventData} from 'web3-eth-contract';
 import {INotificationClient} from "../../../middleware";
 import {
+  ILogger,
   IController,
   ReferralEvent,
   IContractProvider,
@@ -26,6 +26,7 @@ import {
 export class ReferralController implements IController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
     public readonly notificationsClient: INotificationClient,
@@ -33,7 +34,7 @@ export class ReferralController implements IController {
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name %s, block number %s, address %s',
+    this.Logger.info('Event handler: name %s, block number %s, address %s',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -57,13 +58,13 @@ export class ReferralController implements IController {
       },
     });
 
-    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block: "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected async updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     await ReferralProgramParseBlock.update(
       { lastParsedBlock: blockHeight },
@@ -78,7 +79,7 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
-    Logger.debug(
+    this.Logger.debug(
       'Registered affiliate event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
@@ -97,7 +98,7 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Registered affiliate event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Registered affiliate event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -119,7 +120,7 @@ export class ReferralController implements IController {
     ]);
 
     if (!referralWallet) {
-      Logger.warn('Registered Affiliate event handler: event "%s" (tx hash "%s") handling is skipped because referral wallet not found',
+      this.Logger.warn('Registered Affiliate event handler: event "%s" (tx hash "%s") handling is skipped because referral wallet not found',
         eventsData.event,
         transactionHash,
       );
@@ -140,7 +141,7 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
-    Logger.debug('Paid referral event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Paid referral event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -159,7 +160,7 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Paid referral event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Paid referral event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -197,7 +198,7 @@ export class ReferralController implements IController {
     ]);
 
     if (!referralWallet) {
-      Logger.warn('Paid referral event handler: event "%s" (tx hash "%s") handling is skipped because referral wallet not found',
+      this.Logger.warn('Paid referral event handler: event "%s" (tx hash "%s") handling is skipped because referral wallet not found',
         eventsData.event,
         transactionHash,
       );
@@ -217,7 +218,7 @@ export class ReferralController implements IController {
 
     const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
 
-    Logger.debug(
+    this.Logger.debug(
       'Reward claimed event handler: timestamp "%s", event data %o',
       timestamp, eventsData
     );
@@ -235,7 +236,7 @@ export class ReferralController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Reward claimed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Reward claimed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -257,7 +258,7 @@ export class ReferralController implements IController {
     ]);
 
     if (!affiliateWallet) {
-      Logger.warn('Reward claimed event handler: event "%s" (tx hash "%s") handling is skipped because affiliate wallet not found',
+      this.Logger.warn('Reward claimed event handler: event "%s" (tx hash "%s") handling is skipped because affiliate wallet not found',
         eventsData.event,
         transactionHash,
       );
@@ -272,7 +273,7 @@ export class ReferralController implements IController {
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
@@ -280,7 +281,7 @@ export class ReferralController implements IController {
       try {
         await this.onEvent(event);
       } catch (e) {
-        Logger.error(e, 'Event processing ended with error');
+        this.Logger.error(e, 'Event processing ended with error');
 
         throw e;
       }
@@ -309,11 +310,12 @@ export class ReferralController implements IController {
 export class ReferralListenerController extends ReferralController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly notificationsClient: INotificationClient,
     public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(web3, network, contractProvider, notificationsClient);
+    super(web3, Logger, network, contractProvider, notificationsClient);
   }
 
   public async start() {
