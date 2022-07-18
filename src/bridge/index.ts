@@ -68,6 +68,9 @@ export async function init() {
     contractWorkNetData.deploymentHeight,
     web3Wq,
     bridgeWqContract,
+    Logger.child({
+      target: `BridgeProvider ("${configBridge.workQuestNetwork})"`,
+    }),
     transactionListener,
   );
   const bscBridgeProvider = new BridgeProvider(
@@ -75,28 +78,43 @@ export async function init() {
     contractBnbData.deploymentHeight,
     web3Bsc,
     bridgeBscContract,
+    Logger.child({
+      target: `BridgeProvider ("${configBridge.bscNetwork})"`,
+    }),
   );
   const ethBridgeProvider = new BridgeProvider(
     contractEthData.address,
     contractEthData.deploymentHeight,
     web3Eth,
     bridgeEthContract,
+    Logger.child({
+      target: `BridgeProvider ("${configBridge.ethereumNetwork})"`,
+    }),
   );
 
   const wqBridgeController = new BridgeListenerController(
     web3Wq,
+    Logger.child({
+      target: `BridgeController ("${configBridge.workQuestNetwork})"`,
+    }),
     configBridge.workQuestNetwork as BlockchainNetworks,
     wqBridgeProvider,
     notificationClient,
   );
   const bscBridgeController = new BridgeController(
     web3Bsc,
+    Logger.child({
+      target: `BridgeController ("${configBridge.bscNetwork})"`,
+    }),
     configBridge.bscNetwork as BlockchainNetworks,
     bscBridgeProvider,
     notificationClient,
   );
   const ethBridgeController = new BridgeController(
     web3Eth,
+    Logger.child({
+      target: `BridgeController ("${configBridge.ethereumNetwork})"`,
+    }),
     configBridge.ethereumNetwork as BlockchainNetworks,
     ethBridgeProvider,
     notificationClient,
