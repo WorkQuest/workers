@@ -183,7 +183,7 @@ export class ReferralController implements IController {
       attributes: ['id'],
       include: [{
         model: Wallet,
-        where: { address: referralAddress },
+        where: { address: affiliateAddress },
         as: 'wallet',
         required: true,
         attributes: []
