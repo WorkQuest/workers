@@ -1,7 +1,6 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
-import {Logger} from "../../logger/pino";
-import {PensionFundEvents} from './types';
+import {ILogger, PensionFundEvents} from './types';
 import {EventData} from 'web3-eth-contract';
 import {INotificationClient} from "../../../middleware";
 import {
@@ -19,15 +18,16 @@ import {
 
 export class PensionFundController implements IController {
   constructor(
-    public readonly web3: Web3,
+    protected readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
-    public readonly notificationClient: INotificationClient,
+    protected readonly notificationClient: INotificationClient,
   ) {
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -51,13 +51,13 @@ export class PensionFundController implements IController {
       },
     });
 
-    Logger.debug('Last collected block: last block "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block: last block "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     return PensionFundBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -73,7 +73,7 @@ export class PensionFundController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Received event handler: timestamp "%s", event data %o',
       block.timestamp, eventsData
     );
@@ -92,7 +92,7 @@ export class PensionFundController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Received event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Received event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -115,7 +115,7 @@ export class PensionFundController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Withdrew event handler: timestamp "%s", event data %o',
       block.timestamp,
       eventsData,
@@ -135,7 +135,7 @@ export class PensionFundController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Withdrew event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Withdrew event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -158,7 +158,7 @@ export class PensionFundController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Wallet updated event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
@@ -179,7 +179,7 @@ export class PensionFundController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Wallet updated event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Wallet updated event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -197,7 +197,7 @@ export class PensionFundController implements IController {
   }
 
   protected async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
@@ -205,7 +205,7 @@ export class PensionFundController implements IController {
       try {
         await this.onEvent(event);
       } catch (e) {
-        Logger.error(e, 'Event processing ended with error');
+        this.Logger.error(e, 'Event processing ended with error');
 
         throw e;
       }
@@ -233,12 +233,13 @@ export class PensionFundController implements IController {
 
 export class PensionFundListenerController extends PensionFundController {
   constructor(
-    public readonly web3: Web3,
+    protected readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly notificationClient: INotificationClient,
     public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(web3, network, contractProvider, notificationClient);
+    super(web3, Logger, network, contractProvider, notificationClient);
   }
 
   public async start() {
