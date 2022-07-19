@@ -1,11 +1,58 @@
 import {Transaction} from "web3-eth";
 
+/**
+ * Bridge between workers is designed
+ *  to interact with workers and send them
+ *  useful data
+ */
+export interface IBridgeBetweenWorkers {
+  on(type: 'close', callback: () => void);
+  on(type: 'error', callback: (error) => void);
+  on(type: 'worker-message', callback: (whose: string, type: string, payload: object) => void);
+
+  sendMessage(whose: string, type: string, payload: object): Promise<void>;
+}
+
+/**
+ * Key value repository is intended to store useful data
+ *  for frequent access. For example, contracts that are
+ *  created by means of factories
+ */
+export interface IKeyValueRepository<TPayload> {
+  on(type: 'close', callback: () => void);
+  on(type: 'error', callback: (error) => void);
+
+  remove(key: string): Promise<void>;
+  get(key: string): Promise<TPayload | null>;
+  set(key: string, payload: TPayload): Promise<void>;
+}
+
+/**
+ *  Notification client is designed to notify
+ *    listeners about events and other useful data.
+ *  See repo https://github.com/WorkQuest/notification-server
+ */
 export interface NotifyPayload {
   data: object;
   action: string;
   recipients: string[];
 }
 
+export interface INotificationClient {
+  on(type: 'close', callback: () => void);
+  on(type: 'error', callback: (error) => void);
+
+  notify(payload: NotifyPayload): Promise<void>;
+}
+
+/**
+ * Routers for working with blockchain nodes:
+ *    Represents a bottleneck for optimizing node requests.
+ *    Optimization of queries per node in N time.
+ *    The interfaces are divided into two sides - the one who
+ *      executes requests and those who only send.
+ *
+ */
 export interface SyncRequestBlockHeight {
   fromBlock: number;
   toBlock: number;
@@ -29,8 +76,8 @@ export interface SyncRouterMessage<Data> {
   initiator: string;
   recipient: string;
   payload: {
-    type: SyncRouterResponseType | SyncRouterRequestType;
-    data: Data;
+    data: Data,
+    type: SyncRouterResponseType | SyncRouterRequestType,
   };
 }
 
@@ -40,27 +87,13 @@ export type SyncRouterRequest =
 export type SyncRouterResponse =
   | Transaction[]
 
+
 export interface ITransactionListener {
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
   on(type: 'transactions', callback: (transactions: Transaction[]) => void);
 
   setFiltering(filter: (tx: Transaction) => boolean);
-}
-
-export interface INotificationClient {
-  on(type: 'close', callback: () => void);
-  on(type: 'error', callback: (error) => void);
-
-  notify(payload: NotifyPayload): Promise<void>;
-}
-
-export interface IBridgeBetweenWorkers {
-  on(type: 'close', callback: () => void);
-  on(type: 'error', callback: (error) => void);
-  on(type: 'worker-message', callback: (whose: string, type: string, payload: object) => void);
-
-  sendMessage(whose: string, type: string, payload: object): Promise<void>;
 }
 
 export interface IRouterWorkers {
@@ -78,21 +111,12 @@ export interface ISyncRouterWorkers {
 
   sendSyncRequest(
     requestPayload: SyncRouterRequest,
-    type: SyncRouterRequestType
+    type: SyncRouterRequestType,
   ): Promise<void>;
 
   sendSyncResponse(
     responsePayload: SyncRouterResponse,
     recipientQueue: string,
-    type: SyncRouterResponseType
-  ): Promise<void>
-}
-
-export interface IKeyValueRepository<TPayload> {
-  on(type: 'close', callback: () => void);
-  on(type: 'error', callback: (error) => void);
-
-  remove(key: string): Promise<void>;
-  get(key: string): Promise<TPayload | null>;
-  set(key: string, payload: TPayload): Promise<void>;
+    type: SyncRouterResponseType,
+  ): Promise<void>;
 }
