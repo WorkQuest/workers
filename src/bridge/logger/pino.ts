@@ -7,7 +7,7 @@ export const Logger = pino({
     target: 'pino-pretty',
     options: {
       ignore: 'workerName,hostName,target',
-      translateTime: "dd-mm-yyyy HH:MM:ss",
+      translateTime: "HH:MM:ss, dd-mm-yyyy",
       messageFormat: 'Worker: "{workerName}", Target: "{target}": {msg}',
     },
   },
