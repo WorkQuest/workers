@@ -13,7 +13,7 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
   ) {
   }
 
-  public async init() {
+  public async init(): Promise<this> {
     this.connection = await amqp.connect(this.link, 'heartbeat=60');
 
     this.connection.on('error', this.onError.bind(this));
@@ -27,6 +27,8 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
       this.queueName,
       this.onMessage.bind(this),
     );
+
+    return this;
   }
 
   private async callBackSubscribers(event: 'error' | 'close' | 'worker-message', ...args: any[]) {

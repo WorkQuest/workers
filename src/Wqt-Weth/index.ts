@@ -15,31 +15,41 @@ export async function init() {
 
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBroker, 'daily_liquidity');
-
   const web3 = new Web3( new Web3.providers.HttpProvider(configWqtWeth.rpcProvider));
-
   const wqtWethContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
+
+  const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBroker, 'daily_liquidity')
+    .on('error', (error) => {
+      Logger.error(error, 'Notification client stopped with error');
+      process.exit(-1);
+    })
+    .init()
 
   const wqtWethProvider = new WqtWethRpcProvider(
     contractData.address,
     contractData.deploymentHeight,
     web3,
     wqtWethContract,
+    Logger.child({
+      target: `WqtWethRpcProvider ("${BlockchainNetworks.ethMainNetwork})"`,
+    }),
   );
 
   const wqtWethController = new WqtWethController(
     web3,
+    Logger.child({
+      target: `WqtWethController ("${BlockchainNetworks.ethMainNetwork})"`,
+    }),
     BlockchainNetworks.ethMainNetwork,
     wqtWethProvider,
     notificationClient,
     new OraclePricesProvider(configWqtWeth.oracleLink),
   );
 
-  await notificationClient.init();
-
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${BlockchainNetworks.ethMainNetwork})"`,
+    }),
     wqtWethController,
     wqtWethProvider,
   )

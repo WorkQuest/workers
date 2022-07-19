@@ -21,7 +21,7 @@ export class RouterMQWorkers implements IRouterWorkers {
 
     this.channel = await this.connection.createChannel();
 
-    await this.channel.assertExchange('transactions');
+    await this.channel.assertExchange('transactions', 'direct');
   }
 
   private async sendToQueue(payload: object) {

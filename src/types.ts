@@ -1,6 +1,8 @@
 import Web3 from "web3";
 import {EventData} from "web3-eth-contract";
 import {BlockchainNetworks} from "@workquest/database-models/lib/models";
+import {Logger} from "./bridge/logger/pino";
+import configBridge from "./bridge/config/config.bridge";
 
 export type ReceivedEvents = {
   error?: any,
@@ -14,10 +16,11 @@ export type defaultConfigValues = {
   parseEventsFromHeight: string,
 }
 
-export interface IContractCacheProvider<Payload> {
-  get(contractAddress: string): Promise<Payload | null>;
-  set(contractAddress: string, payload: Payload): Promise<void>;
-  remove(contractAddress: string): Promise<void>;
+export interface ILogger {
+  warn(log: string, ...payload: any[]);
+  info(log: string, ...payload: any[]);
+  debug(log: string, ...payload: any[]);
+  error(error: any, log, ...payload: any[]);
 }
 
 export interface IContractProvider {

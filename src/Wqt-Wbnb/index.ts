@@ -15,31 +15,41 @@ export async function init() {
 
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const notificationClient = new NotificationMQClient(configDatabase.notificationMessageBroker, 'daily_liquidity');
-
   const web3 = new Web3( new Web3.providers.HttpProvider(configWqtWbnb.rpcProvider));
-
   const wqtWbnbContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
+
+  const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBroker, 'daily_liquidity')
+    .on('error', (error) => {
+      Logger.error(error, 'Notification client stopped with error');
+      process.exit(-1);
+    })
+    .init()
 
   const wqtWbnbProvider = new WqtWbnbProvider(
     contractData.address,
     contractData.deploymentHeight,
     web3,
     wqtWbnbContract,
+    Logger.child({
+      target: `WqtWbnbProvider ("${BlockchainNetworks.bscMainNetwork})"`,
+    }),
   );
 
   const wqtWbnbController = new WqtWbnbController(
     web3,
+    Logger.child({
+      target: `WqtWbnbController ("${BlockchainNetworks.bscMainNetwork})"`,
+    }),
     BlockchainNetworks.bscMainNetwork,
     wqtWbnbProvider,
     notificationClient,
     new OraclePricesProvider(configWqtWbnb.oracleLink),
   );
 
-  await notificationClient.init();
-
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${BlockchainNetworks.bscMainNetwork})"`,
+    }),
     wqtWbnbController,
     wqtWbnbProvider,
   )

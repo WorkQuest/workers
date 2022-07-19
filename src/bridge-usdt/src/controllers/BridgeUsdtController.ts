@@ -1,10 +1,9 @@
-import { Op } from "sequelize";
+import {Op} from "sequelize";
 import BigNumber from "bignumber.js";
-import { Logger } from "../../logger/pino";
-import { EventData } from "web3-eth-contract";
-import { IController, SwapUsdtEvents } from "./types";
+import {EventData} from "web3-eth-contract";
 import {TokenPriceProvider} from "../providers/types";
-import { sendFirstWqtJob } from "../../jobs/sendFirstWqt";
+import {sendFirstWqtJob} from "../../jobs/sendFirstWqt";
+import {IController, ILogger, SwapUsdtEvents} from "./types";
 import {IContractProvider, IContractListenerProvider} from "../../../types";
 import {
   CommissionTitle,
@@ -19,9 +18,10 @@ import {
 
 export class BridgeUsdtController implements IController {
   constructor(
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
-    public readonly tokenPriceProvider: TokenPriceProvider,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
   ) {
   }
 
@@ -34,13 +34,13 @@ export class BridgeUsdtController implements IController {
       },
     });
 
-    Logger.debug('Last collected block "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -52,7 +52,7 @@ export class BridgeUsdtController implements IController {
   }
 
   protected updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     return BridgeSwapUsdtParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -66,7 +66,7 @@ export class BridgeUsdtController implements IController {
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const recipient = eventsData.returnValues.recipient.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Swap initialized event handler: timestamp "%s", event data %o',
       eventsData.returnValues.timestamp, eventsData
     );
@@ -90,7 +90,7 @@ export class BridgeUsdtController implements IController {
     });
 
     if (!isEventCreated) {
-      Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -100,7 +100,7 @@ export class BridgeUsdtController implements IController {
     const isProcessCreated = !!await FirstWqtTransmissionData.findOne({ where: { txHashSwapInitialized: transactionHash } });
 
     if (isProcessCreated) {
-      Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") is skipped because the payment happened earlier',
+      this.Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") is skipped because the payment happened earlier',
         eventsData.event,
         transactionHash,
       );
@@ -115,7 +115,7 @@ export class BridgeUsdtController implements IController {
     const wqtPrice = await this.tokenPriceProvider.coinPriceInUSD(eventsData.returnValues.timestamp);
 
     if (!wqtPrice) {
-      Logger.warn('The oracle provider did not receive data on the current price',
+      this.Logger.warn('The oracle provider did not receive data on the current price',
         eventsData.event,
         transactionHash,
       );
@@ -149,7 +149,7 @@ export class BridgeUsdtController implements IController {
   };
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
@@ -157,7 +157,7 @@ export class BridgeUsdtController implements IController {
       try {
         await this.onEvent(event);
       } catch (e) {
-        Logger.error(e, 'Event processing ended with error');
+        this.Logger.error(e, 'Event processing ended with error');
 
         throw e;
       }
@@ -185,11 +185,12 @@ export class BridgeUsdtController implements IController {
 
 export class BridgeUsdtListenerController extends BridgeUsdtController {
   constructor(
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
-    public readonly tokenPriceProvider: TokenPriceProvider,
+    protected readonly tokenPriceProvider: TokenPriceProvider,
     public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(network, contractProvider, tokenPriceProvider);
+    super(Logger, network, contractProvider, tokenPriceProvider);
   }
 
   public async start() {

@@ -6,9 +6,9 @@ export const Logger = pino({
   transport: {
     target: 'pino-pretty',
     options: {
-      ignore: 'workerName,hostName',
-      messageFormat: '{workerName}: {msg}',
+      ignore: 'workerName,hostName,target',
       translateTime: "dd-mm-yyyy HH:MM:ss",
+      messageFormat: 'Worker: "{workerName}", Target: "{target}": {msg}',
     },
   },
-}).child({ workerName: 'Bridge' });
+}).child({ workerName: 'Bridge', target: 'Common' });

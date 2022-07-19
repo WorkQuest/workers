@@ -1,11 +1,10 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
 import BigNumber from 'bignumber.js';
-import {Logger} from "../../logger/pino";
 import {EventData} from 'web3-eth-contract';
 import {INotificationClient} from "../../../middleware";
 import {
-  IController,
+  IController, ILogger,
   WqtWbnbEvent,
   WqtWbnbNotificationActions,
 } from './types';
@@ -28,6 +27,7 @@ import {
 export class WqtWbnbController implements IController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
     public readonly notificationClient: INotificationClient,
@@ -44,13 +44,13 @@ export class WqtWbnbController implements IController {
       },
     });
 
-    Logger.debug('Last collected block: "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block: "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected async updateBlockViewHeight(blockHeight: number): Promise<any> {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     await WqtWbnbBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -61,7 +61,7 @@ export class WqtWbnbController implements IController {
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -83,7 +83,7 @@ export class WqtWbnbController implements IController {
 
     const transactionHash = eventsData.transactionHash.toLocaleLowerCase();
 
-    Logger.debug('Sync event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Sync event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -96,7 +96,7 @@ export class WqtWbnbController implements IController {
       .shiftedBy(-18)
       .toString()
 
-    Logger.debug('Sync event handler: (tx hash "%s") tokens pool (shifted by -18): bnb "%s", wqt "%s"',
+    this.Logger.debug('Sync event handler: (tx hash "%s") tokens pool (shifted by -18): bnb "%s", wqt "%s"',
       transactionHash,
       bnbPool,
       wqtPool,
@@ -114,7 +114,7 @@ export class WqtWbnbController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Sync event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Sync event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -128,7 +128,7 @@ export class WqtWbnbController implements IController {
     const tokenWQTPriceInUsd = await this.getTokenPriceInUsd(timestamp as string, Coin.WQT);
 
     if (!tokenBNBPriceInUsd || !tokenWQTPriceInUsd) {
-      Logger.warn('Sync event handler: (tx hash "%s") tokens price (bnb "%s", wqt "%s") in usd at timestamp "%s" moment is not found',
+      this.Logger.warn('Sync event handler: (tx hash "%s") tokens price (bnb "%s", wqt "%s") in usd at timestamp "%s" moment is not found',
         transactionHash,
         tokenBNBPriceInUsd,
         tokenWQTPriceInUsd,
@@ -138,7 +138,7 @@ export class WqtWbnbController implements IController {
       return;
     }
 
-    Logger.debug('Sync event handler: (tx hash "%s") tokens price in usd: bnb "%s", wqt "%s"',
+    this.Logger.debug('Sync event handler: (tx hash "%s") tokens price in usd: bnb "%s", wqt "%s"',
       transactionHash,
       tokenBNBPriceInUsd,
       tokenWQTPriceInUsd,
@@ -156,7 +156,7 @@ export class WqtWbnbController implements IController {
       .plus(wqtPoolInUsd)
       .toString()
 
-    Logger.debug('Sync event handler: (tx hash "%s") tokens pool in usd "%s"',
+    this.Logger.debug('Sync event handler: (tx hash "%s") tokens pool in usd "%s"',
       transactionHash,
       poolToken,
     );
@@ -165,7 +165,7 @@ export class WqtWbnbController implements IController {
       .dividedToIntegerBy(86400)
       .toNumber()
 
-    Logger.debug('Sync event handler: (tx hash "%s") day since unix epoch "%s"',
+    this.Logger.debug('Sync event handler: (tx hash "%s") day since unix epoch "%s"',
       transactionHash,
       currentEventDaySinceEpochBeginning,
     );
@@ -215,7 +215,7 @@ export class WqtWbnbController implements IController {
     const to = eventsData.returnValues.to.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Swap event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Swap event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -235,7 +235,7 @@ export class WqtWbnbController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Swap event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Swap event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -252,7 +252,7 @@ export class WqtWbnbController implements IController {
     const tokensPriceInUsd = await this.getTokensPriceInUsd(timestamp as string, trackedToken.symbol, parseInt(trackedToken.value))
 
     if (!tokensPriceInUsd) {
-      Logger.warn('Swap event handler: (tx hash "%s") token price (%s) in usd at timestamp "%s" is not found',
+      this.Logger.warn('Swap event handler: (tx hash "%s") token price (%s) in usd at timestamp "%s" is not found',
         transactionHash,
         trackedToken.symbol.toLowerCase(),
         timestamp,
@@ -261,7 +261,7 @@ export class WqtWbnbController implements IController {
       return;
     }
 
-    Logger.debug('Swap event handler: (tx hash "%s") tokens price (%s) in usd "%s"',
+    this.Logger.debug('Swap event handler: (tx hash "%s") tokens price (%s) in usd "%s"',
       transactionHash,
       trackedToken.symbol.toLowerCase(),
       tokensPriceInUsd,
@@ -280,7 +280,7 @@ export class WqtWbnbController implements IController {
     const sender = eventsData.returnValues.sender.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Mint event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Mint event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -298,7 +298,7 @@ export class WqtWbnbController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Mint event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Mint event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -316,7 +316,7 @@ export class WqtWbnbController implements IController {
     const sender = eventsData.returnValues.sender.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
-    Logger.debug('Burn event handler: timestamp "%s", event data %o',
+    this.Logger.debug('Burn event handler: timestamp "%s", event data %o',
       timestamp,
       eventsData,
     );
@@ -334,7 +334,7 @@ export class WqtWbnbController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Burn event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Burn event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -362,7 +362,7 @@ export class WqtWbnbController implements IController {
       try {
         await this.onEvent(event);
       } catch (e) {
-        Logger.error(e, 'Event processing ended with error');
+        this.Logger.error(e, 'Event processing ended with error');
 
         throw e;
       }
@@ -391,12 +391,13 @@ export class WqtWbnbController implements IController {
 export class WqtWbnbListenerController extends WqtWbnbController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly notificationClient: INotificationClient,
     protected readonly tokenPriceProvider: TokenPriceProvider,
     public readonly contractProvider: IContractListenerProvider,
   ) {
-    super(web3, network, contractProvider, notificationClient, tokenPriceProvider);
+    super(web3, Logger, network, contractProvider, notificationClient, tokenPriceProvider);
   }
 
   public async start() {

@@ -2,7 +2,6 @@ import Web3 from 'web3';
 import {Logger} from "./logger/pino";
 import configSavings from "./config/config.savings";
 import configDatabase from './config/config.database';
-
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {SavingProductMQProvider} from "./src/providers/SavingProductProvider";
 import {SavingProductListenerController} from "./src/controllers/SavingProductController";
@@ -22,29 +21,39 @@ export async function init() {
   Logger.debug('WorkQuest network contract address: "%s"', contractData.address);
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-
-  const transactionsBroker = new TransactionMQListener(configDatabase.mqLink, 'saving-product');
-
   const savingProductContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
+
+  const transactionListener = await new TransactionMQListener(configDatabase.mqLink, 'saving-product')
+    .on('error', (error) => {
+      Logger.error(error, 'Transaction listener stopped with error');
+      process.exit(-1);
+    })
+    .init()
 
   const savingProductProvider = new SavingProductMQProvider(
     contractData.address,
     contractData.deploymentHeight,
     web3,
     savingProductContract,
-    transactionsBroker,
+    Logger.child({
+      target: `SavingProductMQProvider ("${configSavings.network})"`,
+    }),
+    transactionListener,
   );
 
   const savingProductController = new SavingProductListenerController(
     web3,
+    Logger.child({
+      target: `SavingProductListenerController ("${configSavings.network})"`,
+    }),
     configSavings.network as BlockchainNetworks,
     savingProductProvider,
   );
 
-  await transactionsBroker.init();
-
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configSavings.network})"`,
+    }),
     savingProductController,
     savingProductProvider,
   )

@@ -24,26 +24,37 @@ export async function init() {
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
   const raiseViewContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const transactionsListener = new TransactionMQListener(configDatabase.mqLink, 'raise-view');
+  const transactionListener = await new TransactionMQListener(configDatabase.mqLink, 'raise-view')
+    .on('error', (error) => {
+      Logger.error(error, 'Transaction listener stopped with error');
+      process.exit(-1);
+    })
+    .init()
 
   const raiseViewProvider = new RaiseViewMQProvider(
     contractData.address,
     contractData.deploymentHeight,
     web3,
     raiseViewContract,
-    transactionsListener
+    Logger.child({
+      target: `RaiseViewMQProvider ("${configRaiseView.network})"`,
+    }),
+    transactionListener,
   );
 
   const raiseViewController = new RaiseViewListenerController(
     web3,
+    Logger.child({
+      target: `RaiseViewListenerController ("${configRaiseView.network})"`,
+    }),
     configRaiseView.network as BlockchainNetworks,
     raiseViewProvider,
   );
 
-  await transactionsListener.init();
-
   await new SupervisorContract(
-    Logger,
+    Logger.child({
+      target: `SupervisorContract ("${configRaiseView.network})"`,
+    }),
     raiseViewController,
     raiseViewProvider,
   )

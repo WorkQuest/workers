@@ -1,12 +1,11 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
-import {Logger} from "../../logger/pino";
 import {EventData} from "web3-eth-contract";
-import {IContractProvider} from "../../../types";
 import {IController, BridgeEvents} from "./types";
 import configBridge from "../../config/config.bridge";
 import {INotificationClient} from "../../../middleware";
 import {IContractListenerProvider} from "../../../types";
+import {IContractProvider, ILogger} from "../../../types";
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,
@@ -15,15 +14,16 @@ import {
 
 export class BridgeController implements IController {
   constructor(
-    public readonly web3: Web3,
+    protected readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
-    public readonly notificationClient: INotificationClient,
+    protected readonly notificationClient: INotificationClient,
   ) {
   }
 
   protected async onEvent(eventsData: EventData) {
-    Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
       eventsData.address,
@@ -45,13 +45,13 @@ export class BridgeController implements IController {
       },
     });
 
-    Logger.debug('Last collected block "%s"', lastParsedBlock);
+    this.Logger.debug('Last collected block "%s"', lastParsedBlock);
 
     return lastParsedBlock;
   }
 
   protected updateBlockViewHeight(blockHeight: number) {
-    Logger.debug('Update blocks: new block height "%s"', blockHeight);
+    this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
     return BridgeParserBlockInfo.update({ lastParsedBlock: blockHeight }, {
       where: {
@@ -66,7 +66,7 @@ export class BridgeController implements IController {
     const initiator = eventsData.returnValues.sender.toLowerCase();
     const recipient = eventsData.returnValues.recipient.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Swap redeemed event handler: timestamp "%s", event data %o',
       eventsData.returnValues.timestamp,
       eventsData,
@@ -103,7 +103,7 @@ export class BridgeController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Swap redeemed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Swap redeemed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -125,7 +125,7 @@ export class BridgeController implements IController {
     const initiator = eventsData.returnValues.sender.toLowerCase();
     const recipient = eventsData.returnValues.recipient.toLowerCase();
 
-    Logger.debug(
+    this.Logger.debug(
       'Swap initialized event handler: timestamp "%s", event data %o',
       eventsData.returnValues.timestamp, eventsData
     );
@@ -161,7 +161,7 @@ export class BridgeController implements IController {
     });
 
     if (!isCreated) {
-      Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+      this.Logger.warn('Swap initialized event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
         eventsData.event,
         transactionHash,
       );
@@ -201,7 +201,7 @@ export class BridgeController implements IController {
   }
 
   protected async collectAllUncollectedEvents(fromBlockNumber: number) {
-    Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
@@ -209,7 +209,7 @@ export class BridgeController implements IController {
       try {
         await this.onEvent(event);
       } catch (e) {
-        Logger.error(e, 'Event processing ended with error');
+        this.Logger.error(e, 'Event processing ended with error');
 
         throw e;
       }
@@ -238,11 +238,12 @@ export class BridgeController implements IController {
 export class BridgeListenerController extends BridgeController {
   constructor(
     public readonly web3: Web3,
+    protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractListenerProvider,
     public readonly notificationClient: INotificationClient,
   ) {
-    super(web3, network, contractProvider, notificationClient);
+    super(web3, Logger, network, contractProvider, notificationClient);
   }
 
   public async start() {

@@ -1,8 +1,7 @@
 import Web3 from "web3";
 import {Transaction} from "web3-eth";
-import {Logger} from "../../logger/pino";
 import { Contract, EventData} from "web3-eth-contract";
-import {IContractProvider, IContractListenerProvider} from "./types";
+import {IContractProvider, IContractListenerProvider, ILogger} from "./types";
 import {ITransactionListener, IBridgeBetweenWorkers} from "../../../middleware";
 
 export class ReferralProvider implements IContractProvider {
@@ -13,6 +12,7 @@ export class ReferralProvider implements IContractProvider {
     public readonly eventViewingHeight: number,
     protected readonly web3: Web3,
     public readonly contract: Contract,
+    protected readonly Logger: ILogger,
   ) {
   }
 
@@ -26,25 +26,25 @@ export class ReferralProvider implements IContractProvider {
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
-          Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
+          this.Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
           const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
 
           collectedEvents.push(...eventsData);
 
-          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+          this.Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
 
           break;
 
         }
 
-        Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
+        this.Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
         const eventsData = await this.contract.getPastEvents('allEvents', { fromBlock, toBlock });
 
         collectedEvents.push(...eventsData);
 
-        Logger.info('Collected events per range: "%s". Collected events: "%s". Left to collect blocks "%s"',
+        this.Logger.info('Collected events per range: "%s". Collected events: "%s". Left to collect blocks "%s"',
           eventsData.length,
           collectedEvents.length,
           lastBlockNumber - toBlock,
@@ -54,7 +54,7 @@ export class ReferralProvider implements IContractProvider {
         toBlock = fromBlock + this.preParsingSteps - 1;
       }
     } catch (error) {
-      Logger.error(error, 'Collection of all events ended with an error.' +
+      this.Logger.error(error, 'Collection of all events ended with an error.' +
         ' Collected events to block number: "%s". Total collected events',
         fromBlock, collectedEvents.length,
       );
@@ -74,10 +74,12 @@ export class ReferralMQProvider extends ReferralProvider implements IContractLis
     public readonly eventViewingHeight: number,
     protected readonly web3: Web3,
     public readonly contract: Contract,
+    protected readonly Logger: ILogger,
     protected readonly txListener: ITransactionListener,
+
     protected readonly bridgeBetweenWorkers: IBridgeBetweenWorkers,
   ) {
-    super(address, eventViewingHeight, web3, contract);
+    super(address, eventViewingHeight, web3, contract, Logger);
   }
 
   private transactionFilter(tx: Transaction): boolean {
@@ -138,7 +140,7 @@ export class ReferralMQProvider extends ReferralProvider implements IContractLis
     this.txListener.on('transactions', this.onTransactions.bind(this));
     this.bridgeBetweenWorkers.on('worker-message', this.onMessageFromOtherWorkers.bind(this));
 
-    Logger.info('Start listener on contract: "%s"', this.contract.options.address);
+    this.Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
   public on(type, callBack): void {
