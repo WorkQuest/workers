@@ -34,11 +34,11 @@ export interface SyncRouterMessage<Data> {
   };
 }
 
-export type SyncRouterRequest = |
-  SyncRequestBlockHeight;
+export type SyncRouterRequest =
+  | SyncRequestBlockHeight
 
-export type SyncRouterResponse = |
-  Transaction[];
+export type SyncRouterResponse =
+  | Transaction[]
 
 export interface ITransactionListener {
   on(type: 'close', callback: () => void);
@@ -80,12 +80,14 @@ export interface ISyncRouterWorkers {
     requestPayload: SyncRouterRequest,
     type: SyncRouterRequestType
   ): Promise<void>;
+
   sendSyncResponse(
     responsePayload: SyncRouterResponse,
     recipientQueue: string,
     type: SyncRouterResponseType
   ): Promise<void>
 }
+
 export interface IKeyValueRepository<TPayload> {
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
