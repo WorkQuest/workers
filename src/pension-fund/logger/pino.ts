@@ -8,7 +8,7 @@ export const Logger = pino({
     options: {
       ignore: 'workerName,hostName',
       messageFormat: '{workerName}: {msg}',
-      translateTime: "dd-mm-yyyy HH:MM:ss",
+      translateTime: "HH:MM:ss dd-mm-yyyy",
     },
   },
 }).child({ workerName: 'Pension Fund' });
