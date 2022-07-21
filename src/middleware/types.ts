@@ -88,6 +88,37 @@ export type SyncRouterResponse =
   | Transaction[]
 
 
+export interface IRouterClient {
+  on(type: 'close', callback: () => void);
+  on(type: 'error', callback: (error) => void);
+  on(type: 'transactions', callback: (transactions: Transaction[]) => void);
+  on(type: 'sync-response', callback: (response: SyncRouterMessage<Transaction[]>) => void);
+
+  sendSyncRequest(
+    type: SyncRouterRequestType,
+    requestPayload: SyncRouterRequest,
+  ): Promise<void>;
+
+  setFiltering(filter: (tx: Transaction) => boolean);
+}
+
+export interface IRouterServer {
+  on(type: 'close', callback: () => void);
+  on(type: 'error', callback: (error) => void);
+  on(type: 'sync-request', callback: (request: SyncRouterMessage<SyncRequestBlockHeight>) => void);
+
+  sendSyncResponse(
+    type: SyncRouterResponseType,
+    recipientQueue: string,
+    responsePayload: SyncRouterResponse,
+  ): Promise<void>;
+
+  notifyAboutTransactions(...transactions: Transaction[]): Promise<void>;
+}
+
+
+
+
 export interface ITransactionListener {
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
