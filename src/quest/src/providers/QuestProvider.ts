@@ -10,7 +10,7 @@ const asyncFilter = async (arr, predicate) => {
 }
 
 export class QuestMQProvider implements IContractMQProvider {
-  private readonly preParsingSteps = 6000;
+  private readonly preParsingSteps = 500;
   private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
