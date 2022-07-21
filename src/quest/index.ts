@@ -17,7 +17,7 @@ import {initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/m
 export async function init() {
   Logger.info('Start worker "Quest". Network: "%s"', configQuest.network);
 
-  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.QuestFactory];
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.WorkQuest];
 
   await initDatabase(configDatabase.dbLink, false, true);
 
