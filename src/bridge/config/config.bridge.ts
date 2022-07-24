@@ -4,6 +4,7 @@ config({ path: __dirname + '/../../../.env.bridge' });
 
 export default {
   logLevel: 'debug',
+  connectionType: 'rpc', /** rpc, routing, ws */
   workQuestNetwork: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
   ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork

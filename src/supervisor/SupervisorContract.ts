@@ -1,4 +1,4 @@
-import {IContractProvider, IContractListenerProvider, IController, ILogger} from "../types";
+import {IContractProvider, IContractListenerProvider, IController, ILogger} from "../interfaces";
 
 export enum SupervisorContractTasks {
   None = 0,
@@ -105,7 +105,7 @@ export class SupervisorListenerContract extends SupervisorContract {
     );
 
     setInterval(async () => {
-      const isListening = await this.contractProvider.isListening();
+      const isListening = true; // await this.contractProvider.isListening();
 
       if (isListening) {
         this.heartbeat.state.timestamp = Date.now();

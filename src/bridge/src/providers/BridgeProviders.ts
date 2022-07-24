@@ -5,7 +5,7 @@ import {
   ILogger,
   IContractProvider,
   IContractListenerProvider,
-} from "./types";
+} from "../../../interfaces";
 import {
   TaskTypes,
   TaskResponse,
@@ -82,7 +82,7 @@ export class BridgeRpcProvider implements IContractProvider {
   }
 }
 
-export class BridgeMQProvider implements IContractListenerProvider {
+export class BridgeRouterProvider implements IContractListenerProvider {
   private readonly callbacks: {
     'error': ((error) => void) [],
     'events': ((eventData) => void) [],
