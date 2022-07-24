@@ -255,3 +255,31 @@ export class BridgeListenerController extends BridgeController {
     }));
   }
 }
+
+export class BridgeRouterController extends BridgeListenerController {
+  private _latchSyncOfViewedBlocks  = false;
+
+  private isBlockedSyncOfViewedBlocks() { return this._latchSyncOfViewedBlocks }
+  private blockSyncOfViewedBlocks() { this._latchSyncOfViewedBlocks = true }
+  private unblockSyncOfViewedBlocks() { this._latchSyncOfViewedBlocks = false }
+
+  constructor(
+    public readonly web3: Web3,
+    protected readonly Logger: ILogger,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractListenerProvider,
+    public readonly notificationClient: INotificationClient,
+  ) {
+    super(web3, Logger, network, contractProvider, notificationClient);
+  }
+
+  public async syncBlocks() {
+    if (!this.isBlockedSyncOfViewedBlocks()) {
+      this.blockSyncOfViewedBlocks();
+
+      await super.syncBlocks();
+
+      this.unblockSyncOfViewedBlocks();
+    }
+  }
+}
