@@ -7,7 +7,7 @@ import {
   SyncRouterRequestType,
   SyncRouterResponse,
   SyncRouterResponseType
-} from "../types";
+} from "../middleware.types";
 
 type SyncRouterEvents = 'error' | 'close' | 'sync-request' | 'sync-response';
 

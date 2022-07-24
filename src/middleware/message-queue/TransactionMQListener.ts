@@ -1,6 +1,6 @@
 import amqp from 'amqplib';
 import {Transaction} from "web3-eth";
-import {ITransactionListener} from "../types";
+import {ITransactionListener} from "../middleware.types";
 
 const asyncFilter = async (arr, predicate) => {
   const results = await Promise.all(arr.map(predicate));

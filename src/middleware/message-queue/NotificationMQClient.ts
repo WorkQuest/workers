@@ -1,5 +1,5 @@
 import amqp from 'amqplib';
-import {INotificationClient, NotifyPayload} from "../types";
+import {INotificationClient, NotifyPayload} from "../middleware.types";
 
 export class NotificationMQClient implements INotificationClient {
   protected channel;

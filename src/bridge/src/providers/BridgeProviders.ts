@@ -1,10 +1,23 @@
 import Web3 from "web3";
-import {Transaction} from "web3-eth";
 import {Contract, EventData} from "web3-eth-contract";
-import {ITransactionListener} from "../../../middleware/";
-import {IContractProvider, IContractListenerProvider, ILogger} from "./types";
+import {Log} from "@ethersproject/abstract-provider/src.ts/index";
+import {
+  ILogger,
+  IContractProvider,
+  IContractListenerProvider,
+} from "./types";
+import {
+  TaskTypes,
+  TaskResponse,
+  IRouterClient,
+  SubscriptionTypes,
+  SubscriptionResponse, BlocksRange,
+} from "../../../middleware/";
 
-export class BridgeProvider implements IContractProvider {
+const requireNew = require('require-new');
+const AbiDecoder = requireNew('abi-decoder');
+
+export class BridgeRpcProvider implements IContractProvider {
   protected readonly settings: {
     readonly preParsingSteps: number;
   } = {
@@ -69,38 +82,64 @@ export class BridgeProvider implements IContractProvider {
   }
 }
 
-export class BridgeMQProvider extends BridgeProvider implements IContractListenerProvider {
-  private readonly callbacks = { 'events': [], 'error': [] };
+export class BridgeMQProvider implements IContractListenerProvider {
+  private readonly callbacks: {
+    'error': ((error) => void) [],
+    'events': ((eventData) => void) [],
+    'task-response': Map<string, (logs) => void>,
+    'subscription-response': ((subscriptionResponse: SubscriptionResponse) => void) [],
+  } = {
+    'error': [],
+    'events': [],
+    'task-response': new Map(),
+    'subscription-response': [],
+  }
 
   constructor(
     public readonly address: string,
     public readonly eventViewingHeight: number,
     protected readonly web3: Web3,
     public readonly contract: Contract,
+    protected readonly abi: object[],
     protected readonly Logger: ILogger,
-    protected readonly txListener: ITransactionListener,
+    protected readonly routerClient: IRouterClient,
   ) {
-    super(address, eventViewingHeight, web3, contract, Logger);
+    AbiDecoder.addABI(this.abi);
   }
 
-  private transactionFilter(tx: Transaction): boolean {
-    return tx.to && tx.to.toLowerCase() === this.address.toLowerCase();
+  private logsFilter(log: Log): boolean {
+    return log.address && log.address.toLowerCase() === this.address.toLowerCase();
   }
 
-  private async onTransactions(payload: { transactions: Transaction[] }) {
-    if (payload.transactions.length === 0) {
-      return;
+  private decodeLogToEvent(log: Log[] | Log): EventData[] {
+    if (Array.isArray(log)) {
+      return AbiDecoder.decodeLogs(log);
     }
 
-    const eventsData = await this.contract.getPastEvents('allEvents', {
-      toBlock: payload.transactions[payload.transactions.length - 1].blockNumber,
-      fromBlock: payload.transactions[0].blockNumber,
-    });
-
-    return Promise.all(
-      eventsData.map(async data => this.onEventData(data))
-    );
+    return AbiDecoder.decodeLogs([log]);
   }
+
+  private createTaskGetLogs(blocksRange: BlocksRange): Promise<{ maxBlockHeightViewed, logs }> {
+    return new Promise(async (resolve, reject) => {
+      const taskKey = await this.routerClient.sendTaskGetLogs({
+        to: blocksRange.to,
+        from: blocksRange.from,
+      }, this.address);
+
+      this.callbacks["task-response"].set(taskKey, (taskResponse: TaskResponse) => {
+        const { maxBlockHeightViewed, logs, key, task } = taskResponse.data;
+
+        if (key !== taskKey && task !== TaskTypes.GetLogs) {
+          return;
+        }
+
+        resolve({ maxBlockHeightViewed, logs });
+
+        this.callbacks["task-response"].delete(taskKey);
+      });
+    });
+  }
+
 
   private onEventData(eventData) {
     return Promise.all(
@@ -108,12 +147,28 @@ export class BridgeMQProvider extends BridgeProvider implements IContractListene
     );
   }
 
-  public startListener() {
-    this.txListener.setFiltering(this.transactionFilter.bind(this));
-    this.txListener.on('transactions', this.onTransactions.bind(this));
+  private async onNewLogs(logs: Log[]) {
+    const events = this.decodeLogToEvent(
+      logs.filter(this.logsFilter)
+    );
 
-    this.Logger.info('Start listener on contract: "%s"', this.contract.options.address);
+    await Promise.all(
+      events.map(async event => this.onEventData(event)),
+    );
   }
+
+  private async ontTaskResponse(taskResponse: TaskResponse) {
+    for (const [, callBack] of this.callbacks["task-response"]) {
+      callBack(taskResponse);
+    }
+  }
+
+  private async onRouterSubscriptionResponse(response: SubscriptionResponse) {
+    if (response.subscription === SubscriptionTypes.NewLogs) {
+      await this.onNewLogs(response.data.logs);
+    }
+  }
+
 
   public on(type, callBack): void {
     if (type === 'error') {
@@ -123,13 +178,27 @@ export class BridgeMQProvider extends BridgeProvider implements IContractListene
     }
   }
 
-  public isListening(): Promise<boolean> {
-    // @ts-ignore
-    return true;
+  public startListener() {
+    this.routerClient.on('task-response', this.ontTaskResponse);
+    this.routerClient.on('subscription-response', this.onRouterSubscriptionResponse);
+
+    this.Logger.info('Start listener on contract: "%s"', this.contract.options.address);
+  }
+
+  public async getEvents(fromBlockNumber: number, toBlockNumber: number | 'latest' = 'latest') {
+    const { maxBlockHeightViewed, logs } = await this.createTaskGetLogs({
+      from: fromBlockNumber,
+      to: toBlockNumber,
+    });
+
+    return {
+      events: AbiDecoder.decodeLogs(logs),
+      lastBlockNumber: maxBlockHeightViewed,
+    }
   }
 }
 
-export class BridgeWsProvider extends BridgeProvider implements IContractListenerProvider {
+export class BridgeWsProvider extends BridgeRpcProvider implements IContractListenerProvider {
   private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor(

@@ -116,8 +116,6 @@ export class BridgeController implements IController {
       action: BridgeEvents.SwapRedeemed,
       data: eventsData
     });
-
-    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   public async swapInitializedEventHandler(eventsData: EventData) {
@@ -196,11 +194,9 @@ export class BridgeController implements IController {
       action: BridgeEvents.SwapInitialized,
       data: eventsData
     });
-
-    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
-  protected async collectAllUncollectedEvents(fromBlockNumber: number) {
+  protected async syncOfViewedBlocks(fromBlockNumber: number) {
     this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
@@ -208,6 +204,7 @@ export class BridgeController implements IController {
     for (const event of events) {
       try {
         await this.onEvent(event);
+        await this.updateBlockViewHeight(event.blockNumber);
       } catch (e) {
         this.Logger.error(e, 'Event processing ended with error');
 
@@ -225,11 +222,11 @@ export class BridgeController implements IController {
   public async syncBlocks() {
     const lastParsedBlock = await this.getLastCollectedBlock();
 
-    await this.collectAllUncollectedEvents(lastParsedBlock);
+    await this.syncOfViewedBlocks(lastParsedBlock);
   }
 
   public async start() {
-    await this.collectAllUncollectedEvents(
+    await this.syncOfViewedBlocks(
       await this.getLastCollectedBlock()
     );
   }

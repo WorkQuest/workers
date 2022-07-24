@@ -1,5 +1,5 @@
 import amqp from 'amqplib';
-import {IBridgeBetweenWorkers} from "../types";
+import {IBridgeBetweenWorkers} from "../middleware.types";
 
 export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
   protected channel;

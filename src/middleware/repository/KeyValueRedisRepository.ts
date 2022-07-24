@@ -1,5 +1,5 @@
 import {createClient} from "redis";
-import {IKeyValueRepository} from "../types";
+import {IKeyValueRepository} from "../middleware.types";
 
 export abstract class KeyValueRedisRepository<TPayload> implements IKeyValueRepository<TPayload> {
   protected redisClient;

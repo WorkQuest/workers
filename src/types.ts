@@ -33,7 +33,6 @@ export interface IContractListenerProvider extends IContractProvider {
   on(type: 'error', callback: (error) => void);
   on(type: 'events', callback: (eventData) => void);
 
-  isListening(): Promise<boolean>;
   startListener(fromBlockNumber?: number): void;
 }
 

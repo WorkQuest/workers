@@ -1,4 +1,12 @@
 import {Transaction} from "web3-eth";
+import {Log} from "@ethersproject/abstract-provider/src.ts/index";
+import {
+  TaskKey,
+  BlocksRange,
+  TaskRequest,
+  TaskResponse,
+  SubscriptionResponse,
+} from "./middleware.types";
 
 /**
  * Bridge between workers is designed
@@ -22,6 +30,7 @@ export interface IKeyValueRepository<TPayload> {
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
 
+  getKeys(): Promise<string[]>;
   remove(key: string): Promise<void>;
   get(key: string): Promise<TPayload | null>;
   set(key: string, payload: TPayload): Promise<void>;
@@ -53,101 +62,33 @@ export interface INotificationClient {
  *      executes requests and those who only send.
  *
  */
-export interface SyncRequestBlockHeight {
-  fromBlock: number;
-  toBlock: number;
-}
-
-export enum SyncRouterMessageType {
-  Request = 'request',
-  Response = 'response'
-}
-
-export enum SyncRouterRequestType {
-  BlockHeight = 'block-height'
-}
-
-export enum SyncRouterResponseType {
-  Transactions = 'transactions'
-}
-
-export interface SyncRouterMessage<Data> {
-  type: SyncRouterMessageType;
-  initiator: string;
-  recipient: string;
-  payload: {
-    data: Data,
-    type: SyncRouterResponseType | SyncRouterRequestType,
-  };
-}
-
-export type SyncRouterRequest =
-  | SyncRequestBlockHeight
-
-export type SyncRouterResponse =
-  | Transaction[]
-
-
 export interface IRouterClient {
+  readonly clientName: string;
+
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
-  on(type: 'transactions', callback: (transactions: Transaction[]) => void);
-  on(type: 'sync-response', callback: (response: SyncRouterMessage<Transaction[]>) => void);
+  on(type: 'task-response', callback: (taskResponse: TaskResponse) => void);
+  on(type: 'subscription-response', callback: (subscriptionResponse: SubscriptionResponse) => void);
 
-  sendSyncRequest(
-    type: SyncRouterRequestType,
-    requestPayload: SyncRouterRequest,
-  ): Promise<void>;
-
-  setFiltering(filter: (tx: Transaction) => boolean);
+  sendTaskGetLogs(blocksRange: BlocksRange, addresses: string | string[]): Promise<TaskKey>;
 }
 
 export interface IRouterServer {
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
-  on(type: 'sync-request', callback: (request: SyncRouterMessage<SyncRequestBlockHeight>) => void);
+  on(type: 'task-request', callback: (taskRequest: TaskRequest) => void);
 
-  sendSyncResponse(
-    type: SyncRouterResponseType,
-    recipientQueue: string,
-    responsePayload: SyncRouterResponse,
-  ): Promise<void>;
-
-  notifyAboutTransactions(...transactions: Transaction[]): Promise<void>;
+  notifyEveryoneAboutNewLogs(logs: Log[]): Promise<void>;
+  sendExecutedTaskGetLogs(clientName: string, logs: Log[]): Promise<void>;
 }
 
 
 
-
+// TODO delete
 export interface ITransactionListener {
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
   on(type: 'transactions', callback: (transactions: Transaction[]) => void);
 
   setFiltering(filter: (tx: Transaction) => boolean);
-}
-
-export interface IRouterWorkers {
-  on(type: 'close', callback: () => void);
-  on(type: 'error', callback: (error) => void);
-
-  notifyAboutTransactions(...transactions: Transaction[]): Promise<void>;
-}
-
-export interface ISyncRouterWorkers {
-  on(type: 'close', callback: () => void);
-  on(type: 'error', callback: (error) => void);
-  on(type: 'sync-request', callback: (request: SyncRouterMessage<SyncRequestBlockHeight>) => void);
-  on(type: 'sync-response', callback: (response: SyncRouterMessage<Transaction[]>) => void);
-
-  sendSyncRequest(
-    requestPayload: SyncRouterRequest,
-    type: SyncRouterRequestType,
-  ): Promise<void>;
-
-  sendSyncResponse(
-    responsePayload: SyncRouterResponse,
-    recipientQueue: string,
-    type: SyncRouterResponseType,
-  ): Promise<void>;
 }

@@ -1,6 +1,6 @@
 import amqp from 'amqplib';
 import {Transaction} from "web3-eth";
-import {IRouterWorkers} from "../types";
+import {IRouterWorkers} from "../middleware.types";
 
 export class RouterMQWorkers implements IRouterWorkers {
   protected channel;

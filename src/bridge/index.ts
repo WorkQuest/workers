@@ -4,7 +4,7 @@ import configBridge from "./config/config.bridge";
 import configDatabase from "../bridge/config/config.common";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {TransactionMQListener, NotificationMQClient} from "../middleware";
-import {BridgeProvider, BridgeMQProvider} from "./src/providers/BridgeProvider";
+import {BridgeRpcProvider, BridgeMQProvider} from "./src/providers/BridgeProviders";
 import {initDatabase, BlockchainNetworks} from "@workquest/database-models/lib/models";
 import {BridgeController, BridgeListenerController} from "./src/controllers/BridgeController";
 import {
@@ -73,7 +73,7 @@ export async function init() {
     }),
     transactionListener,
   );
-  const bscBridgeProvider = new BridgeProvider(
+  const bscBridgeProvider = new BridgeRpcProvider(
     contractBnbData.address,
     contractBnbData.deploymentHeight,
     web3Bsc,
@@ -82,7 +82,7 @@ export async function init() {
       target: `BridgeProvider ("${configBridge.bscNetwork})"`,
     }),
   );
-  const ethBridgeProvider = new BridgeProvider(
+  const ethBridgeProvider = new BridgeRpcProvider(
     contractEthData.address,
     contractEthData.deploymentHeight,
     web3Eth,
