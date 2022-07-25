@@ -47,7 +47,7 @@ export class ReferralController implements IController {
   }
 
   public async getLastCollectedBlock(): Promise<number> {
-    const [{ lastParsedBlock }, ] = await ReferralProgramParseBlock.findOrCreate({
+    const [{ lastParsedBlock },] = await ReferralProgramParseBlock.findOrCreate({
       where: { network: this.network },
       defaults: {
         network: this.network,
@@ -192,7 +192,7 @@ export class ReferralController implements IController {
 
     await this.clients.notificationsBroker.sendNotification({
       action: eventsData.event,
-      recipients: [affiliateAddress, affiliateInfo.id],
+      recipients: [affiliateInfo.id],
       data: {
         referral: userInfo,
         event: { ...eventsData, timestamp },
