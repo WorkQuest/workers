@@ -1,11 +1,15 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
+import {BridgeEvents} from "./types";
 import {EventData} from "web3-eth-contract";
-import {IController, BridgeEvents} from "./types";
 import configBridge from "../../config/config.bridge";
 import {INotificationClient} from "../../../middleware";
-import {IContractListenerProvider} from "../../../types";
-import {IContractProvider, ILogger} from "../../../types";
+import {
+  ILogger,
+  IController,
+  IContractProvider,
+  IContractListenerProvider,
+} from "../../../interfaces";
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,

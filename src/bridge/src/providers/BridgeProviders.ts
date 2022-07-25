@@ -86,13 +86,11 @@ export class BridgeRouterProvider implements IContractListenerProvider {
   private readonly callbacks: {
     'error': ((error) => void) [],
     'events': ((eventData) => void) [],
-    'task-response': Map<string, (logs) => void>,
-    'subscription-response': ((subscriptionResponse: SubscriptionResponse) => void) [],
+    'tasks': Map<string, (logs) => void>,
   } = {
     'error': [],
     'events': [],
-    'task-response': new Map(),
-    'subscription-response': [],
+    'tasks': new Map(),
   }
 
   constructor(
@@ -126,7 +124,7 @@ export class BridgeRouterProvider implements IContractListenerProvider {
         from: blocksRange.from,
       }, this.address);
 
-      this.callbacks["task-response"].set(taskKey, (taskResponse: TaskResponse) => {
+      this.callbacks["tasks"].set(taskKey, (taskResponse: TaskResponse) => {
         const { maxBlockHeightViewed, logs, key, task } = taskResponse.data;
 
         if (key !== taskKey && task !== TaskTypes.GetLogs) {
@@ -135,7 +133,7 @@ export class BridgeRouterProvider implements IContractListenerProvider {
 
         resolve({ maxBlockHeightViewed, logs });
 
-        this.callbacks["task-response"].delete(taskKey);
+        this.callbacks["tasks"].delete(taskKey);
       });
     });
   }
@@ -158,7 +156,7 @@ export class BridgeRouterProvider implements IContractListenerProvider {
   }
 
   private async ontTaskResponse(taskResponse: TaskResponse) {
-    for (const [, callBack] of this.callbacks["task-response"]) {
+    for (const [, callBack] of this.callbacks["tasks"]) {
       callBack(taskResponse);
     }
   }
