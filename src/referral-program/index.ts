@@ -7,7 +7,7 @@ import {ReferralMQProvider} from "./src/providers/ReferralProvider";
 import {TransactionBroker} from "../brokers/src/TransactionBroker";
 import {NotificationBroker} from "../brokers/src/NotificationBroker";
 import {CommunicationBroker} from "../brokers/src/CommunicationBroker";
-import {ReferralController} from "./src/controllers/ReferralController";
+import { ReferralController, ReferralListenerController } from "./src/controllers/ReferralController";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
 import { Store, Networks, WorkQuestNetworkContracts } from '@workquest/contract-data-pools';
@@ -47,7 +47,7 @@ export async function init() {
     transactionsBroker,
   );
 
-  const referralController = new ReferralController(
+  const referralController = new ReferralListenerController(
     clients,
     network,
     referralProvider,
