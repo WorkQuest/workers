@@ -65,7 +65,7 @@ export class ProposalMQProvider implements IContractMQProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
-    if (fromBlock >= toBlock) {
+    if (fromBlock >= toBlock || fromBlock > lastBlockNumber) {
       return { events: [], lastBlockNumber: fromBlock }
     }
 

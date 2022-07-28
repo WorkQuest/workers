@@ -69,7 +69,7 @@ export class BridgeMQProvider implements IContractMQProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
-    if (fromBlock >= toBlock) {
+    if (fromBlock >= toBlock || fromBlock > lastBlockNumber) {
       return { events: [], lastBlockNumber: fromBlock }
     }
 
@@ -171,7 +171,7 @@ export class BridgeWsProvider implements IContractWsProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
-    if (fromBlock >= toBlock) {
+    if (fromBlock >= toBlock || fromBlock > lastBlockNumber) {
       return { events: [], lastBlockNumber: fromBlock }
     }
 
@@ -239,7 +239,7 @@ export class BridgeRpcProvider implements IContractRpcProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
-    if (fromBlock >= toBlock) {
+    if (fromBlock >= toBlock || fromBlock > lastBlockNumber) {
       return { events: [], lastBlockNumber: fromBlock }
     }
 
