@@ -59,6 +59,10 @@ export class BridgeUsdtWsProvider implements IContractWsProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
+    if (fromBlock >= toBlock || fromBlock > lastBlockNumber) {
+      return { lastBlockNumber: fromBlock, events: [] }
+    }
+
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
@@ -122,6 +126,10 @@ export class BridgeUsdtRpcProvider implements IContractRpcProvider {
 
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
+
+    if (fromBlock >= toBlock || fromBlock > lastBlockNumber) {
+      return { lastBlockNumber: fromBlock, events: [] }
+    }
 
     try {
       while (true) {

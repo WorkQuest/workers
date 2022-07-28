@@ -82,6 +82,10 @@ export class RaiseViewMQProvider implements IContractMQProvider {
     let fromBlock = fromBlockNumber;
     let toBlock = fromBlock + this.preParsingSteps;
 
+    if (fromBlock >= toBlock || fromBlock > lastBlockNumber) {
+      return { lastBlockNumber: fromBlock, events: [] }
+    }
+
     try {
       while (true) {
         if (toBlock >= lastBlockNumber) {
