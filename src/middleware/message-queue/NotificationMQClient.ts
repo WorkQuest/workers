@@ -1,20 +1,23 @@
 import amqp from 'amqplib';
-import {INotificationClient, NotifyPayload} from "../middleware.types";
+import EventEmitter from "events";
+import {NotifyPayload} from "./message-queue.types";
+import {INotificationClient} from "./message-queue.interfaces";
 
 export class NotificationMQClient implements INotificationClient {
   protected channel;
   protected connection;
 
-  private readonly callbacks = { 'error': [], 'close': [] };
+  private readonly eventEmitter: EventEmitter;
 
   constructor(
-    protected readonly link: string,
-    protected readonly queueName: string,
+    protected readonly mqLink: string,
+    private readonly queueName: string,
   ) {
+    this.eventEmitter = new EventEmitter();
   }
 
   public async init(): Promise<this> {
-    this.connection = await amqp.connect(this.link, 'heartbeat=60');
+    this.connection = await amqp.connect(this.mqLink, 'heartbeat=60');
 
     this.connection.on('error', this.onError.bind(this));
     this.connection.on('close', this.onClose.bind(this));
@@ -30,27 +33,21 @@ export class NotificationMQClient implements INotificationClient {
     await this.channel.sendToQueue(this.queueName, payloadBuffer);
   }
 
-  private async callBackSubscribers(event: 'error' | 'close', ...args: any[]) {
-    await Promise.all(
-      this.callbacks[event].map(async (callBack) => {
-        return callBack(...args);
-      }),
-    );
-  }
 
-  protected async onClose() {
-    await this.callBackSubscribers('close');
+  protected onClose() {
+    this.eventEmitter.emit('close');
   }
 
   protected async onError(error) {
-    await this.callBackSubscribers('error', error);
+    this.eventEmitter.emit('error', error);
   }
+
 
   public on(type, callback): this {
     if (type === 'close') {
-      this.callbacks[type].push(callback);
+      this.eventEmitter.addListener('close', callback);
     } else if (type === 'error') {
-      this.callbacks[type].push(callback);
+      this.eventEmitter.addListener('error', callback);
     }
 
     return this;

@@ -22,8 +22,6 @@
     "questFactory:compile": "tsc && node ./build/quest-factory/index.js",
     "quest:start": "nodemon -e ts --exec \"npm run quest:compile\"",
     "quest:compile": "tsc && node ./build/quest/index.js",
-    "fetcher:start": "nodemon -e ts --exec \"npm run fetcher:compile\"",
-    "fetcher:compile": "tsc && node ./build/fetchers",
     "raiseView:start": "nodemon -e ts --exec \"npm run raiseView:compile\"",
     "raiseView:compile": "tsc && node ./build/raise-view",
     "bridgeUsdt:start": "nodemon -e ts --exec \"npm run bridgeUsdt:compile\"",
@@ -58,6 +56,7 @@
     "dotenv": "^14.3.0",
     "ethereum-block-by-date": "^1.4.2",
     "ethers": "^5.5.1",
+    "generate-key": "^0.0.6",
     "graphile-worker": "^0.13.0",
     "jest": "^27.5.1",
     "node-cron": "^3.0.0",
@@ -73,6 +72,7 @@
     "sequelize": "6.6.2",
     "sequelize-typescript": "2.0.0",
     "sinon": "^13.0.1",
+    "ts-priority-queue": "^0.1.1",
     "web3": "^1.7.0"
   },
   "devDependencies": {

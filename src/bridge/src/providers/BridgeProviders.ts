@@ -1,28 +1,26 @@
 import Web3 from "web3";
+import EventEmitter from "events";
+import {BlocksRange} from "../../../types";
 import {Contract, EventData} from "web3-eth-contract";
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 import {
   ILogger,
+  IRouterClient,
   IContractProvider,
   IContractListenerProvider,
-} from "../../../interfaces";
+} from "../../../middleware/middleware.interfaces";
 import {
-  TaskTypes,
-  TaskResponse,
-  IRouterClient,
-  SubscriptionTypes,
-  SubscriptionResponse, BlocksRange,
-} from "../../../middleware/";
+  TaskRouterResponse,
+  SubscriptionRouterTypes,
+  SubscriptionRouterResponse,
+  ContractRpcProviderSettings,
+} from "../../../middleware/middleware.types";
 
 const requireNew = require('require-new');
 const AbiDecoder = requireNew('abi-decoder');
 
 export class BridgeRpcProvider implements IContractProvider {
-  protected readonly settings: {
-    readonly preParsingSteps: number;
-  } = {
-    preParsingSteps: 6000,
-  }
+  protected readonly settings: ContractRpcProviderSettings;
 
   constructor(
     public readonly address: string,
@@ -31,14 +29,16 @@ export class BridgeRpcProvider implements IContractProvider {
     public readonly contract: Contract,
     protected readonly Logger: ILogger,
   ) {
+    this.settings = { blockAssembler: { steps: 6000 } }
   }
 
   public async getEvents(fromBlockNumber: number) {
+    const { steps } = this.settings.blockAssembler;
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
-    let toBlock = fromBlock + this.settings.preParsingSteps;
+    let toBlock = fromBlock + steps;
 
     try {
       while (true) {
@@ -66,8 +66,8 @@ export class BridgeRpcProvider implements IContractProvider {
 
         this.Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
 
-        fromBlock += this.settings.preParsingSteps;
-        toBlock = fromBlock + this.settings.preParsingSteps - 1;
+        fromBlock += steps;
+        toBlock = fromBlock + steps - 1;
       }
     } catch (error) {
       this.Logger.error(error, 'Collection of all events ended with an error.' +
@@ -83,26 +83,19 @@ export class BridgeRpcProvider implements IContractProvider {
 }
 
 export class BridgeRouterProvider implements IContractListenerProvider {
-  private readonly callbacks: {
-    'error': ((error) => void) [],
-    'events': ((eventData) => void) [],
-    'tasks': Map<string, (logs) => void>,
-  } = {
-    'error': [],
-    'events': [],
-    'tasks': new Map(),
-  }
+  private readonly eventEmitter: EventEmitter;
 
   constructor(
     public readonly address: string,
     public readonly eventViewingHeight: number,
-    protected readonly web3: Web3,
     public readonly contract: Contract,
     protected readonly abi: object[],
     protected readonly Logger: ILogger,
     protected readonly routerClient: IRouterClient,
   ) {
     AbiDecoder.addABI(this.abi);
+
+    this.eventEmitter = new EventEmitter();
   }
 
   private logsFilter(log: Log): boolean {
@@ -117,68 +110,57 @@ export class BridgeRouterProvider implements IContractListenerProvider {
     return AbiDecoder.decodeLogs([log]);
   }
 
-  private createTaskGetLogs(blocksRange: BlocksRange): Promise<{ maxBlockHeightViewed, logs }> {
+  private createTaskGetLogs(blocksRange: BlocksRange) {
     return new Promise(async (resolve, reject) => {
-      const taskKey = await this.routerClient.sendTaskGetLogs({
-        to: blocksRange.to,
-        from: blocksRange.from,
-      }, this.address);
+      const taskKey = await this.routerClient.sendTaskGetLogs(blocksRange, this.address, 1);
 
-      this.callbacks["tasks"].set(taskKey, (taskResponse: TaskResponse) => {
-        const { maxBlockHeightViewed, logs, key, task } = taskResponse.data;
-
-        if (key !== taskKey && task !== TaskTypes.GetLogs) {
-          return;
-        }
-
-        resolve({ maxBlockHeightViewed, logs });
-
-        this.callbacks["tasks"].delete(taskKey);
-      });
-    });
+      this.eventEmitter.once(`task-response.${taskKey}`, resolve);
+    }) as Promise<{
+      logs: Log[],
+      maxBlockHeightViewed: number,
+    }>;
   }
 
 
-  private onEventData(eventData) {
-    return Promise.all(
-      this.callbacks['events'].map(async callBack => callBack(eventData)),
-    );
+
+  private onEventDataHandler(eventData) {
+    this.eventEmitter.emit('events', eventData);
   }
 
-  private async onNewLogs(logs: Log[]) {
+  private async onNewLogsHandler(logs: Log[]) {
     const events = this.decodeLogToEvent(
       logs.filter(this.logsFilter)
     );
 
-    await Promise.all(
-      events.map(async event => this.onEventData(event)),
-    );
-  }
-
-  private async ontTaskResponse(taskResponse: TaskResponse) {
-    for (const [, callBack] of this.callbacks["tasks"]) {
-      callBack(taskResponse);
+    for (const event of events) {
+      this.onEventDataHandler(event);
     }
   }
 
-  private async onRouterSubscriptionResponse(response: SubscriptionResponse) {
-    if (response.subscription === SubscriptionTypes.NewLogs) {
-      await this.onNewLogs(response.data.logs);
+  private async onTaskResponseHandler(taskResponse: TaskRouterResponse) {
+    this.eventEmitter.emit(`task-response.${taskResponse.key}`, taskResponse);
+  }
+
+  private async onRouterSubscriptionResponseHandler(response: SubscriptionRouterResponse) {
+    if (response.subscription === SubscriptionRouterTypes.NewLogs) {
+      await this.onNewLogsHandler(response.data.logs);
     }
   }
 
 
   public on(type, callBack): void {
     if (type === 'error') {
-      this.callbacks['error'].push(callBack);
+      this.eventEmitter.addListener('error', callBack);
     } else if (type === 'events') {
-      this.callbacks['events'].push(callBack);
+      this.eventEmitter.addListener('events', callBack);
+    } else if (type === 'close') {
+      this.eventEmitter.addListener('close', callBack);
     }
   }
 
   public startListener() {
-    this.routerClient.on('task-response', this.ontTaskResponse);
-    this.routerClient.on('subscription-response', this.onRouterSubscriptionResponse);
+    this.routerClient.on('task-response', this.onTaskResponseHandler);
+    this.routerClient.on('subscription-response', this.onRouterSubscriptionResponseHandler);
 
     this.Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
@@ -197,7 +179,7 @@ export class BridgeRouterProvider implements IContractListenerProvider {
 }
 
 export class BridgeWsProvider extends BridgeRpcProvider implements IContractListenerProvider {
-  private readonly callbacks = { 'events': [], 'error': [] };
+  private readonly eventEmitter: EventEmitter;
 
   constructor(
     public readonly address: string,
@@ -207,38 +189,32 @@ export class BridgeWsProvider extends BridgeRpcProvider implements IContractList
     protected readonly Logger: ILogger,
   ) {
     super(address, eventViewingHeight, web3, contract, Logger);
+
+    this.eventEmitter = new EventEmitter();
   }
 
-  private onError(error) {
-    return Promise.all(
-      this.callbacks['error'].map(async (callBack) => {
-        return callBack(error);
-      }),
-    );
+  private onErrorHandler(error) {
+    this.eventEmitter.emit('error', error);
   }
 
-  private onEventData(eventData) {
-    return Promise.all(
-      this.callbacks['events'].map(async (callBack) => {
-        return callBack(eventData);
-      }),
-    );
+  private onEventDataHandler(eventData) {
+    this.eventEmitter.emit('events', eventData);
   }
 
   public startListener(fromBlockNumber?: number) {
     this.contract.events
       .allEvents({ fromBlock: fromBlockNumber || "latest" })
-      .on('error', (error) => this.onError(error))
-      .on('data', async (eventData) => await this.onEventData(eventData))
+      .on('error', (error) => this.onErrorHandler(error))
+      .on('data', (eventData) => this.onEventDataHandler(eventData))
 
     this.Logger.info('Start listener on contract: "%s"', this.contract.options.address);
   }
 
   public on(type, callBack): void {
     if (type === 'error') {
-      this.callbacks['error'].push(callBack);
+      this.eventEmitter.addListener('error', callBack);
     } else if (type === 'events') {
-      this.callbacks['events'].push(callBack);
+      this.eventEmitter.addListener('events', callBack);
     }
   }
 

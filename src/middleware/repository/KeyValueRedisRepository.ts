@@ -1,5 +1,5 @@
 import {createClient} from "redis";
-import {IKeyValueRepository} from "../middleware.types";
+import {IKeyValueRepository} from "./repository.interfaces";
 
 export abstract class KeyValueRedisRepository<TPayload> implements IKeyValueRepository<TPayload> {
   protected redisClient;
@@ -21,6 +21,7 @@ export abstract class KeyValueRedisRepository<TPayload> implements IKeyValueRepo
     return this;
   }
 
+  public abstract getKeys(): Promise<string[]>;
   public abstract remove(key: string): Promise<void>;
   public abstract get(key: string): Promise<TPayload | null>;
   public abstract set(key: string, payload: TPayload): Promise<void>;

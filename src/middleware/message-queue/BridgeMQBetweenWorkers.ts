@@ -1,27 +1,44 @@
-import amqp from 'amqplib';
-import {IBridgeBetweenWorkers} from "../middleware.types";
+import EventEmitter from "events";
+import amqp, {Channel, Connection} from 'amqplib';
+import {IBridgeBetweenWorkers} from "./message-queue.interfaces";
+import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 
 export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
-  protected channel;
-  protected connection;
+  protected channel: Channel;
+  private connection: Connection;
+  private readonly queueName: string;
 
-  private readonly queueName = 'communication';
-  private readonly callbacks = { 'error': [], 'close': [], 'worker-message': [] };
+  private readonly eventEmitter: EventEmitter;
 
   constructor(
-    protected readonly link: string,
+    private readonly mqLink: string,
+    public readonly workerName,
+    public readonly network: BlockchainNetworks,
   ) {
+    this.eventEmitter = new EventEmitter();
+    this.queueName = `BridgeWorkers.${workerName}.${network}`;
   }
 
   public async init(): Promise<this> {
-    this.connection = await amqp.connect(this.link, 'heartbeat=60');
+    this.connection = await amqp.connect(this.mqLink, 'heartbeat=60');
 
     this.connection.on('error', this.onError.bind(this));
     this.connection.on('close', this.onClose.bind(this));
 
     this.channel = await this.connection.createChannel();
 
-    await this.channel.assertQueue(this.queueName);
+    const { exchange } = await this.channel.assertExchange('BridgeWorkers', 'topic', {
+
+    });
+
+    await this.channel.assertQueue(this.queueName, {
+      durable: true,
+      exclusive: false,
+    });
+
+    await this.channel.bindQueue(this.queueName, exchange, {
+
+    })
 
     await this.channel.consume(
       this.queueName,
@@ -31,60 +48,56 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
     return this;
   }
 
-  private async callBackSubscribers(event: 'error' | 'close' | 'worker-message', ...args: any[]) {
-    await Promise.all(
-      this.callbacks[event].map(async (callBack) => {
-        return callBack(...args);
-      }),
-    );
-  }
-
-  protected async onClose() {
-    await this.callBackSubscribers('close');
+  protected onClose() {
+    this.eventEmitter.emit('close');
   }
 
   protected async onError(error) {
-    await this.callBackSubscribers('close', error);
+    this.eventEmitter.emit('error', error);
   }
 
   protected async onMessage(message) {
     try {
       const msg = JSON.parse(message.content);
 
-      if ('type' in msg && 'payload' in msg && 'whose' in msg) {
-        await Promise.all([
-          this.onWorkerMessage(msg.whose, msg.type, msg.payload),
-          this.channel.ack(message),
-        ]);
+      if ('type' in msg && 'payload' in msg) {
+        await this.onWorkerMessage(msg.type, msg.payload);
+        this.channel.ack(message);
       }
     } catch (error) {
       await this.onError(error);
     }
   }
 
-  protected async onWorkerMessage(whose: string, type: string, payload: object) {
-    await this.callBackSubscribers('worker-message', type, payload);
+  protected onWorkerMessage(type: string, payload: object) {
+    this.eventEmitter.emit('worker-message', type, payload);
   }
 
   public on(type, callback) {
     if (type === 'close') {
-      this.callbacks[type].push(callback);
+      this.eventEmitter.addListener('close', callback);
     } else if (type === 'error') {
-      this.callbacks[type].push(callback);
+      this.eventEmitter.addListener('error', callback);
     } else if (type === 'worker-message') {
-      this.callbacks[type].push(callback);
+      this.eventEmitter.addListener('worker-message', callback);
     }
 
     return this;
   }
 
-  private async sendToQueue(payload: object) {
+  protected sendToQueue(routingKey: string, payload: object) {
     const payloadBuffer = Buffer.from(JSON.stringify(payload));
 
-    await this.channel.sendToQueue(this.queueName, payloadBuffer);
+    this.channel.sendToQueue(routingKey, payloadBuffer);
   }
 
-  public async sendMessage(whose: string, type: string, payload: object) {
-    await this.sendToQueue({ whose, type, payload });
+  public async sendMessage(whose: { workerName: string, network?: BlockchainNetworks }, type: string, payload: object) {
+    const routingKey = `BridgeWorkers.${whose.workerName}.${
+      whose.network
+        ? whose.network
+        : '*'
+    }`;
+
+    await this.sendToQueue(routingKey, { type, payload });
   }
 }
