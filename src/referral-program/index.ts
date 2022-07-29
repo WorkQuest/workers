@@ -1,15 +1,15 @@
 import Web3 from 'web3';
-import {Logger} from "./logger/pino";
+import { Logger } from "./logger/pino";
 import configDatabase from './config/config.database';
 import configReferral from './config/config.referral';
-import {ReferralClients} from "./src/providers/types";
-import {ReferralMQProvider} from "./src/providers/ReferralProvider";
-import {TransactionBroker} from "../brokers/src/TransactionBroker";
-import {NotificationBroker} from "../brokers/src/NotificationBroker";
-import {CommunicationBroker} from "../brokers/src/CommunicationBroker";
-import {ReferralController} from "./src/controllers/ReferralController";
-import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
-import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
+import { ReferralClients } from "./src/providers/types";
+import { ReferralMQProvider } from "./src/providers/ReferralProvider";
+import { TransactionBroker } from "../brokers/src/TransactionBroker";
+import { NotificationBroker } from "../brokers/src/NotificationBroker";
+import { CommunicationBroker } from "../brokers/src/CommunicationBroker";
+import { ReferralListenerController } from "./src/controllers/ReferralController";
+import { SupervisorContract, SupervisorContractTasks } from "../supervisor";
+import { initDatabase, BlockchainNetworks } from '@workquest/database-models/lib/models';
 import { Store, Networks, WorkQuestNetworkContracts } from '@workquest/contract-data-pools';
 
 export async function init() {
@@ -47,7 +47,7 @@ export async function init() {
     transactionsBroker,
   );
 
-  const referralController = new ReferralController(
+  const referralController = new ReferralListenerController(
     clients,
     network,
     referralProvider,
@@ -58,8 +58,8 @@ export async function init() {
     referralController,
     referralProvider,
   )
-  .setHeightSyncOptions({ period: 300000 })
-  .startTasks(SupervisorContractTasks.BlockHeightSync)
+    .setHeightSyncOptions({ period: 300000 })
+    .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 
 init().catch(e => {
