@@ -3,6 +3,7 @@ import {Logger} from "../../logger/pino";
 import {EventData} from 'web3-eth-contract';
 import {addJob} from "../../../utils/scheduler";
 import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
+import {sendNotificationAboutNewQuest} from "../../jobs/sendNotificationAboutNewQuest";
 import {
   IContractProvider,
   QuestFactoryClients,
@@ -155,6 +156,7 @@ export class QuestFactoryController implements IController {
       quest.update({ contractAddress, status: QuestStatus.Recruitment }),
       this.clients.questCacheProvider.set(contractAddress, { transactionHash, nonce }),
       updateQuestsStatisticJob({ userId: quest.userId, role: UserRole.Employer }),
+      sendNotificationAboutNewQuest(quest.id),
       this.clients.notificationsBroker.sendNotification({
         recipients: [quest.userId],
         action: QuestFactoryNotificationActions.QuestStatusUpdated,
