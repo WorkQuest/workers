@@ -47,7 +47,7 @@ export class ReferralController implements IController {
   }
 
   public async getLastCollectedBlock(): Promise<number> {
-    const [{ lastParsedBlock }, ] = await ReferralProgramParseBlock.findOrCreate({
+    const [{ lastParsedBlock },] = await ReferralProgramParseBlock.findOrCreate({
       where: { network: this.network },
       defaults: {
         network: this.network,
@@ -177,14 +177,26 @@ export class ReferralController implements IController {
         model: Media.scope('urlOnly'),
         as: 'avatar',
       }]
-    })
+    });
 
-    eventsData['timestamp'] = timestamp
+    const affiliateInfo = await User.unscoped().findOne({
+      attributes: ['id'],
+      include: [{
+        model: Wallet,
+        where: { address: affiliateAddress },
+        as: 'wallet',
+        required: true,
+        attributes: []
+      }],
+    });
 
     await this.clients.notificationsBroker.sendNotification({
-      data: { referral: userInfo, event: eventsData },
       action: eventsData.event,
-      recipients: [affiliateAddress],
+      recipients: [affiliateInfo.id],
+      data: {
+        referral: userInfo,
+        event: { ...eventsData, timestamp },
+      },
     });
 
     const [referralWallet,] = await Promise.all([
