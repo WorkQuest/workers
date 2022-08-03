@@ -82,6 +82,14 @@ export class ReferralController implements IController {
       eventsData,
     );
 
+    const notificationsForAffiliateAlreadySent = !!await ReferralProgramEventRegisteredAffiliate.findOne({
+      where: {
+        transactionHash,
+        network: this.network,
+        affiliate: affiliateAddress,
+      }
+    });
+
     const [, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
       where: {
         transactionHash,
@@ -126,14 +134,6 @@ export class ReferralController implements IController {
 
       return;
     }
-
-    const notificationsForAffiliateAlreadySent = !!await ReferralProgramEventRegisteredAffiliate.findOne({
-      where: {
-        transactionHash,
-        network: this.network,
-        affiliate: affiliateAddress,
-      }
-    });
 
     await this.clients.notificationsBroker.sendNotification({
       data: eventsData,
