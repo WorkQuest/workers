@@ -83,7 +83,12 @@ export class ReferralController implements IController {
     );
 
     const [, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
-      where: { transactionHash, network: this.network },
+      where: {
+        transactionHash,
+        network: this.network,
+        referral: referralAddress,
+        affiliate: affiliateAddress,
+      },
       defaults: {
         timestamp,
         transactionHash,
@@ -122,10 +127,20 @@ export class ReferralController implements IController {
       return;
     }
 
+    const notificationsForAffiliateAlreadySent = !!await ReferralProgramEventRegisteredAffiliate.findOne({
+      where: {
+        transactionHash,
+        network: this.network,
+        affiliate: affiliateAddress,
+      }
+    });
+
     await this.clients.notificationsBroker.sendNotification({
       data: eventsData,
       action: eventsData.event,
-      recipients: [referralWallet.userId, affiliateWallet.userId],
+      recipients: notificationsForAffiliateAlreadySent
+        ? [referralWallet.userId]
+        : [referralWallet.userId, affiliateWallet.userId]
     });
 
     return ReferralProgramReferral.update(
