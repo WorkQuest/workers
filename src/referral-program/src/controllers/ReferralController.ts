@@ -103,9 +103,12 @@ export class ReferralController implements IController {
       return;
     }
 
-    const [referralWallet,] = await Promise.all([
+    const [referralWallet, affiliateWallet] = await Promise.all([
       Wallet.findOne({
         where: { address: referralAddress },
+      }),
+      Wallet.findOne({
+        where: { address: affiliateAddress }
       }),
       this.updateBlockViewHeight(eventsData.blockNumber),
     ]);
@@ -122,7 +125,7 @@ export class ReferralController implements IController {
     await this.clients.notificationsBroker.sendNotification({
       data: eventsData,
       action: eventsData.event,
-      recipients: [referralWallet.userId],
+      recipients: [referralWallet.userId, affiliateWallet.userId],
     });
 
     return ReferralProgramReferral.update(
