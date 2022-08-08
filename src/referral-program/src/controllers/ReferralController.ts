@@ -83,7 +83,12 @@ export class ReferralController implements IController {
     );
 
     const [, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
-      where: { transactionHash, network: this.network },
+      where: {
+        transactionHash,
+        network: this.network,
+        referral: referralAddress,
+        affiliate: affiliateAddress
+      },
       defaults: {
         timestamp,
         transactionHash,
@@ -144,7 +149,12 @@ export class ReferralController implements IController {
     );
 
     const [_, isCreated] = await ReferralProgramEventPaidReferral.findOrCreate({
-      where: { transactionHash, network: this.network },
+      where: {
+        transactionHash,
+        network: this.network,
+        referral: referralAddress,
+        affiliate: affiliateAddress,
+      },
       defaults: {
         timestamp,
         transactionHash,
@@ -235,7 +245,11 @@ export class ReferralController implements IController {
     );
 
     const [_, isCreated] = await ReferralProgramEventRewardClaimed.findOrCreate({
-      where: { transactionHash, network: this.network },
+      where: {
+        network: this.network,
+        affiliate: affiliateAddress,
+        transactionHash,
+      },
       defaults: {
         timestamp,
         transactionHash,
