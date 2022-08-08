@@ -20,6 +20,7 @@ import {
   ProposalVoteCastEvent,
   ProposalExecutedEvent,
   DaoPlatformStatisticFields,
+  ProposalDelegateUserHistory,
   ProposalDelegateChangedEvent,
   ProposalDelegateVotesChangedEvent,
 } from "@workquest/database-models/lib/models";
@@ -295,6 +296,26 @@ export class ProposalController implements IController {
       'Proposal delegate changed event handler: timestamp "%s", event data %o',
       timestamp, eventsData
     );
+
+    if (toDelegate !== '0x0000000000000000000000000000000000000000') {
+      const [history, isCreated] = await ProposalDelegateUserHistory.findOrCreate({
+        where: {
+          delegator,
+          delegatee: toDelegate,
+          network: this.network,
+        },
+        defaults: {
+          delegator,
+          timestamp,
+          delegatee: toDelegate,
+          network: this.network,
+        }
+      });
+
+      if (isCreated) {
+        await history.update({ timestamp });
+      }
+    }
 
     const [, isCreated] = await ProposalDelegateChangedEvent.findOrCreate({
       where: {
