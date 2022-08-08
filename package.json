@@ -49,7 +49,7 @@
     "@cosmjs/tendermint-rpc": "^0.27.1",
     "@sentry/node": "^6.19.2",
     "@workquest/contract-data-pools": "github:WorkQuest/contract-data-pools#devnet",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#bcefd84ffede842e5d09c15ab525c2e5a39cca5e",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#84921d1396bc66626e626cd3559357a8202b15b7",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
     "bignumber.js": "^9.0.2",
