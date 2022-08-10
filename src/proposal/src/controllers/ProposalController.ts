@@ -312,7 +312,7 @@ export class ProposalController implements IController {
         }
       });
 
-      if (isCreated) {
+      if (!isCreated) {
         await history.update({ timestamp });
       }
     }
