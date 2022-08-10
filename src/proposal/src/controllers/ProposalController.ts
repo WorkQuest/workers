@@ -362,6 +362,8 @@ export class ProposalController implements IController {
       where: {
         transactionHash,
         network: this.network,
+        newBalance: eventsData.returnValues.newBalance,
+        previousBalance: eventsData.returnValues.previousBalance,
       },
       defaults: {
         timestamp,
