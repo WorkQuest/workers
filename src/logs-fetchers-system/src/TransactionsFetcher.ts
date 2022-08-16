@@ -5,7 +5,8 @@ export class TransactionsFetcher {
   constructor(
     public readonly web3Provider: Web3,
     public readonly brokerRouter,
-  ) {}
+  ) {
+  }
 
   private _fetchedUpToBlockNumber;
 

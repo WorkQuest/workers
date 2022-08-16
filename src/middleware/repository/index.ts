@@ -1,1 +1,2 @@
-export * from "./KeyValueRedisRepository";
+export * from "./EventLogsRedisRepository";
+export * from "./QuestContractsRedisRepository";

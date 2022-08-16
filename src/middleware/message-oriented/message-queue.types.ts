@@ -3,7 +3,7 @@ import {
   TaskKey,
   TaskTypes,
   TaskPriority,
-  GetLogsTaskPayload,
+  GetLogsTaskPayload, TaskGetLogsResult,
 } from "../utilis/utilits.types";
 
 /**
@@ -42,7 +42,7 @@ export type SubscriptionRouterResponse = {
 
 export type TaskRouterGetLogsResponse = TaskRouterResponse & {
   task: TaskTypes.GetLogs,
-  data: GetLogsTaskPayload,
+  data: TaskGetLogsResult,
 }
 
 export type SubscriptionRouterNewLogsResponse = SubscriptionRouterResponse & {

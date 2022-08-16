@@ -6,9 +6,11 @@ import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
   protected channel: Channel;
   private connection: Connection;
-  private readonly queueName: string;
 
   private readonly eventEmitter: EventEmitter;
+
+  protected readonly queueWorkerName: string;
+  protected readonly exchangeName: 'BridgeWorkersExchange';
 
   constructor(
     private readonly mqLink: string,
@@ -16,33 +18,31 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
     public readonly network: BlockchainNetworks,
   ) {
     this.eventEmitter = new EventEmitter();
-    this.queueName = `BridgeWorkers.${workerName}.${network}`;
+    this.queueWorkerName = `BridgeWorkers.${workerName}.${network}`;
   }
 
   public async init(): Promise<this> {
     this.connection = await amqp.connect(this.mqLink, 'heartbeat=60');
 
-    this.connection.on('error', this.onError.bind(this));
+    this.connection.on('error', this.onErrorHandler.bind(this));
     this.connection.on('close', this.onClose.bind(this));
 
     this.channel = await this.connection.createChannel();
 
-    const { exchange } = await this.channel.assertExchange('BridgeWorkers', 'topic', {
-
+    await this.channel.assertExchange(this.exchangeName, 'direct', {
+      durable: true,
     });
 
-    await this.channel.assertQueue(this.queueName, {
+    await this.channel.assertQueue(this.queueWorkerName, {
       durable: true,
       exclusive: false,
     });
 
-    await this.channel.bindQueue(this.queueName, exchange, {
-
-    })
+    await this.channel.bindQueue(this.queueWorkerName, this.exchangeName, this.queueWorkerName);
 
     await this.channel.consume(
-      this.queueName,
-      this.onMessage.bind(this),
+      this.queueWorkerName,
+      this.onMessageHandler.bind(this),
     );
 
     return this;
@@ -52,24 +52,24 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
     this.eventEmitter.emit('close');
   }
 
-  protected async onError(error) {
+  protected async onErrorHandler(error) {
     this.eventEmitter.emit('error', error);
   }
 
-  protected async onMessage(message) {
+  protected async onMessageHandler(message) {
     try {
       const msg = JSON.parse(message.content);
 
       if ('type' in msg && 'payload' in msg) {
-        await this.onWorkerMessage(msg.type, msg.payload);
+        await this.onWorkerMessageHandler(msg.type, msg.payload);
         this.channel.ack(message);
       }
     } catch (error) {
-      await this.onError(error);
+      await this.onErrorHandler(error);
     }
   }
 
-  protected onWorkerMessage(type: string, payload: object) {
+  protected onWorkerMessageHandler(type: string, payload: object) {
     this.eventEmitter.emit('worker-message', type, payload);
   }
 
@@ -85,19 +85,13 @@ export class BridgeMQBetweenWorkers implements IBridgeBetweenWorkers {
     return this;
   }
 
-  protected sendToQueue(routingKey: string, payload: object) {
+  protected publishToExchange(routingKey: string, payload: object) {
     const payloadBuffer = Buffer.from(JSON.stringify(payload));
 
-    this.channel.sendToQueue(routingKey, payloadBuffer);
+    this.channel.publish(this.exchangeName, routingKey, payloadBuffer);
   }
 
-  public async sendMessage(whose: { workerName: string, network?: BlockchainNetworks }, type: string, payload: object) {
-    const routingKey = `BridgeWorkers.${whose.workerName}.${
-      whose.network
-        ? whose.network
-        : '*'
-    }`;
-
-    await this.sendToQueue(routingKey, { type, payload });
+  public async sendMessage(whose: { workerName: string, network: BlockchainNetworks }, type: string, payload: object) {
+    await this.publishToExchange(`BridgeWorkers.${whose.workerName}.${whose.network}`, { type, payload });
   }
 }

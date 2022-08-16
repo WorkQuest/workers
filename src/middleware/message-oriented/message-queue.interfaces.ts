@@ -66,7 +66,7 @@ export interface IRouterServer {
   on(type: 'task-request', callback: (taskRequest: TaskRouterRequest) => void);
 
   notifyEveryoneAboutNewLogs(logs: Log[]): Promise<void>;
-  sendExecutedTaskGetLogs(clientName: string, logs: Log[]): Promise<void>;
+  sendExecutedTaskGetLogs(clientName: string, task: { key: string, logs: Log[], maxBlockHeightViewed: number }): Promise<void>;
 }
 
 
