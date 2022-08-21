@@ -95,7 +95,6 @@ export class RouterMQClient implements IRouterClient {
     return this;
   }
 
-
   protected onCloseHandler() {
     this.eventEmitter.emit('close');
   }

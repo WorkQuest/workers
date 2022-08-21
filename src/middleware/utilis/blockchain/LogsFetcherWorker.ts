@@ -1,14 +1,14 @@
-import Web3 from "web3";
 import EventEmitter from "events";
 import {ILogsFetcherWorker} from "./blockchain.interfaces";
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
+import {IBlockchainRepository} from "../../repository/repository.interfaces";
 
-export class LogsFetcher implements ILogsFetcherWorker {
+export class LogsFetcherWorker implements ILogsFetcherWorker {
   private fetchedUpToBlockNumber: number;
   private readonly eventEmitter: EventEmitter;
 
   constructor(
-    protected readonly web3: Web3,
+    protected readonly blockchainRepository: IBlockchainRepository,
   ) {
     this.eventEmitter = new EventEmitter();
   }
@@ -23,17 +23,20 @@ export class LogsFetcher implements ILogsFetcherWorker {
     }
   }
 
-  protected async runTaskFetcher() {
-    const toBlock = await this.web3.eth.getBlockNumber();
+  protected async collectPastLogs() {
+    const toBlock = await this.blockchainRepository.getBlockNumber();
 
     if (toBlock >= this.fetchedUpToBlockNumber) {
       return;
     }
 
-    const logs = await this.web3.eth.getPastLogs({ toBlock });
+    const logs = await this.blockchainRepository.getPastLogs({
+      fromBlockNumber: this.fetchedUpToBlockNumber,
+      toBlockNumber: toBlock,
+    });
 
     this.updateFetchedUpToBlockNumber(toBlock);
-    this.onLogHandler(logs as Log[]);
+    this.onLogHandler(logs);
   }
 
   public on(type, callback) {
@@ -42,10 +45,17 @@ export class LogsFetcher implements ILogsFetcherWorker {
     }
   }
 
+  private runTaskFetcher() {
+    setTimeout(async () => {
+      await this.collectPastLogs();
+      this.runTaskFetcher();
+    }, 10000); // TODO add settings
+  }
+
   public async startFetcher() {
-    const lastBlockNumber = await this.web3.eth.getBlockNumber();
+    const lastBlockNumber = await this.blockchainRepository.getBlockNumber();
 
     this.updateFetchedUpToBlockNumber(lastBlockNumber);
-    setInterval(async () => { await this.runTaskFetcher() }, 15000);
+    this.runTaskFetcher();
   }
 }

@@ -3,6 +3,8 @@
  *  for frequent access. For example, contracts that are
  *  created by means of factories
  */
+import {Log} from "@ethersproject/abstract-provider/src.ts/index";
+
 export interface IKeyValueRepository<TPayload> {
   on(type: 'close', callback: () => void);      // TODO only async channel
   on(type: 'error', callback: (error) => void); // TODO only async channel
@@ -41,4 +43,10 @@ export interface IIndexedKeysListRepository<TPayload> extends IKeyListRepository
   getListKeysRangeByPosition(start: number, stop: number): Promise<string[]>;
 
   getValuesOfMergedListsRangeByScore(from: number, to: number): Promise<TPayload[]>;
+}
+
+export interface IBlockchainRepository {
+  // TODO: Replenish as needed
+  getBlockNumber(): Promise<number>;
+  getPastLogs(payload: { addresses?: string[], fromBlockNumber: number, toBlockNumber: number }): Promise<Log[]>;
 }

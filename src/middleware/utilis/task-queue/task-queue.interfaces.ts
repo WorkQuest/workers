@@ -8,7 +8,7 @@ import {
 } from "./task-queue.types";
 
 /**
- *          Utils to work with tasks.
+ * Utils to work with tasks.
  * Includes a pool of tasks with priorities.
  *
  * Task has a state (see enum TaskCompletionStatus) and
@@ -28,7 +28,7 @@ export interface ITaskGetLogs extends ITask {
 }
 
 export interface ITaskFactory {
-  create(type: TaskTypes.GetLogs, taskKey: TaskKey, payload: GetLogsTaskPayload): Promise<ITask>;
+  create(type: TaskTypes.GetLogs, taskKey: TaskKey, payload: GetLogsTaskPayload): ITask;
 }
 
 export interface ITaskExecutor {

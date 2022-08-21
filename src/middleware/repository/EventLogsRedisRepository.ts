@@ -173,6 +173,12 @@ export class EventLogsRedisRepository implements IIndexedKeysListRepository<Log>
 
   /** Push */
   public async push(blockNumber: string, ...log: Log[]): Promise<number> {
+    if (log.length === 0 ) {
+      await this.redisClient.zAdd(this.indexName, { value: this.blockNumberToKeyWithPrefix(blockNumber), score: parseInt(blockNumber) });
+
+      return 0;
+    }
+
     const encodedLogs = log
       .map(log => JSON.stringify(log))
 

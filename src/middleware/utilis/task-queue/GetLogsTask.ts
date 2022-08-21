@@ -1,6 +1,6 @@
-import Web3 from "web3";
 import {BlocksRange} from "../../../types";
 import {ITaskGetLogs} from "./task-queue.interfaces"
+import {IBlockchainRepository} from "../../repository/repository.interfaces";
 import {
   GetLogsOptions,
   TaskGetLogsResult,
@@ -10,23 +10,30 @@ import {
 
 type State = {
   executionSteps: {
-    toBlock: number,
-    fromBlock: number,
+    to: number,
+    from: number,
   }
-  blocksRange: BlocksRange,
+  blocksRange: {
+    to: number,
+    from: number,
+  },
   status: TaskCompletionStatus,
 }
 
-class GetLogsTask implements ITaskGetLogs {
-  private readonly state: State;
+export class GetLogsTask implements ITaskGetLogs {
   private result: TaskGetLogsResult;
 
+  private readonly state: State = {
+    status: null,
+    blocksRange: { from: null, to: null},
+    executionSteps: { to: null, from: null },
+  }
+
   constructor(
-    public readonly author: string,
     public readonly taskKey: string,
-    protected readonly web3: Web3,
     protected readonly options: GetLogsOptions,
     protected readonly payload: GetLogsTaskPayload,
+    protected readonly blockchainRepository: IBlockchainRepository,
   ) {
   }
 
@@ -48,25 +55,28 @@ class GetLogsTask implements ITaskGetLogs {
 
     this.state.blocksRange.to =
       this.payload.blocksRange.to === 'latest'
-    ? await this.web3.eth.getBlockNumber()
+    ? await this.blockchainRepository.getBlockNumber()
     : this.payload.blocksRange.to
 
-    this.state.executionSteps.fromBlock = this.payload.blocksRange.from;
+    this.state.executionSteps.from = this.payload.blocksRange.from;
 
-    this.state.executionSteps.toBlock =
+    this.state.executionSteps.to =
       (this.state.blocksRange.from + this.options.stepsRange) >= this.payload.blocksRange.to
         ? this.state.blocksRange.to
         : this.state.blocksRange.from + this.options.stepsRange
   }
 
   private incrementStepsState(): void {
-    this.state.executionSteps.fromBlock = this.state.executionSteps.toBlock;
-    this.state.executionSteps.toBlock += this.options.stepsRange;
+    this.state.executionSteps.from = this.state.executionSteps.to + 1;
+
+    this.state.blocksRange.to < this.state.executionSteps.to + this.options.stepsRange
+      ? this.state.executionSteps.to = this.state.blocksRange.to
+      : this.state.executionSteps.to += this.options.stepsRange
   }
 
   private updateStatus(): TaskCompletionStatus {
     this.state.status =
-      this.state.executionSteps.toBlock >= this.payload.blocksRange.to
+      this.state.executionSteps.to >= this.payload.blocksRange.to
         ? TaskCompletionStatus.Completed
         : TaskCompletionStatus.InProgress
 
@@ -86,18 +96,21 @@ class GetLogsTask implements ITaskGetLogs {
       return this.getStatus();
     }
 
-    const logs = await this.web3.eth.getPastLogs({
-      fromBlock: this.state.executionSteps.fromBlock,
-      toBlock: this.state.executionSteps.toBlock,
+    const logs = await this.blockchainRepository.getPastLogs({
+      addresses: [this.payload.addresses].flat(),
+      fromBlockNumber: this.state.executionSteps.from,
+      toBlockNumber: this.state.executionSteps.to,
     });
 
     this.result.logs.push(...logs as any[]);
-    this.result.maxBlockHeightViewed = this.state.executionSteps.toBlock;
+    this.result.maxBlockHeightViewed = this.state.executionSteps.to;
 
     if (this.updateStatus() === TaskCompletionStatus.Completed) {
       return TaskCompletionStatus.Completed;
     }
 
     this.incrementStepsState();
+
+    return TaskCompletionStatus.InProgress;
   }
 }
