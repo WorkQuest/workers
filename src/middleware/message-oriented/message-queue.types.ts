@@ -3,7 +3,8 @@ import {
   TaskKey,
   TaskTypes,
   TaskPriority,
-  GetLogsTaskPayload, TaskGetLogsResult,
+  TaskGetLogsResult,
+  GetLogsTaskPayload,
 } from "../utilis/utilits.types";
 
 /**

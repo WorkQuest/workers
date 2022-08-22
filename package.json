@@ -4,6 +4,8 @@
   "description": "",
   "scripts": {
     "build": "tsc",
+    "routerServer:start": "nodemon -e ts --exec \"npm run routerServer:compile\"",
+    "routerServer:compile": "tsc && node ./build/blockchain-logs-server/index.js",
     "bridge:start": "nodemon -e ts --exec \"npm run bridge:compile\"",
     "bridge:compile": "tsc && node ./build/bridge/index.js",
     "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",

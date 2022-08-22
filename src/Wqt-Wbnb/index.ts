@@ -15,7 +15,7 @@ export async function init() {
 
   await initDatabase(configDatabase.dbLink, false, true);
 
-  const web3 = new Web3( new Web3.providers.HttpProvider(configWqtWbnb.rpcProvider));
+  const web3 = new Web3(new Web3.providers.HttpProvider(configWqtWbnb.rpcProvider));
   const wqtWbnbContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBroker, 'daily_liquidity')

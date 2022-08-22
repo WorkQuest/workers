@@ -5,6 +5,7 @@ import amqp, {Channel, Connection} from "amqplib";
 import {ConsumeMessage} from "amqplib/properties";
 import {IRouterClient} from "./message-queue.interfaces";
 import {TaskKey, TaskPriority, TaskTypes} from "../utilis/utilits.types";
+import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 import {
   TaskRouterRequest,
   TaskGetLogsRequest,
@@ -27,15 +28,15 @@ export class RouterMQClient implements IRouterClient {
    * "Router.TaskResponseExchange" -
    * "Router.SubscriptionExchange" - Fanout Exchange
    */
-  protected readonly routerTaskRequestExchange = 'Router.TaskRequestExchange';
-  protected readonly routerTaskResponseExchange = 'Router.TaskResponseExchange';
-  protected readonly routerSubscriptionExchange = 'Router.SubscriptionExchange';
+  protected get routerTaskRequestExchange  () { return `${this.network}.Router.TaskRequestExchange`  }
+  protected get routerTaskResponseExchange () { return `${this.network}.Router.TaskResponseExchange` }
+  protected get routerSubscriptionExchange () { return `${this.network}.Router.SubscriptionExchange` }
 
   /**
    * Exchange/Queue RouterServer.
    * "Router.Server.TaskRequests" -
    */
-  protected readonly routerServerRequestsQueue = 'Router.Server.TaskRequests';
+  protected get routerServerRequestsQueue () { return `${this.network}.Router.Server.TaskRequests` }
 
   /**
    * Exchange/Queue RouterClient.
@@ -43,12 +44,13 @@ export class RouterMQClient implements IRouterClient {
    * Router.Client.*client-name*.SubscriptionAnswers -
    *
    */
-  protected readonly routerClientTaskResponsesQueue = () => `Router.Client.${this.clientName}.TaskResponses`;
-  protected readonly routerClientSubscriptionsQueue = () => `Router.Client.${this.clientName}.SubscriptionResponses`;
+  protected get routerClientTaskResponsesQueue () { return `${this.network}.Router.Client.${this.clientName}.TaskResponses` }
+  protected get routerClientSubscriptionsQueue () { return `${this.network}.Router.Client.${this.clientName}.SubscriptionResponses` }
 
   constructor(
     private readonly mqLink: string,
     public readonly clientName: string,
+    private readonly network: BlockchainNetworks,
   ) {
     this.eventEmitter = new EventEmitter();
   }
@@ -62,34 +64,34 @@ export class RouterMQClient implements IRouterClient {
     this.tasksChannel = await this.connection.createChannel();
     this.subscriptionChannel = await this.connection.createChannel();
 
-    await this.subscriptionChannel.assertQueue(this.routerClientSubscriptionsQueue(), {
+    await this.subscriptionChannel.assertQueue(this.routerClientSubscriptionsQueue, {
       durable: false,
       exclusive: false,
       autoDelete: true,
       messageTtl: 10000,
     });
     await this.subscriptionChannel.bindQueue(
-      this.routerClientSubscriptionsQueue(),
+      this.routerClientSubscriptionsQueue,
       this.routerSubscriptionExchange,
       ''
     );
     await this.subscriptionChannel.consume(
-      this.routerClientSubscriptionsQueue(),
-      this.onTaskResponseHandler.bind(this),
+      this.routerClientSubscriptionsQueue,
+      this.onSubscriptionResponseHandler.bind(this),
     );
 
-    await this.tasksChannel.assertQueue(this.routerClientTaskResponsesQueue(), {
+    await this.tasksChannel.assertQueue(this.routerClientTaskResponsesQueue, {
       durable: true,
       exclusive: false,
     });
     await this.tasksChannel.bindQueue(
-      this.routerClientTaskResponsesQueue(),
+      this.routerClientTaskResponsesQueue,
       this.routerTaskResponseExchange,
-      this.routerClientTaskResponsesQueue(),
+      this.routerClientTaskResponsesQueue,
     );
     await this.tasksChannel.consume(
-      this.routerClientTaskResponsesQueue(),
-      this.onSubscriptionResponseHandler.bind(this),
+      this.routerClientTaskResponsesQueue,
+      this.onTaskResponseHandler.bind(this),
     );
 
     return this;
@@ -128,10 +130,10 @@ export class RouterMQClient implements IRouterClient {
       this.routerTaskRequestExchange,
       this.routerServerRequestsQueue,
       Buffer.from(JSON.stringify(taskRequest)),
-    );
+    )
   }
 
-  public on(type, callback) {
+  public on(type, callback): this {
     if (type === 'close') {
       this.eventEmitter.addListener('close', callback);
     } else if (type === 'error') {
@@ -141,6 +143,8 @@ export class RouterMQClient implements IRouterClient {
     } else if (type === 'subscription-response') {
       this.eventEmitter.addListener('subscription-response', callback);
     }
+
+    return this;
   }
 
   public async sendTaskGetLogs(blocksRange: BlocksRange, addresses: string | string[], priority: TaskPriority): Promise<TaskKey> {

@@ -1,4 +1,3 @@
-import {BlocksRange} from "../../../types";
 import {ITaskGetLogs} from "./task-queue.interfaces"
 import {IBlockchainRepository} from "../../repository/repository.interfaces";
 import {

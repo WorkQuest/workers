@@ -1,8 +1,8 @@
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
-import {TaskCompletionStatus, TaskTypes} from "../../middleware/utilis/task-queue/task-queue.types";
 import {TaskRouterRequest} from "../../middleware/message-oriented/message-queue.types";
 import {IRouterServer} from "../../middleware/message-oriented/message-queue.interfaces";
 import {ILogsFetcherWorker} from "../../middleware/utilis/blockchain/blockchain.interfaces";
+import {TaskCompletionStatus, TaskTypes} from "../../middleware/utilis/task-queue/task-queue.types";
 import {ITask, ITaskExecutor, ITaskFactory} from "../../middleware/utilis/task-queue/task-queue.interfaces";
 
 /**
@@ -47,6 +47,10 @@ export class BlockchainLogsServer {
       taskRequest.payload,
     );
 
+    console.log(
+      "Add task: key =" + task.taskKey +
+      " who =" + this.routerServer['network'],
+    );
     this.taskExecutor.addTask(task, { priority: taskRequest.priority });
 
     this.tasksRunningTable.set(task.taskKey, {
@@ -87,6 +91,6 @@ export class BlockchainLogsServer {
 
   public async start() {
     this.taskExecutor.startExecute();
-    this.logsFetcherWorker.startFetcher();
+    // this.logsFetcherWorker.startFetcher();
   }
 }

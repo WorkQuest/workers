@@ -4,6 +4,7 @@ import {ConsumeMessage} from "amqplib/properties";
 import {IRouterServer} from "./message-queue.interfaces";
 import {TaskTypes} from "../utilis/task-queue/task-queue.types";
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
+import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 import {
   TaskRouterRequest,
   SubscriptionRouterTypes,
@@ -24,7 +25,7 @@ export class RouterMQServer implements IRouterServer {
    * Exchange/Queue RouterServer.
    * "Router.Server.TaskRequests" -
    */
-  protected readonly routerServerRequestsQueue = 'Router.Server.TaskRequests';
+  protected get routerServerRequestsQueue () { return `${this.network}.Router.Server.TaskRequests` }
 
   /**
    * Router Exchanges.
@@ -33,12 +34,13 @@ export class RouterMQServer implements IRouterServer {
    * "Router.TaskResponseExchange" -
    * "Router.SubscriptionExchange" - Fanout Exchange
    */
-  protected readonly routerTaskRequestExchange = 'Router.TaskRequestExchange';
-  protected readonly routerTaskResponseExchange = 'Router.TaskResponseExchange';
-  protected readonly routerSubscriptionExchange = 'Router.SubscriptionExchange';
+  protected get routerTaskRequestExchange  () { return `${this.network}.Router.TaskRequestExchange`  }
+  protected get routerTaskResponseExchange () { return `${this.network}.Router.TaskResponseExchange` }
+  protected get routerSubscriptionExchange () { return `${this.network}.Router.SubscriptionExchange` }
 
   constructor(
     private readonly mqLink: string,
+    private readonly network: BlockchainNetworks,
   ) {
     this.eventEmitter = new EventEmitter();
   }
@@ -66,12 +68,13 @@ export class RouterMQServer implements IRouterServer {
     await this.tasksRequestChannel.assertQueue(this.routerServerRequestsQueue, {
       durable: true,
       exclusive: true,
+      messageTtl: 5000,
     });
 
     await this.tasksRequestChannel.bindQueue(
+      this.routerServerRequestsQueue,
       this.routerTaskRequestExchange,
-      this.routerTaskRequestExchange,
-      this.routerTaskRequestExchange,
+      this.routerServerRequestsQueue,
     );
 
     await this.tasksRequestChannel.consume(
@@ -91,6 +94,8 @@ export class RouterMQServer implements IRouterServer {
   }
 
   protected onTaskRequestHandler(msg: ConsumeMessage | null) {
+    console.log("onTaskRequestHandler: " + msg);
+
     if (msg) {
       const request: TaskRouterRequest = JSON.parse(msg.content.toString());
 
@@ -100,7 +105,7 @@ export class RouterMQServer implements IRouterServer {
     this.tasksRequestChannel.ack(msg);
   }
 
-  public on(type, callback) {
+  public on(type, callback): this {
     if (type === 'close') {
       this.eventEmitter.addListener('close', callback);
     } else if (type === 'error') {
@@ -108,6 +113,8 @@ export class RouterMQServer implements IRouterServer {
     } else if (type === 'task-request') {
       this.eventEmitter.addListener('task-request', callback);
     }
+
+    return this;
   }
 
   public async notifyEveryoneAboutNewLogs(logs: Log[]) {
@@ -117,7 +124,7 @@ export class RouterMQServer implements IRouterServer {
     }
     const responseBuffer = Buffer.from(JSON.stringify(response));
 
-    this.subscriptionChannel.publish(this.routerSubscriptionExchange, null, responseBuffer);
+    this.subscriptionChannel.publish(this.routerSubscriptionExchange, '', responseBuffer);
   }
 
   public async sendExecutedTaskGetLogs(clientName: string, task: { key: string, logs: Log[], maxBlockHeightViewed: number }) {

@@ -8,7 +8,7 @@ import {
   TaskCompletionStatus,
 } from "./task-queue.types";
 
-export class TaskExecutor implements ITaskExecutor {
+export class TasksExecutor implements ITaskExecutor {
   private readonly completedTasks: ITask[] = [];
   private readonly tasksInProgress: ITask[] = [];
   private readonly taskPools: PriorityQueue<TaskPool>;

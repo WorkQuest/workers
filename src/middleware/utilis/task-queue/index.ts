@@ -1,2 +1,3 @@
 export * from "./GetLogsTask";
-export * from "./TaskExecutor";
+export * from "./TasksExecutor";
+export * from "./TasksFactory";

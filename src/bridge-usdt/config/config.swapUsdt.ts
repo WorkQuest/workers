@@ -4,12 +4,15 @@ config({ path: __dirname + '/../../../.env.bridgeUsdt' });
 
 export default {
   logLevel: 'debug',
+  connectionType: 'rpc', /** rpc, routing, ws */
+
   workQuestNetwork: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
   bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
   ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork
   polygonscanNetwork: process.env.POLYGONSCAN_BLOCKCHAIN_NETWORK,//PolygonscanMainNetwork, MumbaiTestNetwork
   oracleLink: process.env.ORACLE_LINK,
   privateKey: process.env.SWAP_USDT_CONTRACT_PRIVATE_KEY,
+
   accountSenderFirsWqt: {
     address: process.env.ACCOUNT_ADDRESS_TO_SEND_FIRST_WQT,
     privateKey: process.env.ACCOUNT_PRIVATE_KEY_TO_SEND_FIRST_WQT,

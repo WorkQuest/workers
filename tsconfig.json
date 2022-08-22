@@ -17,19 +17,11 @@
   },
   "exclude": ["node_modules"],
   "include": [
-    "./src/**/*.ts",
-    "./src/quest-factory/abi/*.json",
-    "./src/quest/abi/*.json",
-    "./src/bridge/abi/*.json",
-    "./src/proposal/abi/*.json",
-    "./src/daily-liquidity/abi/*.json",
-    "./src/Wqt-Wbnb/abi/*.json",
-    "./src/Wqt-Weth/abi/*.json",
-    "./src/pension-fund/abi/*.json",
-    "./src/referral-program/abi/*.json",
-    "./src/saving-product/abi/*.json",
-    "./src/raise-view/abi/*.json",
-    "./src/bridge-usdt/abi/*.json"
+//    "./src/**/*.ts",
+    "./src/bridge/**/*ts",
+    "./src/middleware/**/*ts",
+    "./src/supervisor/**/*ts",
+    "./src/blockchain-logs-server/**/*ts",
   ],
   "rootDir":  ["src"]
 }

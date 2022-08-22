@@ -173,6 +173,8 @@ export class EventLogsRedisRepository implements IIndexedKeysListRepository<Log>
 
   /** Push */
   public async push(blockNumber: string, ...log: Log[]): Promise<number> {
+    console.log("Push " + this.network + " blockNumber: " + blockNumber, + "  zindex " + this.blockNumberToKeyWithPrefix(blockNumber));
+
     if (log.length === 0 ) {
       await this.redisClient.zAdd(this.indexName, { value: this.blockNumberToKeyWithPrefix(blockNumber), score: parseInt(blockNumber) });
 
@@ -184,7 +186,7 @@ export class EventLogsRedisRepository implements IIndexedKeysListRepository<Log>
 
     const [logsLen, ] = await Promise.all([
       this.redisClient.lPush(this.blockNumberToKeyWithPrefix(blockNumber), encodedLogs),
-      this.redisClient.zAdd(this.indexName, blockNumber, this.blockNumberToKeyWithPrefix(blockNumber)),
+      this.redisClient.zAdd(this.indexName, { value: this.blockNumberToKeyWithPrefix(blockNumber), score: parseInt(blockNumber) }),
     ]);
 
     return logsLen;

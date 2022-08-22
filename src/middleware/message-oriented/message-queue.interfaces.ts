@@ -1,4 +1,3 @@
-import {Transaction} from "web3-eth";
 import {BlocksRange} from "../../types";
 import {TaskPriority, TaskKey} from "../utilis/utilits.types"
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
@@ -67,15 +66,4 @@ export interface IRouterServer {
 
   notifyEveryoneAboutNewLogs(logs: Log[]): Promise<void>;
   sendExecutedTaskGetLogs(clientName: string, task: { key: string, logs: Log[], maxBlockHeightViewed: number }): Promise<void>;
-}
-
-
-
-// TODO delete
-export interface ITransactionListener {
-  on(type: 'close', callback: () => void);
-  on(type: 'error', callback: (error) => void);
-  on(type: 'transactions', callback: (transactions: Transaction[]) => void);
-
-  setFiltering(filter: (tx: Transaction) => boolean);
 }

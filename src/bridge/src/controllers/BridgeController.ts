@@ -3,7 +3,7 @@ import {Op} from "sequelize";
 import {BridgeEvents} from "./types";
 import {EventData} from "web3-eth-contract";
 import configBridge from "../../config/config.bridge";
-import {INotificationClient} from "../../../middleware";
+import {INotificationClient} from "../../../middleware/middleware.interfaces";
 import {
   ILogger,
   IController,
@@ -17,8 +17,10 @@ import {
 } from "@workquest/database-models/lib/models";
 
 export class BridgeController implements IController {
+
+  protected readonly web3 = new Web3();
+
   constructor(
-    protected readonly web3: Web3,
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
@@ -205,6 +207,8 @@ export class BridgeController implements IController {
 
     const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
 
+    console.log("Bridge events " + events.length);
+
     for (const event of events) {
       try {
         await this.onEvent(event);
@@ -238,13 +242,12 @@ export class BridgeController implements IController {
 
 export class BridgeListenerController extends BridgeController {
   constructor(
-    public readonly web3: Web3,
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractListenerProvider,
     public readonly notificationClient: INotificationClient,
   ) {
-    super(web3, Logger, network, contractProvider, notificationClient);
+    super(Logger, network, contractProvider, notificationClient);
   }
 
   public async start() {
@@ -261,29 +264,12 @@ export class BridgeListenerController extends BridgeController {
 }
 
 export class BridgeRouterController extends BridgeListenerController {
-  private _latchSyncOfViewedBlocks  = false;
-
-  private isBlockedSyncOfViewedBlocks() { return this._latchSyncOfViewedBlocks }
-  private blockSyncOfViewedBlocks() { this._latchSyncOfViewedBlocks = true }
-  private unblockSyncOfViewedBlocks() { this._latchSyncOfViewedBlocks = false }
-
   constructor(
-    public readonly web3: Web3,
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractListenerProvider,
     public readonly notificationClient: INotificationClient,
   ) {
-    super(web3, Logger, network, contractProvider, notificationClient);
-  }
-
-  public async syncBlocks() {
-    if (!this.isBlockedSyncOfViewedBlocks()) {
-      this.blockSyncOfViewedBlocks();
-
-      await super.syncBlocks();
-
-      this.unblockSyncOfViewedBlocks();
-    }
+    super(Logger, network, contractProvider, notificationClient);
   }
 }

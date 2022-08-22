@@ -26,7 +26,7 @@ export class LogsFetcherWorker implements ILogsFetcherWorker {
   protected async collectPastLogs() {
     const toBlock = await this.blockchainRepository.getBlockNumber();
 
-    if (toBlock >= this.fetchedUpToBlockNumber) {
+    if (toBlock <= this.fetchedUpToBlockNumber) {
       return;
     }
 
@@ -34,6 +34,7 @@ export class LogsFetcherWorker implements ILogsFetcherWorker {
       fromBlockNumber: this.fetchedUpToBlockNumber,
       toBlockNumber: toBlock,
     });
+    console.log("New logs", logs.length);
 
     this.updateFetchedUpToBlockNumber(toBlock);
     this.onLogHandler(logs);

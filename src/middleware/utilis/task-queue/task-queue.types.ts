@@ -3,7 +3,7 @@ import {ITask} from "./task-queue.interfaces";
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 
 /**
- *    Task/TaskExecutor utils types.
+ *    Task/TasksExecutor utils types.
  *  Used in clients/server that generate tasks
  *    and give them to the task executor.
  */

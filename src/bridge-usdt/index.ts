@@ -144,7 +144,33 @@ export async function init() {
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 }
 
-init().catch(e => {
-  Logger.error(e, 'Worker "SwapUsdt" is stopped with error');
-  process.exit(-1);
-});
+async function initWithWsConnectionType() {
+
+}
+
+async function initWithRpcConnectionType() {
+
+}
+
+async function initWithRoutingConnectionType() {
+
+}
+
+if (configSwapUsdt.connectionType === 'ws') {
+  initWithWsConnectionType().catch(e => {
+    Logger.error(e, 'Worker "Bridge" is stopped with error');
+    process.exit(-1);
+  });
+}
+if (configSwapUsdt.connectionType === 'rpc') {
+  initWithRpcConnectionType().catch(e => {
+    Logger.error(e, 'Worker "Bridge" is stopped with error');
+    process.exit(-1);
+  });
+}
+if (configSwapUsdt.connectionType === 'routing') {
+  initWithRoutingConnectionType().catch(e => {
+    Logger.error(e, 'Worker "Bridge" is stopped with error');
+    process.exit(-1);
+  });
+}
