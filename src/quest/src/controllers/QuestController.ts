@@ -8,7 +8,7 @@ import {QuestModelController} from "./models/QuestModelController";
 import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
 import {QuestChatModelController} from "./models/QuestChatModelController";
 import {IContractProvider, IContractListenerProvider} from "../../../types";
-import {INotificationClient, IBridgeBetweenWorkers} from "../../../middleware";
+import {INotificationSenderClient, IBridgeBetweenWorkers} from "../../../middleware";
 import {addUpdateReviewStatisticsJob} from "../../jobs/updateReviewStatistics";
 import {QuestDisputeModelController} from "./models/QuestDisputeModelController";
 import {QuestResponsesModelController} from "./models/QuestResponsesModelController";

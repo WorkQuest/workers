@@ -2,7 +2,7 @@ import Web3 from "web3";
 import {Op} from "sequelize";
 import BigNumber from 'bignumber.js';
 import {EventData} from 'web3-eth-contract';
-import {INotificationClient} from "../../../middleware";
+import {INotificationSenderClient} from "../../../middleware";
 import {
   IController, ILogger,
   WqtWbnbEvent,

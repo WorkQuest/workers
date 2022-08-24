@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import {EventData} from 'web3-eth-contract';
-import {INotificationClient} from "../../../middleware";
+import {INotificationSenderClient} from "../../../middleware";
 import {
   ILogger,
   IController,

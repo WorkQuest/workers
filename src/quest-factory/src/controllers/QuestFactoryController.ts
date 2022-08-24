@@ -2,7 +2,7 @@ import Web3 from "web3";
 import {Op} from "sequelize";
 import {EventData} from 'web3-eth-contract';
 import {addJob} from "../../../utils/scheduler";
-import {INotificationClient} from "../../../middleware";
+import {INotificationSenderClient} from "../../../middleware";
 import {ILogger, IQuestCacheProvider} from "../../../quest/src/providers/types";
 import {updateQuestsStatisticJob} from "../../jobs/updateQuestsStatistic";
 import {

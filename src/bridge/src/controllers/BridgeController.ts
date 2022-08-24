@@ -3,7 +3,7 @@ import {Op} from "sequelize";
 import {BridgeEvents} from "./types";
 import {EventData} from "web3-eth-contract";
 import configBridge from "../../config/config.bridge";
-import {INotificationClient} from "../../../middleware/middleware.interfaces";
+import {INotificationSenderClient} from "../../../middleware/middleware.interfaces";
 import {
   ILogger,
   IController,
@@ -24,7 +24,7 @@ export class BridgeController implements IController {
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
-    protected readonly notificationClient: INotificationClient,
+    protected readonly notificationClient: INotificationSenderClient,
   ) {
   }
 
@@ -245,7 +245,7 @@ export class BridgeListenerController extends BridgeController {
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractListenerProvider,
-    public readonly notificationClient: INotificationClient,
+    public readonly notificationClient: INotificationSenderClient,
   ) {
     super(Logger, network, contractProvider, notificationClient);
   }
@@ -268,7 +268,7 @@ export class BridgeRouterController extends BridgeListenerController {
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractListenerProvider,
-    public readonly notificationClient: INotificationClient,
+    public readonly notificationClient: INotificationSenderClient,
   ) {
     super(Logger, network, contractProvider, notificationClient);
   }

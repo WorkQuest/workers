@@ -33,7 +33,7 @@ export interface IBridgeBetweenWorkers {
  *    listeners about events and other useful data.
  *  See repo https://github.com/WorkQuest/notification-server
  */
-export interface INotificationClient {
+export interface INotificationSenderClient {
   on(type: 'close', callback: () => void);
   on(type: 'error', callback: (error) => void);
 

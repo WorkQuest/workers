@@ -3,7 +3,7 @@ import {Op} from "sequelize";
 import BigNumber from 'bignumber.js';
 import {Logger} from "../../logger/pino";
 import {EventData} from 'web3-eth-contract';
-import {INotificationClient} from "../../../middleware";
+import {INotificationSenderClient} from "../../../middleware";
 import {
   IController, ILogger,
   WqtWethEvent,
