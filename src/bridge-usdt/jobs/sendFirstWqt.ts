@@ -4,14 +4,14 @@ import { Logger } from "../logger/pino";
 import { addJob } from "../utils/scheduler";
 import configDatabase from "../config/config.common";
 import configSwapUsdt from "../config/config.swapUsdt";
-import { NotificationMQClient } from "../../middleware";
+import { NotificationMQSenderClient } from "../../middleware";
 import {
   Transaction,
   TransactionStatus,
   FirstWqtTransmissionData,
 } from "@workquest/database-models/lib/models";
 
-const notificationsBroker = new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
+const notificationsBroker = new NotificationMQSenderClient(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
 
 export interface SendFirstWqtPayload {
   readonly ratio: number;

@@ -47,7 +47,9 @@ export class ContractRouterProvider implements IContractListenerProvider {
     return new Promise(async (resolve, reject) => {
       const taskKey = await this.routerClient.sendTaskGetLogs(blocksRange, this.address, 1);
 
-      this.eventEmitter.once(`task-response.${taskKey}`, resolve);
+      this.eventEmitter.once(`task-response.${taskKey}`, task => {
+        resolve(task.data);
+      });
     }) as Promise<{
       logs: Log[],
       maxBlockHeightViewed: number,
@@ -91,11 +93,13 @@ export class ContractRouterProvider implements IContractListenerProvider {
     }
   }
 
-  public startListener() {
-    this.routerClient.on('task-response', this.onTaskResponseHandler);
-    this.routerClient.on('subscription-response', this.onRouterSubscriptionResponseHandler);
+  public startListener(): this {
+    this.routerClient.on('task-response', this.onTaskResponseHandler.bind(this));
+    this.routerClient.on('subscription-response', this.onRouterSubscriptionResponseHandler.bind(this));
 
     this.Logger.info('Start listener on contract: "%s"', this.contract.options.address);
+
+    return this;
   }
 
   public async getEvents(fromBlockNumber: number, toBlockNumber: number | 'latest' = 'latest') {

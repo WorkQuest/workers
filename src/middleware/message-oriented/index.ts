@@ -1,4 +1,4 @@
 export * from "./RouterMQClient";
-export * from "./NotificationMQClient";
+export * from "./NotificationMQSenderClient";
 export * from "./BridgeMQBetweenWorkers";
 

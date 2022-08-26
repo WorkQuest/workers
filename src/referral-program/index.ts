@@ -7,7 +7,7 @@ import {ReferralController} from "./src/controllers/ReferralController";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
 import {Store, Networks, WorkQuestNetworkContracts} from '@workquest/contract-data-pools';
-import {BridgeMQBetweenWorkers, NotificationMQClient, TransactionMQListener} from "../middleware";
+import {BridgeMQBetweenWorkers, NotificationMQSenderClient, TransactionMQListener} from "../middleware";
 
 export async function init() {
   await initDatabase(configDatabase.dbLink, true, false);
@@ -38,7 +38,7 @@ export async function init() {
     })
     .init()
 
-  const notificationClient = await  new NotificationMQClient(configDatabase.notificationMessageBroker.link, 'referral')
+  const notificationClient = await  new NotificationMQSenderClient(configDatabase.notificationMessageBroker.link, 'referral')
     .on('error', (error) => {
       Logger.error(error, 'Notification client stopped with error');
       process.exit(-1);

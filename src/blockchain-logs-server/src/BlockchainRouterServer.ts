@@ -40,17 +40,13 @@ export class BlockchainLogsServer {
     this.taskExecutor.on('completed-tasks', this.onCompletedTasksHandler.bind(this));
   }
 
-  protected onTaskExecutionRequest(taskRequest: TaskRouterRequest) {
-    const task = this.taskFactory.create(
+  protected async onTaskExecutionRequest(taskRequest: TaskRouterRequest) {
+    const task = await this.taskFactory.create(
       taskRequest.task,
       taskRequest.key,
       taskRequest.payload,
     );
 
-    console.log(
-      "Add task: key =" + task.taskKey +
-      " who =" + this.routerServer['network'],
-    );
     this.taskExecutor.addTask(task, { priority: taskRequest.priority });
 
     this.tasksRunningTable.set(task.taskKey, {

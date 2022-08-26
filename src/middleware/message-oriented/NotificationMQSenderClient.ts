@@ -3,7 +3,7 @@ import EventEmitter from "events";
 import {NotifyPayload} from "./message-queue.types";
 import {INotificationSenderClient} from "./message-queue.interfaces";
 
-export class NotificationMQClient implements INotificationSenderClient {
+export class NotificationMQSenderClient implements INotificationSenderClient {
   protected channel;
   protected connection;
 

@@ -34,7 +34,6 @@ export class LogsFetcherWorker implements ILogsFetcherWorker {
       fromBlockNumber: this.fetchedUpToBlockNumber,
       toBlockNumber: toBlock,
     });
-    console.log("New logs", logs.length);
 
     this.updateFetchedUpToBlockNumber(toBlock);
     this.onLogHandler(logs);

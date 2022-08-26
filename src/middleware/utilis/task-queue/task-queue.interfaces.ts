@@ -28,7 +28,7 @@ export interface ITaskGetLogs extends ITask {
 }
 
 export interface ITaskFactory {
-  create(type: TaskTypes.GetLogs, taskKey: TaskKey, payload: GetLogsTaskPayload): ITask;
+  create(type: TaskTypes.GetLogs, taskKey: TaskKey, payload: GetLogsTaskPayload): Promise<ITask>;
 }
 
 export interface ITaskExecutor {

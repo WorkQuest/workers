@@ -16,7 +16,7 @@ import {
   RouterMQClient,
   ContractWsProvider,
   ContractRpcProvider,
-  NotificationMQClient,
+  NotificationMQSenderClient,
   ContractRouterProvider,
 } from "../middleware";
 
@@ -48,7 +48,7 @@ export async function initWithWsConnectionType() {
   const bridgeEthContract = new web3Eth.eth.Contract(contractEthData.getAbi(), contractEthData.address);
   const bridgeWqContract = new web3Wq.eth.Contract(contractWorkNetData.getAbi(), contractWorkNetData.address);
 
-  const notificationClient = await new NotificationMQClient(configServices.messageOriented.notificationMessageBrokerLink, 'bridge')
+  const notificationClient = await new NotificationMQSenderClient(configServices.messageOriented.notificationMessageBrokerLink, 'bridge')
     .on('error', (error) => {
       Logger.error(error, 'Notification client stopped with error');
       process.exit(-1);
@@ -158,7 +158,7 @@ export async function initWithRpcConnectionType() {
   const bridgeEthContract = new web3Eth.eth.Contract(contractEthData.getAbi(), contractEthData.address);
   const bridgeWqContract = new web3Wq.eth.Contract(contractWorkNetData.getAbi(), contractWorkNetData.address);
 
-  const notificationClient = await new NotificationMQClient(configServices.messageOriented.notificationMessageBrokerLink, 'bridge')
+  const notificationClient = await new NotificationMQSenderClient(configServices.messageOriented.notificationMessageBrokerLink, 'bridge')
     .on('error', (error) => {
       Logger.error(error, 'Notification client stopped with error');
       process.exit(-1);
@@ -315,7 +315,9 @@ export async function initWithRoutingConnectionType() {
       target: `BridgeRpcProvider ("${configBridge.workQuestNetwork})"`,
     }),
     wqBridgeRouterClient,
-  );
+  )
+    .startListener()
+
   const bscBridgeProvider = new ContractRouterProvider(
     contractBnbData.address,
     contractBnbData.deploymentHeight,
@@ -325,7 +327,9 @@ export async function initWithRoutingConnectionType() {
       target: `BridgeWsProvider ("${configBridge.bscNetwork})"`,
     }),
     bscBridgeRouterClient,
-  );
+  )
+    .startListener()
+
   const ethBridgeProvider = new ContractRouterProvider(
     contractEthData.address,
     contractEthData.deploymentHeight,
@@ -335,7 +339,8 @@ export async function initWithRoutingConnectionType() {
       target: `BridgeWsProvider ("${configBridge.ethereumNetwork})"`,
     }),
     ethBridgeRouterClient,
-  );
+  )
+    .startListener()
 
   const wqBridgeController = new BridgeRouterController(
     Logger.child({

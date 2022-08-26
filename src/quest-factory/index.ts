@@ -3,7 +3,7 @@ import {Logger} from "./logger/pino";
 import configDatabase from './config/config.database';
 import configQuestFactory from './config/config.questFactory';
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
-import {NotificationMQClient, TransactionMQListener} from "../middleware";
+import {NotificationMQSenderClient, TransactionMQListener} from "../middleware";
 import {QuestFactoryMQProvider} from "./src/providers/QuestFactoryProvider";
 import {QuestCacheProvider} from "../quest/src/providers/QuestCacheProvider";
 import {initDatabase, BlockchainNetworks} from '@workquest/database-models/lib/models';
@@ -40,7 +40,7 @@ export async function init() {
     })
     .init()
 
-  const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBrokerLink, 'quest')
+  const notificationClient = await new NotificationMQSenderClient(configDatabase.notificationMessageBrokerLink, 'quest')
     .on('error', (error) => {
       Logger.error(error, 'Notification client stopped with error');
       process.exit(-1);

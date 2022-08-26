@@ -39,7 +39,7 @@ export class TasksExecutor implements ITaskExecutor {
       this.taskPools.length !== 0 &&
       this.tasksInProgress.length !== this.options.concurrency
     ) {
-      const { task } = this.taskPools.peek();
+      const { task } = this.taskPools.dequeue();
 
       this.tasksInProgress.push(task);
     }
@@ -64,10 +64,14 @@ export class TasksExecutor implements ITaskExecutor {
       value.getStatus() === TaskCompletionStatus.InProgress
     );
 
-    this.tasksInProgress.splice(0, this.tasksInProgress.length);
+    this.tasksInProgress
+      .splice(0, this.tasksInProgress.length)
 
-    this.completedTasks.push(...completedTasks);
-    this.tasksInProgress.push(...inProgressTasks);
+    this.completedTasks
+      .push(...completedTasks)
+
+    this.tasksInProgress
+      .push(...inProgressTasks)
   }
 
   private async emitCompletedTasks() {
@@ -94,11 +98,16 @@ export class TasksExecutor implements ITaskExecutor {
     this.taskPools.queue({ task, options });
   }
 
+  protected async execute() {
+    await this.takeAndExecuteTasks();
+    this.clearQueueOfCompletedTasks();
+    await this.emitCompletedTasks();
+  }
+
   public startExecute() {
-    setInterval(async () => {
-      await this.takeAndExecuteTasks();
-      this.clearQueueOfCompletedTasks();
-      await this.emitCompletedTasks();
+    setTimeout(async () => {
+      await this.execute();
+      this.startExecute();
     }, this.options.intervalInMs);
   }
 }

@@ -2,7 +2,7 @@ import Web3 from 'web3';
 import {Logger} from "./logger/pino";
 import configDatabase from './config/config.database';
 import configPensionFund from './config/config.pensionFund';
-import {NotificationMQClient, TransactionMQListener} from "../middleware";
+import {NotificationMQSenderClient, TransactionMQListener} from "../middleware";
 import {PensionFundMQProvider} from "./src/providers/PensionFundProvider";
 import {SupervisorContract, SupervisorContractTasks} from "../supervisor";
 import {PensionFundListenerController} from "./src/controllers/PensionFundController";
@@ -29,7 +29,7 @@ export async function init() {
     })
     .init()
 
-  const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBrokerLink, 'pension_fund')
+  const notificationClient = await new NotificationMQSenderClient(configDatabase.notificationMessageBrokerLink, 'pension_fund')
     .on('error', (error) => {
       Logger.error(error, 'Notification client stopped with error');
       process.exit(-1);

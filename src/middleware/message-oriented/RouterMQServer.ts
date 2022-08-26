@@ -13,11 +13,8 @@ import {
 } from "./message-queue.types";
 
 export class RouterMQServer implements IRouterServer {
+  protected channel: Channel;
   private connection: Connection;
-
-  protected subscriptionChannel: Channel;
-  protected tasksRequestChannel: Channel;
-  protected tasksResponseChannel: Channel;
 
   private readonly eventEmitter: EventEmitter;
 
@@ -25,7 +22,8 @@ export class RouterMQServer implements IRouterServer {
    * Exchange/Queue RouterServer.
    * "Router.Server.TaskRequests" -
    */
-  protected get routerServerRequestsQueue () { return `${this.network}.Router.Server.TaskRequests` }
+  protected get routerServerRequestsQueue  ()           { return `${this.network}.Router.Server.TaskRequests`                }
+  protected routerClientTaskResponsesQueue (clientName) { return `${this.network}.Router.Client.${clientName}.TaskResponses` }
 
   /**
    * Router Exchanges.
@@ -51,33 +49,31 @@ export class RouterMQServer implements IRouterServer {
     this.connection.on('error', this.onErrorHandler.bind(this));
     this.connection.on('close', this.onCloseHandler.bind(this));
 
-    this.subscriptionChannel = await this.connection.createChannel();
-    this.tasksRequestChannel = await this.connection.createChannel();
-    this.tasksResponseChannel = await this.connection.createChannel();
+    this.channel = await this.connection.createChannel();
 
-    await this.subscriptionChannel.assertExchange(this.routerSubscriptionExchange, 'fanout', {
+    await this.channel.assertExchange(this.routerSubscriptionExchange, 'fanout', {
       durable: true,
     });
-    await this.tasksResponseChannel.assertExchange(this.routerTaskResponseExchange, 'direct', {
+    await this.channel.assertExchange(this.routerTaskResponseExchange, 'direct', {
       durable: true,
     });
-    await this.tasksRequestChannel.assertExchange(this.routerTaskRequestExchange, 'direct', {
+    await this.channel.assertExchange(this.routerTaskRequestExchange, 'direct', {
       durable: true,
     });
 
-    await this.tasksRequestChannel.assertQueue(this.routerServerRequestsQueue, {
+    await this.channel.assertQueue(this.routerServerRequestsQueue, {
       durable: true,
       exclusive: true,
       messageTtl: 5000,
     });
 
-    await this.tasksRequestChannel.bindQueue(
+    await this.channel.bindQueue(
       this.routerServerRequestsQueue,
       this.routerTaskRequestExchange,
       this.routerServerRequestsQueue,
     );
 
-    await this.tasksRequestChannel.consume(
+    await this.channel.consume(
       this.routerServerRequestsQueue,
       this.onTaskRequestHandler.bind(this),
     );
@@ -94,15 +90,13 @@ export class RouterMQServer implements IRouterServer {
   }
 
   protected onTaskRequestHandler(msg: ConsumeMessage | null) {
-    console.log("onTaskRequestHandler: " + msg);
-
     if (msg) {
       const request: TaskRouterRequest = JSON.parse(msg.content.toString());
 
       this.eventEmitter.emit('task-request', request);
     }
 
-    this.tasksRequestChannel.ack(msg);
+    this.channel.ack(msg);
   }
 
   public on(type, callback): this {
@@ -124,7 +118,7 @@ export class RouterMQServer implements IRouterServer {
     }
     const responseBuffer = Buffer.from(JSON.stringify(response));
 
-    this.subscriptionChannel.publish(this.routerSubscriptionExchange, '', responseBuffer);
+    this.channel.publish(this.routerSubscriptionExchange, '', responseBuffer);
   }
 
   public async sendExecutedTaskGetLogs(clientName: string, task: { key: string, logs: Log[], maxBlockHeightViewed: number }) {
@@ -138,6 +132,10 @@ export class RouterMQServer implements IRouterServer {
     }
     const responseBuffer = Buffer.from(JSON.stringify(response));
 
-    this.subscriptionChannel.publish(this.routerTaskResponseExchange, clientName, responseBuffer);
+    this.channel.publish(
+      this.routerTaskResponseExchange,
+      this.routerClientTaskResponsesQueue(clientName),
+      responseBuffer,
+    );
   }
 }

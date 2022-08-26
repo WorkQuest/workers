@@ -10,7 +10,7 @@ import { BlockchainNetworks, initDatabase } from "@workquest/database-models/lib
 import { Networks, Store, WorkQuestNetworkContracts } from "@workquest/contract-data-pools";
 import {
   BridgeMQBetweenWorkers,
-  NotificationMQClient,
+  NotificationMQSenderClient,
   TransactionMQListener
 } from "../middleware";
 
@@ -50,7 +50,7 @@ export async function init() {
     })
     .init()
 
-  const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBrokerLink, 'quest')
+  const notificationClient = await new NotificationMQSenderClient(configDatabase.notificationMessageBrokerLink, 'quest')
     .on('error', (error) => {
       Logger.error(error, 'Notification client stopped with error');
       process.exit(-1);

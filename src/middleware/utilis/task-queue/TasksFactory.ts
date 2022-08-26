@@ -11,7 +11,7 @@ export class TasksFactory implements ITaskFactory {
   ) {
   }
 
-  protected createGetLogsTask(taskKey: TaskKey, payload: GetLogsTaskPayload): ITask {
+  protected async createGetLogsTask(taskKey: TaskKey, payload: GetLogsTaskPayload): Promise<ITask> {
     // TODO in config
     const options: GetLogsOptions = {
       stepsRange: this.network === BlockchainNetworks.workQuestNetwork || this.network === BlockchainNetworks.workQuestDevNetwork
@@ -19,15 +19,15 @@ export class TasksFactory implements ITaskFactory {
         : 2000
     }
 
-    return new GetLogsTask(
+    return await new GetLogsTask(
       taskKey,
       options,
       payload,
       this.blockchainRepository
-    )
+    ).init()
   }
 
-  public create(type: TaskTypes, taskKey: TaskKey, payload: any): ITask {
+  public async create(type: TaskTypes, taskKey: TaskKey, payload: any): Promise<ITask> {
     if (type === TaskTypes.GetLogs) {
       return this.createGetLogsTask(taskKey, payload);
     }

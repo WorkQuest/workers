@@ -1,6 +1,6 @@
 import Web3 from 'web3';
 import {Logger} from "../bridge-usdt/logger/pino";
-import {NotificationMQClient} from "../middleware";
+import {NotificationMQSenderClient} from "../middleware";
 import configWqtWbnb from './config/config.WqtWbnb';
 import configDatabase from './config/config.database';
 import {WqtWbnbProvider} from './src/providers/WqtWbnbProvider';
@@ -18,7 +18,7 @@ export async function init() {
   const web3 = new Web3(new Web3.providers.HttpProvider(configWqtWbnb.rpcProvider));
   const wqtWbnbContract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
-  const notificationClient = await new NotificationMQClient(configDatabase.notificationMessageBroker, 'daily_liquidity')
+  const notificationClient = await new NotificationMQSenderClient(configDatabase.notificationMessageBroker, 'daily_liquidity')
     .on('error', (error) => {
       Logger.error(error, 'Notification client stopped with error');
       process.exit(-1);

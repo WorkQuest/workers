@@ -36,9 +36,11 @@ export class GetLogsTask implements ITaskGetLogs {
   ) {
   }
 
-  public async init() {
+  public async init(): Promise<this> {
     await this.initState();
     this.initResult();
+
+    return this;
   }
 
   private initResult(): void {
@@ -60,7 +62,7 @@ export class GetLogsTask implements ITaskGetLogs {
     this.state.executionSteps.from = this.payload.blocksRange.from;
 
     this.state.executionSteps.to =
-      (this.state.blocksRange.from + this.options.stepsRange) >= this.payload.blocksRange.to
+      (this.state.blocksRange.from + this.options.stepsRange) >= this.state.blocksRange.to
         ? this.state.blocksRange.to
         : this.state.blocksRange.from + this.options.stepsRange
   }
@@ -75,7 +77,7 @@ export class GetLogsTask implements ITaskGetLogs {
 
   private updateStatus(): TaskCompletionStatus {
     this.state.status =
-      this.state.executionSteps.to >= this.payload.blocksRange.to
+      this.state.executionSteps.to >= this.state.blocksRange.to
         ? TaskCompletionStatus.Completed
         : TaskCompletionStatus.InProgress
 

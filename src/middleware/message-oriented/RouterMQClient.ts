@@ -14,10 +14,8 @@ import {
 } from "./message-queue.types";
 
 export class RouterMQClient implements IRouterClient {
+  protected channel: Channel;
   protected connection: Connection;
-
-  protected tasksChannel: Channel;
-  protected subscriptionChannel: Channel;
 
   private readonly eventEmitter: EventEmitter;
 
@@ -61,35 +59,34 @@ export class RouterMQClient implements IRouterClient {
     this.connection.on('error', this.onErrorHandler.bind(this));
     this.connection.on('close', this.onCloseHandler.bind(this));
 
-    this.tasksChannel = await this.connection.createChannel();
-    this.subscriptionChannel = await this.connection.createChannel();
+    this.channel = await this.connection.createChannel();
 
-    await this.subscriptionChannel.assertQueue(this.routerClientSubscriptionsQueue, {
+    await this.channel.assertQueue(this.routerClientSubscriptionsQueue, {
       durable: false,
       exclusive: false,
       autoDelete: true,
       messageTtl: 10000,
     });
-    await this.subscriptionChannel.bindQueue(
+    await this.channel.bindQueue(
       this.routerClientSubscriptionsQueue,
       this.routerSubscriptionExchange,
       ''
     );
-    await this.subscriptionChannel.consume(
+    await this.channel.consume(
       this.routerClientSubscriptionsQueue,
       this.onSubscriptionResponseHandler.bind(this),
     );
 
-    await this.tasksChannel.assertQueue(this.routerClientTaskResponsesQueue, {
+    await this.channel.assertQueue(this.routerClientTaskResponsesQueue, {
       durable: true,
       exclusive: false,
     });
-    await this.tasksChannel.bindQueue(
+    await this.channel.bindQueue(
       this.routerClientTaskResponsesQueue,
       this.routerTaskResponseExchange,
       this.routerClientTaskResponsesQueue,
     );
-    await this.tasksChannel.consume(
+    await this.channel.consume(
       this.routerClientTaskResponsesQueue,
       this.onTaskResponseHandler.bind(this),
     );
@@ -112,7 +109,7 @@ export class RouterMQClient implements IRouterClient {
       this.eventEmitter.emit('task-response', response);
     }
 
-    this.tasksChannel.ack(msg);
+    this.channel.ack(msg);
   }
 
   protected onSubscriptionResponseHandler(msg: ConsumeMessage | null) {
@@ -121,12 +118,10 @@ export class RouterMQClient implements IRouterClient {
 
       this.eventEmitter.emit('subscription-response', response);
     }
-
-    this.subscriptionChannel.ack(msg);
   }
 
   private async sendRequestToExecuteTask(taskRequest: TaskRouterRequest) {
-    this.tasksChannel.publish(
+    this.channel.publish(
       this.routerTaskRequestExchange,
       this.routerServerRequestsQueue,
       Buffer.from(JSON.stringify(taskRequest)),
