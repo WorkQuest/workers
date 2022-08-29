@@ -23,6 +23,7 @@ export type NotifyPayload = {
  */
 export enum SubscriptionRouterTypes {
   NewLogs = 'NewLogs',
+  ServerStarted = 'ServerStarted'
 }
 
 /**
@@ -38,7 +39,7 @@ export type TaskRouterResponse = {
 
 export type SubscriptionRouterResponse = {
   subscription: SubscriptionRouterTypes,
-  data: any,
+  data?: any,
 }
 
 export type TaskRouterGetLogsResponse = TaskRouterResponse & {
@@ -51,8 +52,12 @@ export type SubscriptionRouterNewLogsResponse = SubscriptionRouterResponse & {
   data: { logs: Log[] },
 }
 
+export type SubscriptionRouterServerStartedResponse = SubscriptionRouterResponse & {
+  subscription: SubscriptionRouterTypes.ServerStarted,
+}
+
 /**
- *      Responses types for RouterClient
+ *      Requests types for RouterClient
  * TaskRequest - accepts tasks for execution from the RouterClient.
  */
 export type TaskRouterRequest = {

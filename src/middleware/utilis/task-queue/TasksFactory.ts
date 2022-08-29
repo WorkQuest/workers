@@ -1,27 +1,28 @@
 import {GetLogsTask} from "./GetLogsTask";
+import {LoggerFactory} from "../../logging";
 import {ITask, ITaskFactory} from "./task-queue.interfaces";
-import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 import {IBlockchainRepository} from "../../repository/repository.interfaces";
-import {GetLogsOptions, GetLogsTaskPayload, TaskKey, TaskTypes,} from "./task-queue.types";
+import {
+  TaskKey,
+  TaskTypes,
+  GetLogsTaskPayload,
+  TaskFactoryOptions,
+} from "./task-queue.types";
 
 export class TasksFactory implements ITaskFactory {
   constructor(
-    protected readonly network: BlockchainNetworks,
+    protected readonly options: TaskFactoryOptions,
     protected readonly blockchainRepository: IBlockchainRepository,
   ) {
   }
 
   protected async createGetLogsTask(taskKey: TaskKey, payload: GetLogsTaskPayload): Promise<ITask> {
-    // TODO in config
-    const options: GetLogsOptions = {
-      stepsRange: this.network === BlockchainNetworks.workQuestNetwork || this.network === BlockchainNetworks.workQuestDevNetwork
-        ? 10000
-        : 2000
-    }
+    const logger = LoggerFactory.createLogger(`GetLogs, key: ${taskKey}`, 'TaskExecutor');
 
     return await new GetLogsTask(
       taskKey,
-      options,
+      logger,
+      this.options.getLogs,
       payload,
       this.blockchainRepository
     ).init()

@@ -1,10 +1,14 @@
 import Web3 from "web3";
+import {BlockchainRepositoryOptions} from "./repository.types";
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 import {IBlockchainRepository, IIndexedKeysListRepository} from "./repository.interfaces";
+import {ILogger} from "../logging/logging.interfaces";
 
 export class BlockchainRepositoryWithCaching implements IBlockchainRepository {
   constructor(
     protected readonly web3: Web3,
+    protected readonly logger: ILogger,
+    protected readonly options: BlockchainRepositoryOptions,
     protected readonly logsRepository: IIndexedKeysListRepository<Log>,
   ) {
   }
@@ -85,14 +89,13 @@ export class BlockchainRepositoryWithCaching implements IBlockchainRepository {
     }
 
     const logs = [];
-    const steps = 2000;
 
     const state = {
       blocksRange: { from: payload.fromBlockNumber, to: payload.toBlockNumber },
-      executionSteps: { from: payload.fromBlockNumber, to: payload.fromBlockNumber + steps },
+      executionSteps: { from: payload.fromBlockNumber, to: payload.fromBlockNumber + this.options.stepsRange },
     }
 
-    if (payload.fromBlockNumber + steps > payload.toBlockNumber) {
+    if (payload.fromBlockNumber + this.options.stepsRange > payload.toBlockNumber) {
       return await this.web3.eth.getPastLogs({
         address: payload.addresses,
         fromBlock: payload.fromBlockNumber,
@@ -108,7 +111,7 @@ export class BlockchainRepositoryWithCaching implements IBlockchainRepository {
       }) as Log[];
 
       logs.push(...newLogs);
-      incrementStepsState(state, steps);
+      incrementStepsState(state, this.options.stepsRange);
 
       if (state.executionSteps.to === state.blocksRange.to) {
         newLogs = await this.web3.eth.getPastLogs({
@@ -129,6 +132,8 @@ export class BlockchainRepositoryWithCaching implements IBlockchainRepository {
   }
 
   public async getPastLogs(payload: { addresses?: string[], fromBlockNumber: number, toBlockNumber: number }): Promise<Log[]> {
+    this.logger.debug('Get past logs payload: %o', payload);
+
     if (payload.fromBlockNumber > payload.toBlockNumber) {
       throw new Error('"fromBlock must be less than or equal to toBlock"\n' +
         'fromBlockNumber: ' +  payload.fromBlockNumber + '\n' +
@@ -147,10 +152,19 @@ export class BlockchainRepositoryWithCaching implements IBlockchainRepository {
           [0] || '-1'
       )
 
+    this.logger.debug(
+      'First "%s" and last "%s" block number from cache',
+      firstBlockNumber,
+      lastBlockNumber,
+    );
+
     if (firstBlockNumber <= payload.fromBlockNumber && lastBlockNumber >= payload.toBlockNumber) {
+      this.logger.info('Log data will be taken from the cache');
+
       return await this.getPastLogsFromRepository(payload);
     }
 
+    // TODO Учитывать BlockchainRepositoryOptions
     const logs = await this.getPastLogsFromNode({
       fromBlockNumber: payload.fromBlockNumber,
       toBlockNumber: payload.toBlockNumber,

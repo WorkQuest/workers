@@ -4,10 +4,23 @@
   "description": "",
   "scripts": {
     "build": "tsc",
-    "routerServer:start": "nodemon -e ts --exec \"npm run routerServer:compile\"",
-    "routerServer:compile": "tsc && node ./build/blockchain-logs-server/index.js",
-    "bridge:start": "nodemon -e ts --exec \"npm run bridge:compile\"",
-    "bridge:compile": "tsc && node ./build/bridge/index.js",
+
+    "routerServer:wq:start": "nodemon -e ts --exec \"npm run routerServer:wq:compile\"",
+    "routerServer:wq:compile": "tsc && node ./build/blockchain-logs-server/index.wq-network.js --networks=workQuestDevNetwork",
+    "routerServer:eth:start": "nodemon -e ts --exec \"npm run routerServer:eth:compile\"",
+    "routerServer:eth:compile": "tsc && node ./build/blockchain-logs-server/index.eth-network.js --networks=rinkebyTestNetwork",
+    "routerServer:bsc:start": "nodemon -e ts --exec \"npm run routerServer:bsc:compile\"",
+    "routerServer:bsc:compile": "tsc && node ./build/blockchain-logs-server/index.wq-network.js --networks=bscTestNetwork",
+
+
+    "bridge:wq:start": "nodemon -e ts --exec \"npm run bridge:wq:compile\"",
+    "bridge:wq:compile": "tsc && node ./build/bridge/index.js --networks=workQuestDevNetwork",
+    "bridge:eth:start": "nodemon -e ts --exec \"npm run bridge:eth:compile\"",
+    "bridge:eth:compile": "tsc && node ./build/bridge/index.js --networks=rinkebyTestNetwork",
+    "bridge:bsc:start": "nodemon -e ts --exec \"npm run bridge:bsc:compile\"",
+    "bridge:bsc:compile": "tsc && node ./build/bridge/index.js --networks=bscTestNetwork",
+
+
     "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",
     "proposal:compile": "tsc && node ./build/proposal/index.js",
     "WqtWbnb:start": "nodemon -e ts --exec \"npm run WqtWbnb:compile\"",

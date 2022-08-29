@@ -1,29 +1,27 @@
-import {ContractRpcProviderSettings} from "./contract-providers.types";
 import Web3 from "web3";
 import {Contract, EventData} from "web3-eth-contract";
 import {ILogger} from "../logging/logging.interfaces";
 import {IContractProvider} from "./contract-providers.interfaces";
+import {ContractRpcProviderOptions} from "./contract-providers.types";
 
 export class ContractRpcProvider implements IContractProvider {
-  protected readonly settings: ContractRpcProviderSettings;
-
   constructor(
     public readonly address: string,
     public readonly eventViewingHeight: number,
     protected readonly web3: Web3,
     public readonly contract: Contract,
     protected readonly Logger: ILogger,
+    protected readonly options: ContractRpcProviderOptions,
   ) {
-    this.settings = { blockAssembler: { steps: 2000 } }
   }
 
   public async getEvents(fromBlockNumber: number) {
-    const { steps } = this.settings.blockAssembler;
+    const { stepsRange } = this.options;
     const collectedEvents: EventData[] = [];
     const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
     let fromBlock = fromBlockNumber;
-    let toBlock = fromBlock + steps;
+    let toBlock = fromBlock + stepsRange;
 
     try {
       while (true) {
@@ -51,8 +49,8 @@ export class ContractRpcProvider implements IContractProvider {
 
         this.Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
 
-        fromBlock += steps;
-        toBlock = fromBlock + steps - 1;
+        fromBlock += stepsRange;
+        toBlock = fromBlock + stepsRange - 1;
       }
     } catch (error) {
       this.Logger.error(error, 'Collection of all events ended with an error.' +

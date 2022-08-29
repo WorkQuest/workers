@@ -1,16 +1,18 @@
 import { config } from 'dotenv';
 
-config({ path: __dirname + '/../../../.env.fetcher' });
+config({ path: __dirname + '/../../../.env.routerServer' });
 
 export default {
   logLevel: 'debug',
-  redis: {
-    number: 0,
-    url: process.env.REDIS_LINK,
+
+  network: () => {
+    const networkArg = process.argv
+      .find(s => s.match(/--network=/g))
+
+    return networkArg
+      ? networkArg.replace("--network=", "")
+      : undefined
   },
-  rabbitLink: process.env.RABBIT_LINK,
-  network: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
-  routerServerMessageBrokerLink: process.env.ROUTER_SERVER_MESSAGE_BROKER_LINK,
 
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
@@ -34,8 +36,8 @@ export default {
     linkRpcProvider: process.env.BSC_TEST_NETWORK_RPC_PROVIDER,
   },
 
-  defaultConfigNetwork: (): { linkRpcProvider: string } => {
+  configForNetwork: (): { linkRpcProvider: string } => {
     // @ts-ignore
-    return this.default[this.default.network];
+    return this.default[this.default.network()];
   },
 }

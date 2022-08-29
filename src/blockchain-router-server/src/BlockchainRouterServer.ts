@@ -76,7 +76,7 @@ export class BlockchainLogsServer {
           key: task.taskKey,
           logs: taskResult.logs,
           maxBlockHeightViewed: taskResult.maxBlockHeightViewed,
-        })
+        });
       }
     }
   }
@@ -87,6 +87,6 @@ export class BlockchainLogsServer {
 
   public async start() {
     this.taskExecutor.startExecute();
-    // this.logsFetcherWorker.startFetcher();
+    this.logsFetcherWorker.startFetcher();
   }
 }

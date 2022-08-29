@@ -1,9 +1,10 @@
-import {IContractListenerProvider} from "./contract-providers.interfaces";
-import {ContractRpcProvider} from "./ContractRpcProvider";
-import EventEmitter from "events";
 import Web3 from "web3";
+import EventEmitter from "events";
 import {Contract} from "web3-eth-contract";
 import {ILogger} from "../logging/logging.interfaces";
+import {ContractRpcProvider} from "./ContractRpcProvider";
+import {ContractRpcProviderOptions} from "./contract-providers.types";
+import {IContractListenerProvider} from "./contract-providers.interfaces";
 
 export class ContractWsProvider extends ContractRpcProvider implements IContractListenerProvider {
   private readonly eventEmitter: EventEmitter;
@@ -14,11 +15,11 @@ export class ContractWsProvider extends ContractRpcProvider implements IContract
     protected readonly web3: Web3,
     public readonly contract: Contract,
     protected readonly Logger: ILogger,
+    protected readonly options: ContractRpcProviderOptions,
   ) {
-    super(address, eventViewingHeight, web3, contract, Logger);
+    super(address, eventViewingHeight, web3, contract, Logger, options);
 
     this.eventEmitter = new EventEmitter();
-    this.settings.blockAssembler.steps = 6000;
   }
 
   private onErrorHandler(error) {

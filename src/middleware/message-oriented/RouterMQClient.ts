@@ -7,8 +7,8 @@ import {IRouterClient} from "./message-queue.interfaces";
 import {TaskKey, TaskPriority, TaskTypes} from "../utilis/utilits.types";
 import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 import {
-  TaskRouterRequest,
   TaskGetLogsRequest,
+  TaskRouterRequest,
   TaskRouterResponse,
   SubscriptionRouterResponse,
 } from "./message-queue.types";
@@ -38,11 +38,12 @@ export class RouterMQClient implements IRouterClient {
 
   /**
    * Exchange/Queue RouterClient.
-   * Router.Client.*client-name*.TaskResponses -
-   * Router.Client.*client-name*.SubscriptionAnswers -
    *
+   * *network*.Router.Client.*client-name*.TaskResponses - Responses from server server completed tasks (for example get logs).
+   *
+   * *network*.Router.Client.*client-name*.SubscriptionAnswers - Getting new logs from the router server.
    */
-  protected get routerClientTaskResponsesQueue () { return `${this.network}.Router.Client.${this.clientName}.TaskResponses` }
+  protected get routerClientTaskResponsesQueue () { return `${this.network}.Router.Client.${this.clientName}.TaskResponses`         }
   protected get routerClientSubscriptionsQueue () { return `${this.network}.Router.Client.${this.clientName}.SubscriptionResponses` }
 
   constructor(
@@ -67,11 +68,13 @@ export class RouterMQClient implements IRouterClient {
       autoDelete: true,
       messageTtl: 10000,
     });
+
     await this.channel.bindQueue(
       this.routerClientSubscriptionsQueue,
       this.routerSubscriptionExchange,
       ''
     );
+
     await this.channel.consume(
       this.routerClientSubscriptionsQueue,
       this.onSubscriptionResponseHandler.bind(this),
@@ -113,10 +116,14 @@ export class RouterMQClient implements IRouterClient {
   }
 
   protected onSubscriptionResponseHandler(msg: ConsumeMessage | null) {
-    if (msg) {
-      const response: SubscriptionRouterResponse = JSON.parse(msg.content.toString());
+    try {
+      if (msg) {
+        const response: SubscriptionRouterResponse = JSON.parse(msg.content.toString());
 
-      this.eventEmitter.emit('subscription-response', response);
+        this.eventEmitter.emit('subscription-response', response);
+      }
+    } catch (error) {
+
     }
   }
 

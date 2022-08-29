@@ -21,7 +21,7 @@
     "./src/bridge/**/*ts",
     "./src/middleware/**/*ts",
     "./src/supervisor/**/*ts",
-    "./src/blockchain-logs-server/**/*ts",
+    "./src/blockchain-router-server/**/*ts"
   ],
   "rootDir":  ["src"]
 }

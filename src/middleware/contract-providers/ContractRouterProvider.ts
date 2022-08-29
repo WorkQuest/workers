@@ -1,13 +1,14 @@
 import EventEmitter from "events";
 import {BlocksRange} from "../../types";
 import {ILogger} from "../logging/logging.interfaces";
-import {Contract, EventData} from "web3-eth-contract";
+import {EventData} from "web3-eth-contract";
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 import {IContractListenerProvider} from "./contract-providers.interfaces";
 import {IRouterClient} from "../message-oriented/message-queue.interfaces";
 import {
   TaskRouterResponse,
   SubscriptionRouterTypes,
+  TaskRouterGetLogsResponse,
   SubscriptionRouterResponse,
 } from "../message-oriented/message-queue.types";
 
@@ -20,7 +21,6 @@ export class ContractRouterProvider implements IContractListenerProvider {
   constructor(
     public readonly address: string,
     public readonly eventViewingHeight: number,
-    public readonly contract: Contract,
     protected readonly abi: object[],
     protected readonly Logger: ILogger,
     protected readonly routerClient: IRouterClient,
@@ -31,6 +31,7 @@ export class ContractRouterProvider implements IContractListenerProvider {
     this.AbiDecoder.addABI(this.abi);
   }
 
+  /** Utils */
   private logsFilter(log: Log): boolean {
     return log.address && log.address.toLowerCase() === this.address.toLowerCase();
   }
@@ -47,8 +48,15 @@ export class ContractRouterProvider implements IContractListenerProvider {
     return new Promise(async (resolve, reject) => {
       const taskKey = await this.routerClient.sendTaskGetLogs(blocksRange, this.address, 1);
 
-      this.eventEmitter.once(`task-response.${taskKey}`, task => {
-        resolve(task.data);
+      this.eventEmitter.once('server-started', () => {
+        this.Logger.warn('Server restarted. All tasks will be canceled.');
+
+        resolve({ logs: [], maxBlockHeightViewed: blocksRange.from - 1 })
+      });
+      this.eventEmitter.once(`task-response.${taskKey}`, (taskResponse: TaskRouterGetLogsResponse) => {
+        this.Logger.info('Completed task (task key: "%s") came from the router.', taskResponse.key);
+
+        resolve(taskResponse.data);
       });
     }) as Promise<{
       logs: Log[],
@@ -56,16 +64,31 @@ export class ContractRouterProvider implements IContractListenerProvider {
     }>;
   }
 
-
-
+  /** On handlers */
   private onEventDataHandler(eventData) {
+    this.Logger.debug('Decoded event data from the router server. Event: %o', eventData);
+
     this.eventEmitter.emit('events', eventData);
   }
 
-  private async onNewLogsHandler(logs: Log[]) {
+  private onServerStartedHandler() {
+    this.Logger.info('Router server restarted');
+
+    this.eventEmitter.emit('server-started');
+  }
+
+  private onNewLogsHandler(logs: Log[]) {
+    this.Logger.debug(
+      'New logs from the router server. Number of logs: "%s". Logs: %o',
+      logs.length,
+      logs,
+    );
+
     const events = this.decodeLogToEvent(
       logs.filter(this.logsFilter)
     );
+
+    this.Logger.debug('New events data from the router server. Number of events: "%s"', events.length);
 
     for (const event of events) {
       this.onEventDataHandler(event);
@@ -73,16 +96,22 @@ export class ContractRouterProvider implements IContractListenerProvider {
   }
 
   private async onTaskResponseHandler(taskResponse: TaskRouterResponse) {
+    this.Logger.debug('The router server completed the task. Task response: %o', taskResponse);
+
     this.eventEmitter.emit(`task-response.${taskResponse.key}`, taskResponse);
   }
 
-  private async onRouterSubscriptionResponseHandler(response: SubscriptionRouterResponse) {
+  private onRouterSubscriptionResponseHandler(response: SubscriptionRouterResponse) {
+    this.Logger.debug('New reply by subscribing to notifications: %o', response);
+
     if (response.subscription === SubscriptionRouterTypes.NewLogs) {
-      await this.onNewLogsHandler(response.data.logs);
+      this.onNewLogsHandler(response.data.logs);
+    } else if (response.subscription === SubscriptionRouterTypes.ServerStarted) {
+      this.onServerStartedHandler();
     }
   }
 
-
+  /** Providers interfaces */
   public on(type, callBack): void {
     if (type === 'error') {
       this.eventEmitter.addListener('error', callBack);
@@ -97,12 +126,18 @@ export class ContractRouterProvider implements IContractListenerProvider {
     this.routerClient.on('task-response', this.onTaskResponseHandler.bind(this));
     this.routerClient.on('subscription-response', this.onRouterSubscriptionResponseHandler.bind(this));
 
-    this.Logger.info('Start listener on contract: "%s"', this.contract.options.address);
+    // this.Logger.info('Start listener on contract address: "%s"', this.contract.options.address);
 
     return this;
   }
 
   public async getEvents(fromBlockNumber: number, toBlockNumber: number | 'latest' = 'latest') {
+    this.Logger.debug(
+      'Get events: fromBlockNumber: "%s", toBlockNumber: "%s"',
+      fromBlockNumber,
+      toBlockNumber,
+    );
+
     const { maxBlockHeightViewed, logs } = await this.createTaskGetLogs({
       from: fromBlockNumber,
       to: toBlockNumber,

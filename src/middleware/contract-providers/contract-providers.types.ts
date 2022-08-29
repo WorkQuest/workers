@@ -19,4 +19,11 @@ export type ContractRouterProviderSettings = {
 
 }
 
+export type ContractRpcProviderOptions = {
+  /**
+   * Get logs by step range.
+   * (from, from + stepsRange)
+   */
+  stepsRange: number,
+}
 

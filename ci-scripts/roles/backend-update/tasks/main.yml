@@ -68,10 +68,10 @@
     src: ./{{ saving_product_env }}.j2
     dest: '{{ WORKERS_BIN }}/{{ saving_product_env }}'
 
-- name: Copy or generate fetcher env file
+- name: Copy or generate router server env file
   template:
-    src: ./{{ fetcher_env }}.j2
-    dest: '{{ WORKERS_BIN }}/{{ fetcher_env }}'
+    src: ./{{ router_server_env }}.j2
+    dest: '{{ WORKERS_BIN }}/{{ router_server_env }}'
 
 - name: Copy or generate quest env file
   template:

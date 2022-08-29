@@ -3,13 +3,13 @@ import {Op} from "sequelize";
 import {BridgeEvents} from "./types";
 import {EventData} from "web3-eth-contract";
 import configBridge from "../../config/config.bridge";
-import {INotificationSenderClient} from "../../../middleware/middleware.interfaces";
 import {
   ILogger,
   IController,
   IContractProvider,
   IContractListenerProvider,
-} from "../../../interfaces";
+  INotificationSenderClient,
+} from "../../../middleware/middleware.interfaces"
 import {
   BlockchainNetworks,
   BridgeSwapTokenEvent,
@@ -205,7 +205,7 @@ export class BridgeController implements IController {
   protected async syncOfViewedBlocks(fromBlockNumber: number) {
     this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
+    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber, 'latest');
 
     for (const event of events) {
       try {

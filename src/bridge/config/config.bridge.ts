@@ -4,10 +4,15 @@ config({ path: __dirname + '/../../../.env.bridge' });
 
 export default {
   logLevel: 'debug',
-  connectionType: 'routing', /** rpc, routing, ws */
-  workQuestNetwork: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
-  bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
-  ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork
+
+  network: () => {
+    const networkArg = process.argv
+      .find(s => s.match(/--network=/g))
+
+    return networkArg
+      ? networkArg.replace("--network=", "")
+      : undefined
+  },
 
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
@@ -35,17 +40,10 @@ export default {
     linkWsProvider: process.env.BSC_TEST_NETWORK_WEBSOCKET_PROVIDER,
   },
 
-  defaultWqConfigNetwork: (): { linkRpcProvider: string } => {
+  configForNetwork: (): { linkRpcProvider: string, linkWsProvider?: string } => {
     // @ts-ignore
-    return this.default[this.default.workQuestNetwork];
+    return this.default[this.default.network()];
   },
-  defaultBscConfigNetwork: (): { linkWsProvider: string, linkRpcProvider: string } => {
-    // @ts-ignore
-    return this.default[this.default.bscNetwork];
-  },
-  defaultEthConfigNetwork: (): { linkWsProvider: string, linkRpcProvider: string } => {
-    // @ts-ignore
-    return this.default[this.default.ethereumNetwork];
-  },
+
   privateKey: process.env.BRIDGE_CONTRACT_PRIVATE_KEY,
 };

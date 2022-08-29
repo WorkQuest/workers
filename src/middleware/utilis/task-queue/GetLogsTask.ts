@@ -1,11 +1,7 @@
 import {ITaskGetLogs} from "./task-queue.interfaces"
+import {ILogger} from "../../logging/logging.interfaces";
 import {IBlockchainRepository} from "../../repository/repository.interfaces";
-import {
-  GetLogsOptions,
-  TaskGetLogsResult,
-  GetLogsTaskPayload,
-  TaskCompletionStatus,
-} from "./task-queue.types";
+import {GetLogsOptions, GetLogsTaskPayload, TaskCompletionStatus, TaskGetLogsResult} from "./task-queue.types";
 
 type State = {
   executionSteps: {
@@ -30,6 +26,7 @@ export class GetLogsTask implements ITaskGetLogs {
 
   constructor(
     public readonly taskKey: string,
+    protected readonly logger: ILogger,
     protected readonly options: GetLogsOptions,
     protected readonly payload: GetLogsTaskPayload,
     protected readonly blockchainRepository: IBlockchainRepository,
@@ -75,7 +72,18 @@ export class GetLogsTask implements ITaskGetLogs {
       : this.state.executionSteps.to += this.options.stepsRange
   }
 
+  private errorHandling(error) {
+    this.state.status = TaskCompletionStatus.Error;
+    this.result = { logs: [], maxBlockHeightViewed: this.state.blocksRange.from }
+
+    this.logger.error(error, 'The worker ended with an error');
+  }
+
   private updateStatus(): TaskCompletionStatus {
+    if (this.state.status === TaskCompletionStatus.Error) {
+      return TaskCompletionStatus.Error;
+    }
+
     this.state.status =
       this.state.executionSteps.to >= this.state.blocksRange.to
         ? TaskCompletionStatus.Completed
@@ -93,25 +101,55 @@ export class GetLogsTask implements ITaskGetLogs {
   }
 
   public async execute() {
-    if (this.getStatus() !== TaskCompletionStatus.InProgress) {
-      return this.getStatus();
+    try {
+      this.logger.info('Start execution of a task');
+
+      if (this.getStatus() !== TaskCompletionStatus.InProgress) {
+        this.logger.info(
+          'The worker has already completed the task. '
+          + 'Returning the status "%s"',
+          this.getStatus(),
+        );
+
+        return this.getStatus();
+      }
+
+      this.logger.debug(
+        'Get logs with execution steps. From: "%s", To: "%s"',
+        this.state.executionSteps.from,
+        this.state.executionSteps.to,
+      );
+
+      const logs = await this.blockchainRepository.getPastLogs({
+        addresses: [this.payload.addresses].flat(),
+        fromBlockNumber: this.state.executionSteps.from,
+        toBlockNumber: this.state.executionSteps.to,
+      });
+
+      this.logger.debug(
+        'Number of collected logs: "%s". Logs: %o',
+        logs.length,
+        logs,
+      );
+
+      this.result.logs.push(...logs as any[]);
+      this.result.maxBlockHeightViewed = this.state.executionSteps.to;
+
+      this.logger.debug('Number of collected logs: "%s"', this.result.logs);
+
+      if (this.updateStatus() === TaskCompletionStatus.Completed) {
+        this.logger.info('The worker has finished executing');
+
+        return TaskCompletionStatus.Completed;
+      }
+
+      this.incrementStepsState();
+
+      return TaskCompletionStatus.InProgress;
+    } catch (error) {
+      this.errorHandling(error);
+
+      return TaskCompletionStatus.Error;
     }
-
-    const logs = await this.blockchainRepository.getPastLogs({
-      addresses: [this.payload.addresses].flat(),
-      fromBlockNumber: this.state.executionSteps.from,
-      toBlockNumber: this.state.executionSteps.to,
-    });
-
-    this.result.logs.push(...logs as any[]);
-    this.result.maxBlockHeightViewed = this.state.executionSteps.to;
-
-    if (this.updateStatus() === TaskCompletionStatus.Completed) {
-      return TaskCompletionStatus.Completed;
-    }
-
-    this.incrementStepsState();
-
-    return TaskCompletionStatus.InProgress;
   }
 }

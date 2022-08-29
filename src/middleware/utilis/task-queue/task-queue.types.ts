@@ -49,5 +49,13 @@ export type GetLogsTaskPayload = {
 }
 
 export type GetLogsOptions = {
+  /**
+   * Get logs by step range.
+   * (from, from + stepsRange)
+   */
   stepsRange: number,
+}
+
+export type TaskFactoryOptions = {
+  getLogs: GetLogsOptions
 }

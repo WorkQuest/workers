@@ -1,6 +1,42 @@
 {
   "apps": [
     {
+      "name": "{{ PM2_WQ_ROUTER_SERVER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/blockchain-router-server/index.wq-network.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "node_args": ["--network=workQuestDevNetwork"],
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_ETH_ROUTER_SERVER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/blockchain-router-server/index.eth-network.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "node_args": ["--network=rinkebyTestNetwork"],
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
+      "name": "{{ PM2_BSC_ROUTER_SERVER_NAME }}",
+      "exec_mode": "fork",
+      "instances": "1",
+      "script": "./build/blockchain-router-server/index.bsc-network.js",
+      "autorestart": true,
+      "listen_timeout": 15000,
+      "node_args": ["--network=bscTestNetwork"],
+      "env": {
+        "ENV": "prod"
+      }
+    },
+    {
       "name": "{{ PM2_BRIDGE_WORKER_NAME }}",
       "exec_mode": "fork",
       "instances": "1",
@@ -16,17 +52,6 @@
       "exec_mode": "fork",
       "instances": "1",
       "script": "./build/bridge-usdt/index.js",
-      "autorestart": true,
-      "listen_timeout": 15000,
-      "env": {
-        "ENV": "prod"
-      }
-    },
-    {
-      "name": "{{ PM2_FETCHER_WORKER_NAME }}",
-      "exec_mode": "fork",
-      "instances": "1",
-      "script": "./build/fetchers/index.js",
       "autorestart": true,
       "listen_timeout": 15000,
       "env": {

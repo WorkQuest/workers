@@ -10,6 +10,7 @@ import {
   SubscriptionRouterTypes,
   TaskRouterGetLogsResponse,
   SubscriptionRouterNewLogsResponse,
+  SubscriptionRouterServerStartedResponse,
 } from "./message-queue.types";
 
 export class RouterMQServer implements IRouterServer {
@@ -78,9 +79,12 @@ export class RouterMQServer implements IRouterServer {
       this.onTaskRequestHandler.bind(this),
     );
 
+    await this.notifyEveryoneAboutServerStarted();
+
     return this;
   }
 
+  /** On handlers */
   protected onCloseHandler() {
     this.eventEmitter.emit('close');
   }
@@ -109,6 +113,17 @@ export class RouterMQServer implements IRouterServer {
     }
 
     return this;
+  }
+
+  /** Notifications senders */
+  protected notifyEveryoneAboutServerStarted() {
+    const response: SubscriptionRouterServerStartedResponse = {
+      subscription: SubscriptionRouterTypes.ServerStarted,
+    }
+
+    const responseBuffer = Buffer.from(JSON.stringify(response));
+
+    this.channel.publish(this.routerSubscriptionExchange, '', responseBuffer);
   }
 
   public async notifyEveryoneAboutNewLogs(logs: Log[]) {
