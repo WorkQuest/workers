@@ -12,24 +12,18 @@ export class ContractSupervisor {
   ) {
   }
 
-  private async syncBlocks() {
-    this.Logger.info('Block height sync is started');
-
-    try {
-      await this.controller.syncBlocks();
-    } catch (error) {
-      this.Logger.error(error, 'Sync ended with an unknown error');
-
-      process.exit(-1);
-    }
-
-    this.Logger.info('Block height sync is completed');
-  }
+  private tm = { i: 0, tm: [] };
 
   private runTaskBlockHeightSync() {
+    console.log(this.tm.i, this.tm.tm);
+
     setTimeout(async () => {
-      await this.syncBlocks();
-      this.runTaskBlockHeightSync();
+      await this.controller.syncBlocks(() => {
+        this.tm.i++;
+        this.tm.tm.push(Date.now());
+
+        this.runTaskBlockHeightSync();
+      });
     }, this.options.blockHeightSync.pollPeriod);
   }
 

@@ -6,6 +6,6 @@ export interface IController {
   readonly contractProvider: IContractProvider;
 
   start(): Promise<void>;
-  syncBlocks(): Promise<void>;
   getLastCollectedBlock(): Promise<number>;
+  syncBlocks(callback?: () => void): Promise<void>;
 }

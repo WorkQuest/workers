@@ -1,9 +1,10 @@
 import {ReceivedEvents} from "./contract-providers.types";
+import {BlocksRange} from "../utilis/utilits.types";
 
 export interface IContractProvider {
   readonly eventViewingHeight: number;
 
-  getEvents(fromBlockNumber: number, toBlockNumber: number | 'latest'): Promise<ReceivedEvents>;
+  getEvents(blocksRange: BlocksRange, callback: (events: ReceivedEvents) => void): Promise<void>;
 }
 
 export interface IContractListenerProvider extends IContractProvider {

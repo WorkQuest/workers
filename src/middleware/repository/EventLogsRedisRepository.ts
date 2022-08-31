@@ -22,8 +22,8 @@ export class EventLogsRedisRepository implements IIndexedKeysListRepository<Log>
   public async init(): Promise<this> {
     this.redisClient = createClient(this.redisClientOptions);
 
-    await this.redisClient.on('error', this.onError.bind(this));
-    await this.redisClient.on('close', this.onClose.bind(this));
+    await this.redisClient.on('error', this.onErrorHandler.bind(this));
+    await this.redisClient.on('close', this.onCloseHandler.bind(this));
 
     await this.redisClient.connect();
 
@@ -40,11 +40,11 @@ export class EventLogsRedisRepository implements IIndexedKeysListRepository<Log>
     return this;
   }
 
-  protected onClose() {
+  protected onCloseHandler() {
     this.eventEmitter.emit('close');
   }
 
-  protected onError(error) {
+  protected onErrorHandler(error) {
     this.eventEmitter.emit('error', error);
   }
 
@@ -135,9 +135,9 @@ export class EventLogsRedisRepository implements IIndexedKeysListRepository<Log>
   }
 
   private async getValuesOfMergedListsByKeysWithPrefixRangeByScore(from: number, to: number): Promise<Log[]> {
-    return await this.redisClient.mGet(
+    return (await this.redisClient.mGet(
       await this.getListKeysWithPrefixRangeByScore(from, to)
-    )
+    ))
       .filter((logs: string[] | null) => logs)
       .flat()
       .map(log => JSON.parse(log))

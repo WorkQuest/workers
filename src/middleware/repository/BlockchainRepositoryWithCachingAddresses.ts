@@ -3,15 +3,17 @@ import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 import {IIndexedKeysListRepository} from "./repository.interfaces";
 import {BlockchainRepositoryWithCaching} from "./BlockchainRepositoryWithCaching";
 import {BlockchainRepositoryOptions} from "./repository.types";
+import {ILogger} from "../logging/logging.interfaces";
 
 export class BlockchainRepositoryWithCachingAddresses extends BlockchainRepositoryWithCaching {
   constructor(
     protected readonly web3: Web3,
+    protected readonly logger: ILogger,
     protected readonly trackedContractAddresses: string[],
     protected readonly options: BlockchainRepositoryOptions,
     protected readonly logsRepository: IIndexedKeysListRepository<Log>,
   ) {
-    super(web3, options, logsRepository);
+    super(web3, logger, options, logsRepository);
   }
 
   protected async getPastLogsFromNode(payload: { addresses?: string[], fromBlockNumber: number, toBlockNumber: number }): Promise<Log[]> {

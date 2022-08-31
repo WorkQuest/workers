@@ -135,8 +135,6 @@ export class GetLogsTask implements ITaskGetLogs {
       this.result.logs.push(...logs as any[]);
       this.result.maxBlockHeightViewed = this.state.executionSteps.to;
 
-      this.logger.debug('Number of collected logs: "%s"', this.result.logs);
-
       if (this.updateStatus() === TaskCompletionStatus.Completed) {
         this.logger.info('The worker has finished executing');
 

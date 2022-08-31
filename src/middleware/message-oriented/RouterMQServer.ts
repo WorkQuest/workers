@@ -7,10 +7,11 @@ import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 import {BlockchainNetworks} from "@workquest/database-models/lib/models";
 import {
   TaskRouterRequest,
+  ServerRouterServices,
   SubscriptionRouterTypes,
   TaskRouterGetLogsResponse,
   SubscriptionRouterNewLogsResponse,
-  SubscriptionRouterServerStartedResponse,
+  SubscriptionTaskExecutorRouterServerStartedResponse,
 } from "./message-queue.types";
 
 export class RouterMQServer implements IRouterServer {
@@ -23,8 +24,8 @@ export class RouterMQServer implements IRouterServer {
    * Exchange/Queue RouterServer.
    * "Router.Server.TaskRequests" -
    */
-  protected get routerServerRequestsQueue  ()           { return `${this.network}.Router.Server.TaskRequests`                }
-  protected routerClientTaskResponsesQueue (clientName) { return `${this.network}.Router.Client.${clientName}.TaskResponses` }
+  protected get routerServerTaskRequestsQueue  ()           { return `${this.network}.Router.Server.TaskRequests`                }
+  protected routerClientTaskResponsesQueue     (clientName) { return `${this.network}.Router.Client.${clientName}.TaskResponses` }
 
   /**
    * Router Exchanges.
@@ -40,8 +41,28 @@ export class RouterMQServer implements IRouterServer {
   constructor(
     private readonly mqLink: string,
     private readonly network: BlockchainNetworks,
+    private readonly services: ServerRouterServices,
   ) {
     this.eventEmitter = new EventEmitter();
+  }
+
+  protected async initTaskExecutorService() {
+    await this.channel.assertQueue(this.routerServerTaskRequestsQueue, {
+      durable: true,
+      exclusive: true,
+      messageTtl: 5000,
+    });
+
+    await this.channel.bindQueue(
+      this.routerServerTaskRequestsQueue,
+      this.routerTaskRequestExchange,
+      this.routerServerTaskRequestsQueue,
+    );
+
+    await this.channel.consume(
+      this.routerServerTaskRequestsQueue,
+      this.onTaskRequestHandler.bind(this),
+    );
   }
 
   public async init(): Promise<this> {
@@ -62,24 +83,10 @@ export class RouterMQServer implements IRouterServer {
       durable: true,
     });
 
-    await this.channel.assertQueue(this.routerServerRequestsQueue, {
-      durable: true,
-      exclusive: true,
-      messageTtl: 5000,
-    });
-
-    await this.channel.bindQueue(
-      this.routerServerRequestsQueue,
-      this.routerTaskRequestExchange,
-      this.routerServerRequestsQueue,
-    );
-
-    await this.channel.consume(
-      this.routerServerRequestsQueue,
-      this.onTaskRequestHandler.bind(this),
-    );
-
-    await this.notifyEveryoneAboutServerStarted();
+    if ((this.services & ServerRouterServices.TaskExecutor) != 0) {
+      await this.initTaskExecutorService();
+      await this.notifyEveryoneAboutTaskExecutorServerStarted();
+    }
 
     return this;
   }
@@ -94,10 +101,14 @@ export class RouterMQServer implements IRouterServer {
   }
 
   protected onTaskRequestHandler(msg: ConsumeMessage | null) {
-    if (msg) {
-      const request: TaskRouterRequest = JSON.parse(msg.content.toString());
+    try {
+      if (msg && msg.content) {
+        const request: TaskRouterRequest = JSON.parse(msg.content.toString());
 
-      this.eventEmitter.emit('task-request', request);
+        this.eventEmitter.emit('task-request', request);
+      }
+    } catch (error) {
+      console.log(error);
     }
 
     this.channel.ack(msg);
@@ -116,9 +127,9 @@ export class RouterMQServer implements IRouterServer {
   }
 
   /** Notifications senders */
-  protected notifyEveryoneAboutServerStarted() {
-    const response: SubscriptionRouterServerStartedResponse = {
-      subscription: SubscriptionRouterTypes.ServerStarted,
+  protected notifyEveryoneAboutTaskExecutorServerStarted() {
+    const response: SubscriptionTaskExecutorRouterServerStartedResponse = {
+      subscription: SubscriptionRouterTypes.TaskExecutorServerStarted,
     }
 
     const responseBuffer = Buffer.from(JSON.stringify(response));
@@ -127,6 +138,10 @@ export class RouterMQServer implements IRouterServer {
   }
 
   public async notifyEveryoneAboutNewLogs(logs: Log[]) {
+    if ((this.services & ServerRouterServices.SendingNewLogs) == 0) {
+      throw new Error('RouterMQServer is not include sending new logs');
+    }
+
     const response: SubscriptionRouterNewLogsResponse = {
       subscription: SubscriptionRouterTypes.NewLogs,
       data: { logs },

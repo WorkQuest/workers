@@ -7,7 +7,7 @@ export default {
 
   network: () => {
     const networkArg = process.argv
-      .find(s => s.match(/--network=/g))
+      .find(argv => argv.includes("--network="))
 
     return networkArg
       ? networkArg.replace("--network=", "")

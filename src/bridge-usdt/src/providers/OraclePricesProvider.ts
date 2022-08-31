@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
-import { TokenPriceProvider } from "./types";
+import { ITokenPriceProvider } from "./interfaces";
 
-export class OraclePricesProvider implements TokenPriceProvider {
+export class OraclePricesProvider implements ITokenPriceProvider {
 
   protected api: AxiosInstance;
 

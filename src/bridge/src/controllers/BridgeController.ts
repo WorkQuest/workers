@@ -3,6 +3,7 @@ import {Op} from "sequelize";
 import {BridgeEvents} from "./types";
 import {EventData} from "web3-eth-contract";
 import configBridge from "../../config/config.bridge";
+import {BlocksRange} from "../../../middleware/middleware.types"
 import {
   ILogger,
   IController,
@@ -28,7 +29,7 @@ export class BridgeController implements IController {
   ) {
   }
 
-  protected async onEvent(eventsData: EventData) {
+  protected async onEventHandler(eventsData: EventData) {
     this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -202,39 +203,39 @@ export class BridgeController implements IController {
     // });
   }
 
-  protected async syncOfViewedBlocks(fromBlockNumber: number) {
-    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+  public async syncBlocks(callback?: () => void) {
+    const blockRange: BlocksRange = {
+      to: 'latest',
+      from: await this.getLastCollectedBlock(),
+    }
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber, 'latest');
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', blockRange.from);
 
-    for (const event of events) {
-      try {
-        await this.onEvent(event);
-        await this.updateBlockViewHeight(event.blockNumber);
-      } catch (e) {
-        this.Logger.error(e, 'Event processing ended with error');
+    await this.contractProvider.getEvents(blockRange, async (receivedEvents) => {
+      for (const event of receivedEvents.events) {
+        try {
+          await this.onEventHandler(event);
+          await this.updateBlockViewHeight(event.blockNumber);
+        } catch (e) {
+          this.Logger.error(e, 'Event processing ended with error');
 
-        throw e;
+          throw e;
+        }
       }
-    }
 
-    await this.updateBlockViewHeight(lastBlockNumber);
+      await this.updateBlockViewHeight(receivedEvents.lastBlockNumber);
 
-    if (error) {
-      throw error;
-    }
-  };
-
-  public async syncBlocks() {
-    const lastParsedBlock = await this.getLastCollectedBlock();
-
-    await this.syncOfViewedBlocks(lastParsedBlock);
+      if (receivedEvents.error) {
+        throw receivedEvents.error;
+      }
+      if (callback) {
+        callback();
+      }
+    });
   }
 
   public async start() {
-    await this.syncOfViewedBlocks(
-      await this.getLastCollectedBlock()
-    );
+
   }
 }
 
@@ -256,7 +257,7 @@ export class BridgeListenerController extends BridgeController {
     );
 
     this.contractProvider.on('events', (async (eventData) => {
-      await this.onEvent(eventData);
+      await this.onEventHandler(eventData);
     }));
   }
 }

@@ -2,7 +2,8 @@ import Web3 from "web3";
 import {Contract, EventData} from "web3-eth-contract";
 import {ILogger} from "../logging/logging.interfaces";
 import {IContractProvider} from "./contract-providers.interfaces";
-import {ContractRpcProviderOptions} from "./contract-providers.types";
+import {ContractRpcProviderOptions, ReceivedEvents} from "./contract-providers.types";
+import {BlocksRange} from "../utilis/utilits.types";
 
 export class ContractRpcProvider implements IContractProvider {
   constructor(
@@ -15,12 +16,15 @@ export class ContractRpcProvider implements IContractProvider {
   ) {
   }
 
-  public async getEvents(fromBlockNumber: number) {
+  public async getEvents(blocksRange: BlocksRange, callback: (events: ReceivedEvents) => void) {
     const { stepsRange } = this.options;
     const collectedEvents: EventData[] = [];
-    const lastBlockNumber = await this.web3.eth.getBlockNumber();
 
-    let fromBlock = fromBlockNumber;
+    const lastBlockNumber = blocksRange.to === 'latest'
+      ? await this.web3.eth.getBlockNumber()
+      : blocksRange.to
+
+    let fromBlock = blocksRange.from;
     let toBlock = fromBlock + stepsRange;
 
     try {
@@ -58,9 +62,9 @@ export class ContractRpcProvider implements IContractProvider {
         fromBlock, collectedEvents.length,
       );
 
-      return { events: collectedEvents, error, lastBlockNumber: fromBlock };
+      callback({ events: collectedEvents, error, lastBlockNumber: fromBlock });
     }
 
-    return { events: collectedEvents, lastBlockNumber };
+    callback({ events: collectedEvents, lastBlockNumber });
   }
 }

@@ -1,4 +1,4 @@
-import {BlocksRange} from "../../types";
+import {BlocksRange} from "../middleware.types";
 import {TaskPriority, TaskKey} from "../utilis/utilits.types"
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 import {BlockchainNetworks} from "@workquest/database-models/lib/models";

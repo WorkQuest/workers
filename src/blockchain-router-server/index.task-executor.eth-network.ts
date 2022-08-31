@@ -1,30 +1,41 @@
 import Web3 from "web3";
 import configRouterServices from "./config/config.services";
 import configRouterServer from "./config/config.router-server";
-import {BlockchainLogsServer} from "./src/BlockchainRouterServer";
+import {ServerRouterServices} from "../middleware/middleware.types"
 import {BlockchainNetworks} from "@workquest/database-models/lib/models";
-import {RouterMQServer} from "../middleware/message-oriented/RouterMQServer";
+import {BlockchainTaskExecutorServer} from "./src/BlockchainTaskExecutorServer";
+import {Networks, Store, EthNetworkContracts} from "@workquest/contract-data-pools";
 import {
   TasksFactory,
   TasksExecutor,
   LoggerFactory,
-  LogsFetcherWorker,
+  RouterMQServer,
   EventLogsRedisRepository,
-  BlockchainRepositoryWithCaching,
+  BlockchainRepositoryWithCachingAddresses,
 } from "../middleware";
 
-async function init() {
-  const Logger = LoggerFactory.createLogger(`RouterServer:${configRouterServer.network() || ''}`, 'Common');
+function ethContractTrackingAddresses(): string[] {
+  return [
+    Store[Networks.Eth][EthNetworkContracts.WqtWeth].address,
+    Store[Networks.Eth][EthNetworkContracts.WqtBridge].address,
+    Store[Networks.Eth][EthNetworkContracts.BridgeUSDT].address,
+  ]
+}
 
-  const network = configRouterServer.network() as BlockchainNetworks.workQuestNetwork | BlockchainNetworks.workQuestDevNetwork;
+async function init() {
+  const network = configRouterServer.network() as BlockchainNetworks.rinkebyTestNetwork | BlockchainNetworks.ethMainNetwork;
+
+  const Logger = LoggerFactory.createLogger(`TaskExecutor.RouterServer:${network || ''}`, 'Common');
+  const BlockchainRepositoryLogger = LoggerFactory.createLogger(`RouterServer:${network || ''}`, 'BlockchainRepository');
+
   const { linkRpcProvider } = configRouterServer.configForNetwork();
-  const wqNetworks = [BlockchainNetworks.workQuestNetwork, BlockchainNetworks.workQuestDevNetwork];
+  const ethNetworks = [BlockchainNetworks.rinkebyTestNetwork, BlockchainNetworks.ethMainNetwork];
 
   if (!network) {
     throw new Error('Network argv is undefined. Use arg --network=NetworkName');
   }
-  if (!wqNetworks.includes(network)) {
-    throw new Error('Use only wq networks.');
+  if (!ethNetworks.includes(network)) {
+    throw new Error('Use only eth networks.');
   }
 
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
@@ -39,8 +50,10 @@ async function init() {
     })
     .init()
 
-  const blockchainRepository = new BlockchainRepositoryWithCaching(
+  const blockchainRepository = new BlockchainRepositoryWithCachingAddresses(
     web3,
+    BlockchainRepositoryLogger,
+    ethContractTrackingAddresses(),
     { stepsRange: 2000 },
     logsRedisRepo,
   );
@@ -55,11 +68,10 @@ async function init() {
     blockchainRepository,
   );
 
-  const logsFetcherWorker = new LogsFetcherWorker(blockchainRepository);
-
   const routerServer = await new RouterMQServer(
     configRouterServices.messageOriented.routerServerMessageBrokerLink,
     network,
+    ServerRouterServices.TaskExecutor,
   )
     .on('error', (error) => {
       Logger.error(error, 'RouterMQServer stopped with error.');
@@ -67,11 +79,10 @@ async function init() {
     })
     .init()
 
-  await new BlockchainLogsServer(
+  await new BlockchainTaskExecutorServer(
     routerServer,
     tasksFactory,
     tasksExecutor,
-    logsFetcherWorker,
   )
     .start()
 }

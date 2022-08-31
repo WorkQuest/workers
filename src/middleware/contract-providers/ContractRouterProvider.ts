@@ -1,7 +1,7 @@
 import EventEmitter from "events";
-import {BlocksRange} from "../../types";
-import {ILogger} from "../logging/logging.interfaces";
 import {EventData} from "web3-eth-contract";
+import {ILogger} from "../logging/logging.interfaces";
+import {BlocksRange, ReceivedEvents} from "../middleware.types";
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 import {IContractListenerProvider} from "./contract-providers.interfaces";
 import {IRouterClient} from "../message-oriented/message-queue.interfaces";
@@ -71,10 +71,10 @@ export class ContractRouterProvider implements IContractListenerProvider {
     this.eventEmitter.emit('events', eventData);
   }
 
-  private onServerStartedHandler() {
-    this.Logger.info('Router server restarted');
+  private onServerTaskExecutorStartedHandler() {
+    this.Logger.info('Task executor router server restarted');
 
-    this.eventEmitter.emit('server-started');
+    this.eventEmitter.emit('server-task-executor-started');
   }
 
   private onNewLogsHandler(logs: Log[]) {
@@ -106,8 +106,8 @@ export class ContractRouterProvider implements IContractListenerProvider {
 
     if (response.subscription === SubscriptionRouterTypes.NewLogs) {
       this.onNewLogsHandler(response.data.logs);
-    } else if (response.subscription === SubscriptionRouterTypes.ServerStarted) {
-      this.onServerStartedHandler();
+    } else if (response.subscription === SubscriptionRouterTypes.TaskExecutorServerStarted) {
+      this.onServerTaskExecutorStartedHandler();
     }
   }
 
@@ -131,21 +131,29 @@ export class ContractRouterProvider implements IContractListenerProvider {
     return this;
   }
 
-  public async getEvents(fromBlockNumber: number, toBlockNumber: number | 'latest' = 'latest') {
+  public async getEvents(blocksRange: BlocksRange, callback: (events: ReceivedEvents) => void) {
     this.Logger.debug(
-      'Get events: fromBlockNumber: "%s", toBlockNumber: "%s"',
-      fromBlockNumber,
-      toBlockNumber,
+      'Get events: from block number: "%s", to block number: "%s"',
+      blocksRange.from,
+      blocksRange.to,
     );
 
-    const { maxBlockHeightViewed, logs } = await this.createTaskGetLogs({
-      from: fromBlockNumber,
-      to: toBlockNumber,
-    });
+    const taskKey = await this.routerClient.sendTaskGetLogs(blocksRange, this.address, 1);
 
-    return {
-      events: this.AbiDecoder.decodeLogs(logs),
-      lastBlockNumber: maxBlockHeightViewed,
-    }
+    this.eventEmitter.once('server-task-executor-started', () => {
+      this.Logger.warn('Server restarted. All tasks will be canceled.');
+
+      callback({ events: [], lastBlockNumber: blocksRange.from - 1 });
+    });
+    this.eventEmitter.once(`task-response.${taskKey}`, (taskResponse: TaskRouterGetLogsResponse) => {
+      this.Logger.info('Completed task (task key: "%s") came from the router.', taskResponse.key);
+
+      this.eventEmitter.removeAllListeners('server-task-executor-started');
+
+      callback({
+        events: this.AbiDecoder.decodeLogs(taskResponse.data.logs),
+        lastBlockNumber: taskResponse.data.maxBlockHeightViewed,
+      });
+    });
   }
 }

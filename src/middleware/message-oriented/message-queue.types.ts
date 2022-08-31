@@ -4,8 +4,27 @@ import {
   TaskTypes,
   TaskPriority,
   TaskGetLogsResult,
-  GetLogsTaskPayload,
+  GetLogsTaskPayload, TaskExecutorOptions,
 } from "../utilis/utilits.types";
+
+/**
+ *      RouterServer Services.
+ *  A router may include many services.
+ *  For the execution of tasks, server services can be
+ *    executed both in one process (ServerRouterServices.AllServices) and
+ *    scaled into several processes (ServerRouterServices.TaskExecutor, ServerRouterServices.SendingNewLogs)
+ *
+ * ServerRouterServices.TaskExecutor - must be unique and run in the same process.
+ * ServerRouterServices.SendingNewLogs - is not a unique service and can be run in multiple processes.
+ */
+export enum ServerRouterServices {
+  None = 0,
+
+  TaskExecutor = 1 << 0,
+  SendingNewLogs = 1 << 1,
+
+  AllServices = ServerRouterServices.TaskExecutor | ServerRouterServices.SendingNewLogs,
+}
 
 /**
  *      Notification client types.
@@ -23,7 +42,7 @@ export type NotifyPayload = {
  */
 export enum SubscriptionRouterTypes {
   NewLogs = 'NewLogs',
-  ServerStarted = 'ServerStarted'
+  TaskExecutorServerStarted = 'TaskExecutorServerStarted'
 }
 
 /**
@@ -52,8 +71,8 @@ export type SubscriptionRouterNewLogsResponse = SubscriptionRouterResponse & {
   data: { logs: Log[] },
 }
 
-export type SubscriptionRouterServerStartedResponse = SubscriptionRouterResponse & {
-  subscription: SubscriptionRouterTypes.ServerStarted,
+export type SubscriptionTaskExecutorRouterServerStartedResponse = SubscriptionRouterResponse & {
+  subscription: SubscriptionRouterTypes.TaskExecutorServerStarted,
 }
 
 /**

@@ -1,17 +1,17 @@
 import Web3 from "web3";
 import BigNumber from "bignumber.js";
-import { Logger } from "../logger/pino";
-import { addJob } from "../utils/scheduler";
-import configDatabase from "../config/config.common";
-import configSwapUsdt from "../config/config.swapUsdt";
-import { NotificationMQSenderClient } from "../../middleware";
+import { addJob } from "../src/utils";
+import configServices from "../config/config.services";
+import configBridgeUsdt from "../config/config.bridge-usdt";
+import {LoggerFactory, NotificationMQSenderClient} from "../../middleware";
 import {
   Transaction,
   TransactionStatus,
   FirstWqtTransmissionData,
 } from "@workquest/database-models/lib/models";
 
-const notificationsBroker = new NotificationMQSenderClient(configDatabase.notificationMessageBroker.link, 'bridge_usdt');
+const Logger = LoggerFactory.createLogger('WorkerBridgeUsdt', 'Job sendFirstWqtJob');
+const notificationsBroker = new NotificationMQSenderClient(configServices.messageOriented.notificationMessageBrokerLink, 'bridge_usdt');
 
 export interface SendFirstWqtPayload {
   readonly ratio: number;
@@ -49,10 +49,10 @@ export default async function (payload: SendFirstWqtPayload) {
 
     await transmissionData.update({ status: TransactionStatus.InProcess });
 
-    const { linkRpcProvider } = configSwapUsdt.defaultWqConfigNetwork();
+    const { linkRpcProvider } = configBridgeUsdt.configForNetwork();
 
     const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
-    const account = web3.eth.accounts.privateKeyToAccount(configSwapUsdt.accountSenderFirsWqt.privateKey);
+    const account = web3.eth.accounts.privateKeyToAccount(configBridgeUsdt.accountSenderFirsWqt.privateKey);
 
     web3.eth.accounts.wallet.add(account);
     web3.eth.defaultAccount = account.address;
@@ -76,7 +76,7 @@ export default async function (payload: SendFirstWqtPayload) {
       gas: gasLimit,
       to: payload.recipientAddress,
       value: amountValueToUserMinusPlatformFee,
-      from: configSwapUsdt.accountSenderFirsWqt.address,
+      from: configBridgeUsdt.accountSenderFirsWqt.address,
     };
 
     await transmissionData.update({ gasPriceAtMoment: gasPrice });
@@ -91,7 +91,7 @@ export default async function (payload: SendFirstWqtPayload) {
           gasUsed: receipt.gasUsed,
           amount: amountValueToUserMinusPlatformFee,
           blockNumber: receipt.blockNumber,
-          network: configSwapUsdt.workQuestNetwork,
+          network: configBridgeUsdt.network(),
         });
 
         transmissionData.status = TransactionStatus.Success;

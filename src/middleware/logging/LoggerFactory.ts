@@ -9,7 +9,7 @@ export class LoggerFactory {
       transport: {
         target: 'pino-pretty',
         options: {
-          ignore: 'serviceName,hostName',
+          ignore: 'serviceName,hostName,target',
           messageFormat: 'Service: "{serviceName}", Target: "{target}": {msg}',
           translateTime: "HH:MM:ss, dd-mm-yyyy",
         },

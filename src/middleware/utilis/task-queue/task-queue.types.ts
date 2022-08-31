@@ -1,4 +1,4 @@
-import {BlocksRange} from "../../../types";
+import {BlocksRange} from "../utilits.types";
 import {ITask} from "./task-queue.interfaces";
 import {Log} from "@ethersproject/abstract-provider/src.ts/index";
 

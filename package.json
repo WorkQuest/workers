@@ -5,20 +5,27 @@
   "scripts": {
     "build": "tsc",
 
-    "routerServer:wq:start": "nodemon -e ts --exec \"npm run routerServer:wq:compile\"",
-    "routerServer:wq:compile": "tsc && node ./build/blockchain-logs-server/index.wq-network.js --networks=workQuestDevNetwork",
-    "routerServer:eth:start": "nodemon -e ts --exec \"npm run routerServer:eth:compile\"",
-    "routerServer:eth:compile": "tsc && node ./build/blockchain-logs-server/index.eth-network.js --networks=rinkebyTestNetwork",
-    "routerServer:bsc:start": "nodemon -e ts --exec \"npm run routerServer:bsc:compile\"",
-    "routerServer:bsc:compile": "tsc && node ./build/blockchain-logs-server/index.wq-network.js --networks=bscTestNetwork",
+    "router-server:task-executor:bsc:start": "tsc && nodemon -e ts --exec \"node ./build/blockchain-router-server/index.task-executor.wq-network.js --network=bscTestNetwork\"",
+    "router-server:task-executor:wq:start": "tsc && nodemon -e ts --exec \"node ./build/blockchain-router-server/index.task-executor.wq-network.js --network=workQuestDevNetwork\"",
+    "router-server:task-executor:eth:start": "tsc && nodemon -e ts --exec \"node ./build/blockchain-router-server/index.task-executor.eth-network.js --network=rinkebyTestNetwork\"",
+    "router-server:logs-fetcher:bsc:start": "tsc && nodemon -e ts --exec \"node ./build/blockchain-router-server/index.logs-fetcher.wq-network.js --network=bscTestNetwork\"",
+    "router-server:logs-fetcher:wq:start": "tsc && nodemon -e ts --exec \"node ./build/blockchain-router-server/index.logs-fetcher.wq-network.js --network=workQuestDevNetwork\"",
+    "router-server:logs-fetcher:eth:start": "tsc && nodemon -e ts --exec \"node ./build/blockchain-router-server/index.logs-fetcher.eth-network.js --network=rinkebyTestNetwork\"",
 
+    "bridge:router:wq:start": "tsc && nodemon -e ts --exec \"node ./build/bridge/index.router.js --network=workQuestDevNetwork\"",
+    "bridge:router:eth:start": "tsc && nodemon -e ts --exec \"node ./build/bridge/index.router.js --network=rinkebyTestNetwork\"",
+    "bridge:router:bsc:start": "tsc && nodemon -e ts --exec \"node ./build/bridge/index.router.js --network=bscTestNetwork\"",
+    "bridge:rpc:wq:start": "tsc && nodemon -e ts --exec \"node ./build/bridge/index.rpc.js --network=workQuestDevNetwork\"",
+    "bridge:rpc:eth:start": "tsc && nodemon -e ts --exec \"node ./build/bridge/index.rpc.js --network=rinkebyTestNetwork\"",
+    "bridge:rpc:bsc:start": "tsc && nodemon -e ts --exec \"node ./build/bridge/index.rpc.js --network=bscTestNetwork\"",
 
-    "bridge:wq:start": "nodemon -e ts --exec \"npm run bridge:wq:compile\"",
-    "bridge:wq:compile": "tsc && node ./build/bridge/index.js --networks=workQuestDevNetwork",
-    "bridge:eth:start": "nodemon -e ts --exec \"npm run bridge:eth:compile\"",
-    "bridge:eth:compile": "tsc && node ./build/bridge/index.js --networks=rinkebyTestNetwork",
-    "bridge:bsc:start": "nodemon -e ts --exec \"npm run bridge:bsc:compile\"",
-    "bridge:bsc:compile": "tsc && node ./build/bridge/index.js --networks=bscTestNetwork",
+    "bridge-usdt:rpc:bsc:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.rpc.js --networks=bscTestNetwork\"",
+    "bridge-usdt:rpc:eth:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.rpc.js --networks=rinkebyTestNetwork\"",
+    "bridge-usdt:rpc:poligon:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.rpc.js --networks=mumbaiTestNetwork\"",
+    "bridge-usdt:router:bsc:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.router.js --networks=bscTestNetwork\"",
+    "bridge-usdt:router:eth:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.router.js --networks=rinkebyTestNetwork\"",
+    "bridge-usdt:router:poligon:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.router.js --networks=mumbaiTestNetwork\"",
+
 
 
     "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",

@@ -1,15 +1,21 @@
 import {Op} from "sequelize";
 import BigNumber from "bignumber.js";
+import {SwapUsdtEvents} from "./types";
 import {EventData} from "web3-eth-contract";
-import {TokenPriceProvider} from "../providers/types";
 import {sendFirstWqtJob} from "../../jobs/sendFirstWqt";
-import {IController, ILogger, SwapUsdtEvents} from "./types";
-import {IContractProvider, IContractListenerProvider} from "../../../types";
+import {ITokenPriceProvider} from "../providers/interfaces";
+import {BlocksRange} from "../../../middleware/utilis/utilits.types";
+import {
+  ILogger,
+  IController,
+  IContractProvider,
+  IContractListenerProvider,
+} from "../../../middleware/middleware.interfaces";
 import {
   CommissionTitle,
-  BlockchainNetworks,
   TransactionStatus,
   CommissionSettings,
+  BlockchainNetworks,
   BridgeSwapUsdtTokenEvent,
   FirstWqtTransmissionData,
   TransmissionStatusFirstWqt,
@@ -21,7 +27,7 @@ export class BridgeUsdtController implements IController {
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
-    protected readonly tokenPriceProvider: TokenPriceProvider,
+    protected readonly tokenPriceProvider: ITokenPriceProvider,
   ) {
   }
 
@@ -39,18 +45,6 @@ export class BridgeUsdtController implements IController {
     return lastParsedBlock;
   }
 
-  protected async onEvent(eventsData: EventData) {
-    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
-      eventsData.event,
-      eventsData.blockNumber,
-      eventsData.address,
-    );
-
-    if (eventsData.event === SwapUsdtEvents.SwapInitialized) {
-      return this.swapInitializedEventHandler(eventsData);
-    }
-  }
-
   protected updateBlockViewHeight(blockHeight: number) {
     this.Logger.debug('Update blocks: new block height "%s"', blockHeight);
 
@@ -60,6 +54,18 @@ export class BridgeUsdtController implements IController {
         lastParsedBlock: { [Op.lt]: blockHeight },
       }
     });
+  }
+
+  protected async onEventHandler(eventsData: EventData) {
+    this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
+      eventsData.event,
+      eventsData.blockNumber,
+      eventsData.address,
+    );
+
+    if (eventsData.event === SwapUsdtEvents.SwapInitialized) {
+      return this.swapInitializedEventHandler(eventsData);
+    }
   }
 
   public async swapInitializedEventHandler(eventsData: EventData) {
@@ -144,42 +150,41 @@ export class BridgeUsdtController implements IController {
       txHashSwapInitialized: transactionHash,
       amount: amountWqt,
     });
+  }
 
-    return this.updateBlockViewHeight(eventsData.blockNumber);
-  };
+  public async syncBlocks(callback?: () => void) {
+    const blockRange: BlocksRange = {
+      to: 'latest',
+      from: await this.getLastCollectedBlock(),
+    }
 
-  public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', blockRange.from);
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
+    await this.contractProvider.getEvents(blockRange, async (receivedEvents) => {
+      for (const event of receivedEvents.events) {
+        try {
+          await this.onEventHandler(event);
+          await this.updateBlockViewHeight(event.blockNumber);
+        } catch (e) {
+          this.Logger.error(e, 'Event processing ended with error');
 
-    for (const event of events) {
-      try {
-        await this.onEvent(event);
-      } catch (e) {
-        this.Logger.error(e, 'Event processing ended with error');
-
-        throw e;
+          throw e;
+        }
       }
-    }
 
-    await this.updateBlockViewHeight(lastBlockNumber);
+      await this.updateBlockViewHeight(receivedEvents.lastBlockNumber);
 
-    if (error) {
-      throw error;
-    }
-  };
-
-  public async syncBlocks() {
-    const lastParsedBlock = await this.getLastCollectedBlock();
-
-    await this.collectAllUncollectedEvents(lastParsedBlock);
+      if (receivedEvents.error) {
+        throw receivedEvents.error;
+      }
+      if (callback) {
+        callback();
+      }
+    });
   }
 
   public async start() {
-    await this.collectAllUncollectedEvents(
-      await this.getLastCollectedBlock()
-    );
+
   }
 }
 
@@ -187,7 +192,7 @@ export class BridgeUsdtListenerController extends BridgeUsdtController {
   constructor(
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
-    protected readonly tokenPriceProvider: TokenPriceProvider,
+    protected readonly tokenPriceProvider: ITokenPriceProvider,
     public readonly contractProvider: IContractListenerProvider,
   ) {
     super(Logger, network, contractProvider, tokenPriceProvider);
@@ -201,7 +206,18 @@ export class BridgeUsdtListenerController extends BridgeUsdtController {
     );
 
     this.contractProvider.on('events', (async (eventData) => {
-      await this.onEvent(eventData);
+      await this.onEventHandler(eventData);
     }));
+  }
+}
+
+export class BridgeUsdtRouterController extends BridgeUsdtController {
+  constructor(
+    protected readonly Logger: ILogger,
+    public readonly network: BlockchainNetworks,
+    protected readonly tokenPriceProvider: ITokenPriceProvider,
+    public readonly contractProvider: IContractListenerProvider,
+  ) {
+    super(Logger, network, contractProvider, tokenPriceProvider);
   }
 }

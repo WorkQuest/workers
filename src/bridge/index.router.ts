@@ -65,7 +65,7 @@ export async function init() {
   await new ContractSupervisor(
     BridgeContractSupervisorLogger,
     bridgeController,
-    { blockHeightSync: { pollPeriod: 7000 } },
+    { blockHeightSync: { pollPeriod: 25000 } },
     bridgeProvider,
   )
     .startTasks(SupervisorContractTasks.BlockHeightSync)

@@ -1,6 +1,6 @@
 import EventEmitter from "events";
 import generator from "generate-key";
-import {BlocksRange} from "../../types";
+import {BlocksRange} from "../middleware.types";
 import amqp, {Channel, Connection} from "amqplib";
 import {ConsumeMessage} from "amqplib/properties";
 import {IRouterClient} from "./message-queue.interfaces";
@@ -106,24 +106,30 @@ export class RouterMQClient implements IRouterClient {
   }
 
   protected onTaskResponseHandler(msg: ConsumeMessage | null) {
-    if (msg) {
-      const response: TaskRouterResponse = JSON.parse(msg.content.toString());
+    try {
+      if (msg && msg.content) {
+        const response: TaskRouterResponse = JSON.parse(msg.content.toString());
 
-      this.eventEmitter.emit('task-response', response);
+        this.eventEmitter.emit('task-response', response);
+      }
+    } catch (error) {
+      console.error(error);
     }
 
     this.channel.ack(msg);
   }
 
   protected onSubscriptionResponseHandler(msg: ConsumeMessage | null) {
+    console.log('onSubscriptionResponseHandler', msg);
+
     try {
-      if (msg) {
+      if (msg && msg.content) {
         const response: SubscriptionRouterResponse = JSON.parse(msg.content.toString());
 
         this.eventEmitter.emit('subscription-response', response);
       }
     } catch (error) {
-
+      console.log(error);
     }
   }
 

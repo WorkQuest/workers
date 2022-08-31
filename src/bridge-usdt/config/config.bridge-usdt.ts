@@ -4,13 +4,16 @@ config({ path: __dirname + '/../../../.env.bridgeUsdt' });
 
 export default {
   logLevel: 'debug',
-  connectionType: 'rpc', /** rpc, routing, ws */
 
-  workQuestNetwork: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK, // workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork
-  bscNetwork: process.env.BSC_BLOCKCHAIN_NETWORK, // bscMainNetwork, bscTestNetwork
-  ethereumNetwork: process.env.ETHEREUM_BLOCKCHAIN_NETWORK, // ethereumMainNetwork, rinkebyTestNetwork
-  polygonscanNetwork: process.env.POLYGONSCAN_BLOCKCHAIN_NETWORK,//PolygonscanMainNetwork, MumbaiTestNetwork
-  oracleLink: process.env.ORACLE_LINK,
+  network: () => {
+    const networkArg = process.argv
+      .find(argv => argv.includes("--network="))
+
+    return networkArg
+      ? networkArg.replace("--network=", "")
+      : undefined
+  },
+
   privateKey: process.env.SWAP_USDT_CONTRACT_PRIVATE_KEY,
 
   accountSenderFirsWqt: {
@@ -51,20 +54,8 @@ export default {
     linkWsProvider: process.env.MUMBAI_TEST_NETWORK_WEBSOCKET_PROVIDER,
   },
 
-  defaultWqConfigNetwork: (): { linkRpcProvider: string } => {
+  configForNetwork: (): { linkRpcProvider: string, linkWsProvider?: string } => {
     // @ts-ignore
-    return this.default[this.default.workQuestNetwork];
-  },
-  defaultBscConfigNetwork: (): { linkWsProvider: string, linkRpcProvider: string } => {
-    // @ts-ignore
-    return this.default[this.default.bscNetwork];
-  },
-  defaultEthConfigNetwork: (): { linkWsProvider: string, linkRpcProvider: string } => {
-    // @ts-ignore
-    return this.default[this.default.ethereumNetwork];
-  },
-  defaultPolygonConfigNetwork: (): { linkWsProvider: string, linkRpcProvider: string } => {
-    // @ts-ignore
-    return this.default[this.default.polygonscanNetwork];
+    return this.default[this.default.network()];
   },
 };
