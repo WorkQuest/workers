@@ -4,11 +4,18 @@ config({ path: __dirname + '/../../../.env.proposal' });
 
 export default {
   logLevel: 'debug',
-  /** workQuestDevNetwork, workQuestTestNetwork, workQuestMainNetwork */
-  network: process.env.WORK_QUEST_BLOCKCHAIN_NETWORK,
+
+  network: () => {
+    const networkArg = process.argv
+      .find(argv => argv.includes("--network="))
+
+    return networkArg
+      ? networkArg.replace("--network=", "")
+      : undefined
+  },
+
   workQuestDevNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_DEV_NETWORK_RPC_PROVIDER,
-    linkTendermintProvider: process.env.WORK_QUEST_DEV_NETWORK_TENDERMINT_PROVIDER,
   },
   workQuestTestNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_TEST_NETWORK_RPC_PROVIDER,
@@ -16,8 +23,9 @@ export default {
   workQuestMainNetwork: {
     linkRpcProvider: process.env.WORK_QUEST_MAIN_NETWORK_RPC_PROVIDER,
   },
-  defaultConfigNetwork: (): { linkTendermintProvider: string, linkRpcProvider: string } => {
+
+  configForNetwork: (): { linkRpcProvider: string, linkWsProvider?: string } => {
     // @ts-ignore
-    return this.default[this.default.network];
+    return this.default[this.default.network()];
   },
 }

@@ -1,9 +1,15 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
+import {ProposalEvents} from "./types";
 import {EventData} from "web3-eth-contract";
 import {addJob} from "../../../utils/scheduler";
-import {IController, ProposalEvents} from "./types";
-import {IContractProvider, IContractListenerProvider, ILogger} from "../../../types";
+import {BlocksRange} from "../../../middleware/middleware.types";
+import {
+  ILogger,
+  IController,
+  IContractProvider,
+  IContractListenerProvider,
+} from "../../../middleware/middleware.interfaces";
 import {
   Proposal,
   Discussion,
@@ -54,7 +60,7 @@ export class ProposalController implements IController {
     });
   }
 
-  protected async onEvent(eventsData: EventData) {
+  protected async onEventHandler(eventsData: EventData) {
     this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -71,14 +77,11 @@ export class ProposalController implements IController {
   }
 
   protected async proposalCreatedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
-
     const proposer = eventsData.returnValues.proposer.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     this.Logger.debug(
-      'Proposal created event handler: timestamp "%s", event data %o',
-      timestamp,
+      'Proposal created event handler: event data %o',
       eventsData,
     );
 
@@ -86,11 +89,10 @@ export class ProposalController implements IController {
       where: { nonce: eventsData.returnValues.nonce },
     });
 
-    const [, isCreated] = await ProposalCreatedEvent.findOrCreate({
+    const [createdEvent, isCreated] = await ProposalCreatedEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         proposer,
-        timestamp,
         transactionHash,
         network: this.network,
         proposalId: proposal ? proposal.id : null,
@@ -110,6 +112,11 @@ export class ProposalController implements IController {
 
       return;
     }
+
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
+
+    await createdEvent.update({ timestamp });
+
     if (!proposal) {
       this.Logger.warn('Proposal created event handler: event "%s" (tx hash "%s") handling is skipped because proposal (nonce "%s") not found',
         eventsData.event,
@@ -117,7 +124,7 @@ export class ProposalController implements IController {
         eventsData.returnValues.nonce,
       );
 
-      return this.updateBlockViewHeight(eventsData.blockNumber);
+      return;
     }
 
     this.Logger.debug('Proposal created event handler: event "%s" (tx hash "%s") found proposal (nonce "%s") %o',
@@ -141,20 +148,16 @@ export class ProposalController implements IController {
 
     return Promise.all([
       discussion.$set('medias', proposal.medias), /** Duplicate medias  */
-      this.updateBlockViewHeight(eventsData.blockNumber),
       proposal.update({ discussionId: discussion.id, status: ProposalStatus.Active }),
     ]);
   }
 
   protected async voteCastEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
-
     const voter = eventsData.returnValues.voter.toLowerCase();
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     this.Logger.debug(
-      'Proposal vote cast event handler: timestamp "%s", event data %o',
-      timestamp,
+      'Proposal vote cast event handler: event data %o',
       eventsData,
     );
 
@@ -169,7 +172,6 @@ export class ProposalController implements IController {
       },
       defaults: {
         voter,
-        timestamp,
         transactionHash,
         network: this.network,
         proposalId: proposalCreatedEvent ? proposalCreatedEvent.proposalId : null,
@@ -187,13 +189,18 @@ export class ProposalController implements IController {
 
       return;
     }
+
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
+
+    await voteCastEvent.update({ timestamp });
+
     if (!proposalCreatedEvent) {
       this.Logger.warn('Proposal vote cast event handler: event "%s" (tx hash "%s") handling is skipped because proposal created event not found',
         eventsData.event,
         transactionHash,
       );
 
-      return this.updateBlockViewHeight(eventsData.blockNumber);
+      return;
     }
 
     const incrementField = voteCastEvent.support
@@ -202,19 +209,15 @@ export class ProposalController implements IController {
 
     await this.writeDaoStatistic(incrementField);
     await this.writeDaoStatistic(DaoPlatformStatisticFields.Votes);
-    await this.writeDaoStatistic(DaoPlatformStatisticFields.DelegatedValue, voteCastEvent.votes)
-
-    return this.updateBlockViewHeight(eventsData.blockNumber);
+    await this.writeDaoStatistic(DaoPlatformStatisticFields.DelegatedValue, voteCastEvent.votes);
   }
 
   protected async proposalExecutedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
-
     const transactionHash = eventsData.transactionHash.toLowerCase();
 
     this.Logger.debug(
-      'Proposal executed event handler: timestamp "%s", event data %o',
-      timestamp, eventsData
+      'Proposal executed event handler: event data %o',
+      eventsData
     );
 
     const proposalCreatedEvent = await ProposalCreatedEvent.findOne({
@@ -227,7 +230,6 @@ export class ProposalController implements IController {
         network: this.network,
       },
       defaults: {
-        timestamp,
         transactionHash,
         network: this.network,
         proposalId: proposalCreatedEvent ? proposalCreatedEvent.proposalId : null,
@@ -245,15 +247,19 @@ export class ProposalController implements IController {
 
       return;
     }
+
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
+
+    await executedEvent.update({ timestamp });
+
     if (!proposalCreatedEvent) {
       this.Logger.warn('Proposal vote cast event handler: event "%s" (tx hash "%s") handling is skipped because proposal created event not found',
         eventsData.event,
         transactionHash,
       );
 
-      return this.updateBlockViewHeight(eventsData.blockNumber);
+      return;
     }
-
 
     let proposalStatus = ProposalStatus.Active;
     if (executedEvent.succeeded && !executedEvent.defeated) {
@@ -262,47 +268,45 @@ export class ProposalController implements IController {
       proposalStatus = ProposalStatus.Rejected;
     }
 
-    return Promise.all([
-      this.updateBlockViewHeight(eventsData.blockNumber),
-      Proposal.update(
-        { status: proposalStatus },
-        { where: { id: executedEvent.proposalId } },
-      ),
-    ]);
+    await Proposal.update(
+      { status: proposalStatus },
+      { where: { id: executedEvent.proposalId } },
+    );
   }
 
-  public async collectAllUncollectedEvents(fromBlockNumber: number) {
-    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+  public async syncBlocks(callback?: () => void) {
+    const blockRange: BlocksRange = {
+      to: 'latest',
+      from: await this.getLastCollectedBlock(),
+    }
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', blockRange.from);
 
-    for (const event of events) {
-      try {
-        await this.onEvent(event);
-      } catch (e) {
-        this.Logger.error(e, 'Event processing ended with error');
+    await this.contractProvider.getEvents(blockRange, async (receivedEvents) => {
+      for (const event of receivedEvents.events) {
+        try {
+          await this.onEventHandler(event);
+          await this.updateBlockViewHeight(event.blockNumber);
+        } catch (e) {
+          this.Logger.error(e, 'Event processing ended with error');
 
-        throw e;
+          throw e;
+        }
       }
-    }
 
-    await this.updateBlockViewHeight(lastBlockNumber);
+      await this.updateBlockViewHeight(receivedEvents.lastBlockNumber);
 
-    if (error) {
-      throw error;
-    }
-  }
-
-  public async syncBlocks() {
-    const lastParsedBlock = await this.getLastCollectedBlock();
-
-    await this.collectAllUncollectedEvents(lastParsedBlock);
+      if (receivedEvents.error) {
+        throw receivedEvents.error;
+      }
+      if (callback) {
+        callback();
+      }
+    });
   }
 
   public async start() {
-    await this.collectAllUncollectedEvents(
-      await this.getLastCollectedBlock()
-    );
+
   }
 }
 
@@ -324,7 +328,18 @@ export class ProposalListenerController extends ProposalController {
     );
 
     this.contractProvider.on('events', (async (eventData) => {
-      await this.onEvent(eventData);
+      await this.onEventHandler(eventData);
     }));
+  }
+}
+
+export class ProposalRouterController extends ProposalListenerController {
+  constructor(
+    public readonly web3: Web3,
+    protected readonly Logger: ILogger,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractListenerProvider,
+  ) {
+    super(web3, Logger, network, contractProvider);
   }
 }
