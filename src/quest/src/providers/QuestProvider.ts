@@ -3,6 +3,8 @@ import { Logger } from "../../logger/pino";
 import { EventData } from "web3-eth-contract";
 import {IContractMQProvider, QuestClients} from "./types";
 
+const requireNew = require('require-new');
+
 const asyncFilter = async (arr, predicate) => {
   const results = await Promise.all(arr.map(predicate));
 
@@ -10,7 +12,8 @@ const asyncFilter = async (arr, predicate) => {
 }
 
 export class QuestMQProvider implements IContractMQProvider {
-  private readonly preParsingSteps = 500;
+  protected readonly AbiDecoder;
+  private readonly preParsingSteps = 6000;
   private readonly callbacks = { 'events': [], 'error': [] };
 
   constructor (
@@ -18,7 +21,17 @@ export class QuestMQProvider implements IContractMQProvider {
     public readonly eventViewingHeight: number,
     public readonly clients: QuestClients,
   ) {
-  };
+    this.AbiDecoder = requireNew('abi-decoder');
+    this.AbiDecoder.addABI(this.abi);
+  }
+
+  private decodeLogToEvent(log: any[] | any): EventData[] {
+    if (Array.isArray(log)) {
+      return this.AbiDecoder.decodeLogs(log);
+    }
+
+    return this.AbiDecoder.decodeLogs([log]);
+  }
 
   private async onEventFromBroker(payload: { transactions: Transaction[] }) {
     Logger.info('Quest queue listener provider: received messages from the queue');
@@ -91,40 +104,18 @@ export class QuestMQProvider implements IContractMQProvider {
         if (toBlock >= lastBlockNumber) {
           Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, lastBlockNumber);
 
-          const blocks = await Promise.all(
-            [...Array(lastBlockNumber - fromBlock).keys()]
-              .map(i => i + fromBlock + 1)
-              .map(async bn => this.clients.web3.eth.getBlock(bn, true))
-          );
+          const logs = await this.clients.web3.eth.getPastLogs({
+            fromBlock, toBlock: lastBlockNumber,
+          });
 
-          const txs = blocks
-            .map(block => block.transactions)
-            .reduce((prev, current) => [...prev, ...current]);
+          const trackedLogs = await asyncFilter(logs, async log => !!(
+            await this.clients.questCacheProvider.get(log.address.toLowerCase())
+          ));
 
-          Logger.debug(
-            'Assembled transactions: %o',
-            txs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
-          );
-
-          const tracedTxs = await asyncFilter(txs, async tx =>
-            tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase())
-          );
-
-          Logger.debug(
-            'Traceable transactions: %o',
-            tracedTxs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
-          );
-
-          for (const tx of tracedTxs) {
-            Logger.debug('Traceable transaction: %o', tx);
-
-            const contract = new this.clients.web3.eth.Contract(this.abi, tx.to);
-            const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock: lastBlockNumber });
-
-            collectedEvents.push(...eventsData);
-
-            Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
-            Logger.info('The end of the collection of events on the contract. Total events: "%s"', collectedEvents.length);
+          if (trackedLogs.length !== 0) {
+            collectedEvents.push(
+              ...this.decodeLogToEvent(trackedLogs)
+            )
           }
 
           break;
@@ -132,39 +123,18 @@ export class QuestMQProvider implements IContractMQProvider {
 
         Logger.info('Getting events in a range: from "%s", to "%s"', fromBlock, toBlock);
 
-        const blocks = await Promise.all(
-          [...Array(toBlock - fromBlock).keys()]
-            .map(i => i + fromBlock + 1)
-            .map(async bn => this.clients.web3.eth.getBlock(bn, true))
-        );
+        const logs = await this.clients.web3.eth.getPastLogs({
+          fromBlock, toBlock,
+        });
 
-        const txs = blocks
-          .map(block => block.transactions)
-          .reduce((prev, current) => [...prev, ...current]);
+        const trackedLogs = await asyncFilter(logs, async log => !!(
+          await this.clients.questCacheProvider.get(log.address.toLowerCase())
+        ));
 
-        Logger.debug(
-          'Assembled transactions: %o',
-          txs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
-        );
-
-        const tracedTxs = await asyncFilter(txs, async tx =>
-          tx.to && await this.clients.questCacheProvider.get(tx.to.toLowerCase())
-        );
-
-        Logger.debug(
-          'Traceable transactions: %o',
-          tracedTxs.map(tx => ({ to: tx.to, from: tx.from, hash: tx.hash })),
-        );
-
-        for (const tx of tracedTxs) {
-          Logger.debug('Traceable transaction: %o', { to: tx.to, from: tx.from, hash: tx.hash });
-
-          const contract = new this.clients.web3.eth.Contract(this.abi, tx.to);
-          const eventsData = await contract.getPastEvents('allEvents', { fromBlock, toBlock });
-
-          collectedEvents.push(...eventsData);
-
-          Logger.info('Collected events per range: "%s". Collected events: "%s"', eventsData.length, collectedEvents.length);
+        if (trackedLogs.length !== 0) {
+          collectedEvents.push(
+            ...this.decodeLogToEvent(trackedLogs)
+          )
         }
 
         fromBlock += this.preParsingSteps;

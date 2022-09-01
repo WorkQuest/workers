@@ -11,15 +11,18 @@ import {
   IContractWsProvider,
 } from "../../../types";
 import {
-  BlockchainNetworks,
-  DaoPlatformStatisticFields,
-  Discussion,
   Proposal,
-  ProposalCreatedEvent,
-  ProposalExecutedEvent,
-  ProposalParseBlock,
+  Discussion,
   ProposalStatus,
+  ProposalParseBlock,
+  BlockchainNetworks,
+  ProposalCreatedEvent,
   ProposalVoteCastEvent,
+  ProposalExecutedEvent,
+  DaoPlatformStatisticFields,
+  ProposalDelegateUserHistory,
+  ProposalDelegateChangedEvent,
+  ProposalDelegateVotesChangedEvent,
 } from "@workquest/database-models/lib/models";
 
 export class ProposalController implements IController {
@@ -72,6 +75,10 @@ export class ProposalController implements IController {
       return this.voteCastEventHandler(eventsData);
     } else if (eventsData.event === ProposalEvents.ProposalExecuted) {
       return this.proposalExecutedEventHandler(eventsData);
+    } else if (eventsData.event === ProposalEvents.DelegateChanged) {
+      return this.proposalDelegateChangedEventHandler(eventsData);
+    } else if (eventsData.event === ProposalEvents.DelegateVotesChanged) {
+      return this.proposalDelegateVotesChangedEventHandler(eventsData);
     }
   }
 
@@ -274,6 +281,112 @@ export class ProposalController implements IController {
         { where: { id: executedEvent.proposalId } },
       ),
     ]);
+  }
+
+  protected async proposalDelegateChangedEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    const delegator = eventsData.returnValues.delegator.toLowerCase();
+    const fromDelegate = eventsData.returnValues.fromDelegate.toLowerCase();
+    const toDelegate = eventsData.returnValues.toDelegate.toLowerCase();
+
+    Logger.debug(
+      'Proposal delegate changed event handler: timestamp "%s", event data %o',
+      timestamp, eventsData
+    );
+
+    if (toDelegate !== '0x0000000000000000000000000000000000000000') {
+      const [history, isCreated] = await ProposalDelegateUserHistory.findOrCreate({
+        where: {
+          delegator,
+          delegatee: toDelegate,
+          network: this.network,
+        },
+        defaults: {
+          delegator,
+          timestamp,
+          delegatee: toDelegate,
+          network: this.network,
+        }
+      });
+
+      if (!isCreated) {
+        await history.update({ timestamp });
+      }
+    }
+
+    const [, isCreated] = await ProposalDelegateChangedEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+      },
+      defaults: {
+        timestamp,
+        delegator,
+        toDelegate,
+        fromDelegate,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+      }
+    });
+
+    if (!isCreated) {
+      Logger.warn('Proposal delegate changed event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
+      return;
+    }
+
+    return this.updateBlockViewHeight(eventsData.blockNumber);
+  }
+
+  protected async proposalDelegateVotesChangedEventHandler(eventsData: EventData) {
+    const { timestamp } = await this.clients.web3.eth.getBlock(eventsData.blockNumber);
+
+    const transactionHash = eventsData.transactionHash.toLowerCase();
+
+    const delegator = eventsData.returnValues.delegator.toLowerCase();
+    const delegatee = eventsData.returnValues.delegatee.toLowerCase();
+
+    Logger.debug(
+      'Proposal delegate changed event handler: timestamp "%s", event data %o',
+      timestamp, eventsData
+    );
+
+    const [, isCreated] = await ProposalDelegateVotesChangedEvent.findOrCreate({
+      where: {
+        transactionHash,
+        network: this.network,
+        newBalance: eventsData.returnValues.newBalance,
+        previousBalance: eventsData.returnValues.previousBalance,
+      },
+      defaults: {
+        timestamp,
+        delegator,
+        delegatee,
+        transactionHash,
+        network: this.network,
+        blockNumber: eventsData.blockNumber,
+        newBalance: eventsData.returnValues.newBalance,
+        previousBalance: eventsData.returnValues.previousBalance,
+      }
+    });
+
+    if (!isCreated) {
+      Logger.warn('Proposal delegate votes changes event handler: event "%s" (tx hash "%s") handling is skipped because it has already been created',
+        eventsData.event,
+        transactionHash,
+      );
+
+      return;
+    }
+
+    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   public async collectAllUncollectedEvents(fromBlockNumber: number) {

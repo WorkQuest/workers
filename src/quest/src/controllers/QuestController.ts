@@ -376,11 +376,15 @@ export class QuestController implements IController {
       oldStatus: questModelController.quest.status,
     });
 
+    const recipients: string[] = questModelController.quest.assignedWorkerId
+      ? [questModelController.quest.userId, workerModelController.user.id, questModelController.quest.assignedWorkerId]
+      : [questModelController.quest.userId, workerModelController.user.id]
+
     await questModelController.assignWorkerOnQuest(workerModelController.user);
     await this.clients.notificationsBroker.sendNotification({
-      recipients: [questModelController.quest.userId, workerModelController.user.id],
-      action: QuestNotificationActions.QuestStatusUpdated,
+      recipients,
       data: questModelController.quest,
+      action: QuestNotificationActions.QuestStatusUpdated,
     });
   }
 
