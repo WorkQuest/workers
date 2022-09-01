@@ -1,9 +1,9 @@
 import configBridge from "./config/config.bridge";
 import configServices from "./config/config.services";
 import {getBridgeContractDataByNetwork} from "./src/utils";
+import {SupervisorContractTasks} from "../middleware/middleware.types";
 import {BridgeRouterController} from "./src/controllers/BridgeController";
 import {BlockchainNetworks, initDatabase} from "@workquest/database-models/lib/models";
-import {SupervisorContractTasks} from "../middleware/contract-controllers/contract-controllers.types";
 import {
   LoggerFactory,
   RouterMQClient,

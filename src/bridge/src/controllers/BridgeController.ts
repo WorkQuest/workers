@@ -118,11 +118,11 @@ export class BridgeController implements IController {
       return;
     }
 
-    // await this.notificationClient.notify({
-    //   recipients: [recipient],
-    //   action: BridgeEvents.SwapRedeemed,
-    //   data: eventsData
-    // });
+    await this.notificationClient.notify({
+      recipients: [recipient],
+      action: BridgeEvents.SwapRedeemed,
+      data: eventsData
+    });
   }
 
   public async swapInitializedEventHandler(eventsData: EventData) {
@@ -196,11 +196,11 @@ export class BridgeController implements IController {
       eventsData.returnValues.symbol,
     ]
 
-    // await this.notificationClient.notify({
-    //   recipients: [recipient],
-    //   action: BridgeEvents.SwapInitialized,
-    //   data: eventsData
-    // });
+    await this.notificationClient.notify({
+      recipients: [recipient],
+      action: BridgeEvents.SwapInitialized,
+      data: eventsData
+    });
   }
 
   public async syncBlocks(callback?: () => void) {

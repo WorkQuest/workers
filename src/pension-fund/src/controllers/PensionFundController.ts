@@ -1,20 +1,22 @@
 import Web3 from "web3";
 import {Op} from "sequelize";
-import {ILogger, PensionFundEvents} from './types';
-import {EventData} from 'web3-eth-contract';
-import {INotificationSenderClient} from "../../../middleware";
+import {PensionFundEvents} from "./types";
+import {EventData} from "web3-eth-contract";
+import {BlocksRange} from "../../../middleware/middleware.types"
 import {
+  ILogger,
   IController,
   IContractProvider,
   IContractListenerProvider,
-} from "../../../types";
+  INotificationSenderClient,
+} from "../../../middleware/middleware.interfaces";
 import {
   BlockchainNetworks,
   PensionFundBlockInfo,
-  PensionFundReceivedEvent,
   PensionFundWithdrewEvent,
+  PensionFundReceivedEvent,
   PensionFundWalletUpdatedEvent,
-} from '@workquest/database-models/lib/models';
+} from "@workquest/database-models/lib/models";
 
 export class PensionFundController implements IController {
   constructor(
@@ -22,11 +24,11 @@ export class PensionFundController implements IController {
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
     public readonly contractProvider: IContractProvider,
-    protected readonly notificationClient: INotificationClient,
+    protected readonly notificationClient: INotificationSenderClient,
   ) {
   }
 
-  protected async onEvent(eventsData: EventData) {
+  protected async onEventHandler(eventsData: EventData) {
     this.Logger.info('Event handler: name "%s", block number "%s", address "%s"',
       eventsData.event,
       eventsData.blockNumber,
@@ -105,8 +107,6 @@ export class PensionFundController implements IController {
       action: eventsData.event,
       data: eventsData
     });
-
-    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   protected async withdrewEventHandler(eventsData: EventData) {
@@ -148,8 +148,6 @@ export class PensionFundController implements IController {
       action: eventsData.event,
       data: eventsData
     });
-
-    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
   protected async walletUpdatedEventHandler(eventsData: EventData) {
@@ -192,42 +190,40 @@ export class PensionFundController implements IController {
       action: eventsData.event,
       data: eventsData
     });
-
-    return this.updateBlockViewHeight(eventsData.blockNumber);
   }
 
-  protected async collectAllUncollectedEvents(fromBlockNumber: number) {
-    this.Logger.info('Start collecting all uncollected events from block number: %s.', fromBlockNumber);
+  public async syncBlocks(callback?: () => void) {
+    const blockRange: BlocksRange = {
+      to: 'latest',
+      from: await this.getLastCollectedBlock(),
+    }
 
-    const { events, error, lastBlockNumber } = await this.contractProvider.getEvents(fromBlockNumber);
+    this.Logger.info('Start collecting all uncollected events from block number: %s.', blockRange.from);
 
-    for (const event of events) {
-      try {
-        await this.onEvent(event);
-      } catch (e) {
-        this.Logger.error(e, 'Event processing ended with error');
+    await this.contractProvider.getEvents(blockRange, async (receivedEvents) => {
+      for (const event of receivedEvents.events) {
+        try {
+          await this.onEventHandler(event);
+          await this.updateBlockViewHeight(event.blockNumber);
+        } catch (e) {
+          this.Logger.error(e, 'Event processing ended with error');
 
-        throw e;
+          throw e;
+        }
       }
-    }
 
-    await this.updateBlockViewHeight(lastBlockNumber);
+      await this.updateBlockViewHeight(receivedEvents.lastBlockNumber);
 
-    if (error) {
-      throw error;
-    }
-  }
-
-  public async syncBlocks() {
-    const lastParsedBlock = await this.getLastCollectedBlock();
-
-    await this.collectAllUncollectedEvents(lastParsedBlock);
+      if (receivedEvents.error) {
+        throw receivedEvents.error;
+      }
+      if (callback) {
+        callback();
+      }
+    });
   }
 
   public async start() {
-    await this.collectAllUncollectedEvents(
-      await this.getLastCollectedBlock()
-    );
   }
 }
 
@@ -236,8 +232,8 @@ export class PensionFundListenerController extends PensionFundController {
     protected readonly web3: Web3,
     protected readonly Logger: ILogger,
     public readonly network: BlockchainNetworks,
-    public readonly notificationClient: INotificationClient,
     public readonly contractProvider: IContractListenerProvider,
+    public readonly notificationClient: INotificationSenderClient,
   ) {
     super(web3, Logger, network, contractProvider, notificationClient);
   }
@@ -250,7 +246,19 @@ export class PensionFundListenerController extends PensionFundController {
     );
 
     this.contractProvider.on('events', (async (eventData) => {
-      await this.onEvent(eventData);
+      await this.onEventHandler(eventData);
     }));
+  }
+}
+
+export class PensionRouterController extends PensionFundListenerController {
+  constructor(
+    protected readonly web3: Web3,
+    protected readonly Logger: ILogger,
+    public readonly network: BlockchainNetworks,
+    public readonly contractProvider: IContractListenerProvider,
+    public readonly notificationClient: INotificationSenderClient,
+  ) {
+    super(web3, Logger, network, contractProvider, notificationClient);
   }
 }

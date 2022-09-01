@@ -3,10 +3,10 @@ import configServices from "./config/config.services";
 import configBridgeUsdt from "./config/config.bridge-usdt";
 import {getBridgeUsdtContractDataByNetwork} from "./src/utils";
 import {SupervisorContractTasks} from "../middleware/middleware.types"
+import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
 import {BridgeUsdtController} from "./src/controllers/BridgeUsdtController";
 import {ContractRpcProvider, ContractSupervisor, LoggerFactory} from "../middleware";
 import {BlockchainNetworks, initDatabase} from "@workquest/database-models/lib/models";
-import {OraclePricesProvider} from "./src/providers/OraclePricesProvider";
 
 async function init() {
   const network = configBridgeUsdt.network() as BlockchainNetworks;

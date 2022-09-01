@@ -5,10 +5,22 @@ import {getBridgeContractDataByNetwork} from "./src/utils";
 import {BridgeController} from "./src/controllers/BridgeController";
 import {SupervisorContractTasks} from "../middleware/middleware.types"
 import {BlockchainNetworks, initDatabase} from "@workquest/database-models/lib/models";
-import {ContractRpcProvider, ContractSupervisor, LoggerFactory, NotificationMQSenderClient} from "../middleware";
+import {
+  LoggerFactory,
+  ContractSupervisor,
+  ContractRpcProvider,
+  NotificationMQSenderClient,
+} from "../middleware";
 
 async function init() {
   const network = configBridge.network() as BlockchainNetworks;
+
+  if (!network) {
+    throw new Error('Network argv is undefined. Use arg --network=NetworkName');
+  }
+
+  await initDatabase(configServices.database.postgresLink, false, false);
+
   const { linkRpcProvider } = configBridge.configForNetwork();
 
   const Logger = LoggerFactory.createLogger(`WorkerBridge:${network || ''}`, 'Common');
@@ -20,8 +32,6 @@ async function init() {
 
   const bridgeContractData = getBridgeContractDataByNetwork(network);
   const bridgeContract = new web3.eth.Contract(bridgeContractData.getAbi(), bridgeContractData.address);
-
-  await initDatabase(configServices.database.postgresLink, false, false);
 
   const notificationSenderClient = await new NotificationMQSenderClient(configServices.messageOriented.notificationMessageBrokerLink, 'bridge')
     .on('error', (error) => {
