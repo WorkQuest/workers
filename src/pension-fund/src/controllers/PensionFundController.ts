@@ -70,22 +70,18 @@ export class PensionFundController implements IController {
   }
 
   protected async receivedEventHandler(eventsData: EventData) {
-    const block = await this.web3.eth.getBlock(eventsData.blockNumber);
-
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
     this.Logger.debug(
-      'Received event handler: timestamp "%s", event data %o',
-      block.timestamp, eventsData
+      'Received event handler: event data %o', eventsData,
     );
 
-    const [, isCreated] = await PensionFundReceivedEvent.findOrCreate({
+    const [receivedEvent, isCreated] = await PensionFundReceivedEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         user,
         transactionHash,
-        timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
         amount: eventsData.returnValues.amount,
         event: PensionFundEvents.Received,
@@ -102,6 +98,10 @@ export class PensionFundController implements IController {
       return;
     }
 
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
+
+    await receivedEvent.update({ timestamp });
+
     await this.notificationClient.notify({
       recipients: [user],
       action: eventsData.event,
@@ -110,23 +110,19 @@ export class PensionFundController implements IController {
   }
 
   protected async withdrewEventHandler(eventsData: EventData) {
-    const block = await this.web3.eth.getBlock(eventsData.blockNumber);
-
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
     this.Logger.debug(
-      'Withdrew event handler: timestamp "%s", event data %o',
-      block.timestamp,
+      'Withdrew event handler: event data %o',
       eventsData,
     );
 
-    const [, isCreated] = await PensionFundWithdrewEvent.findOrCreate({
+    const [fundWithdrewEvent, isCreated] = await PensionFundWithdrewEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         user,
         transactionHash,
-        timestamp: block.timestamp,
         blockNumber: eventsData.blockNumber,
         amount: eventsData.returnValues.amount,
         event: PensionFundEvents.Withdrew,
@@ -143,6 +139,10 @@ export class PensionFundController implements IController {
       return;
     }
 
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
+
+    await fundWithdrewEvent.update({ timestamp });
+
     await this.notificationClient.notify({
       recipients: [user],
       action: eventsData.event,
@@ -151,22 +151,18 @@ export class PensionFundController implements IController {
   }
 
   protected async walletUpdatedEventHandler(eventsData: EventData) {
-    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
-
     const transactionHash = eventsData.transactionHash.toLowerCase();
     const user = eventsData.returnValues.user.toLowerCase();
 
     this.Logger.debug(
-      'Wallet updated event handler: timestamp "%s", event data %o',
-      timestamp,
+      'Wallet updated event handler: event data %o',
       eventsData,
     );
 
-    const [, isCreated] = await PensionFundWalletUpdatedEvent.findOrCreate({
+    const [walletUpdatedEvent, isCreated] = await PensionFundWalletUpdatedEvent.findOrCreate({
       where: { transactionHash, network: this.network },
       defaults: {
         user,
-        timestamp,
         transactionHash,
         blockNumber: eventsData.blockNumber,
         newFee: eventsData.returnValues.newFee,
@@ -184,6 +180,10 @@ export class PensionFundController implements IController {
 
       return;
     }
+
+    const { timestamp } = await this.web3.eth.getBlock(eventsData.blockNumber);
+
+    await walletUpdatedEvent.update({ timestamp });
 
     await this.notificationClient.notify({
       recipients: [user],

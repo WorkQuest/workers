@@ -26,6 +26,9 @@
     "bridge-usdt:router:eth:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.router.js --networks=rinkebyTestNetwork\"",
     "bridge-usdt:router:poligon:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.router.js --networks=mumbaiTestNetwork\"",
 
+    "pension-fund:rpc:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.rpc.js --networks=workQuestDevNetwork\"",
+    "pension-fund:router:bsc:start": "tsc && nodemon -e ts --exec \"node ./build/bridge-usdt/index.router.js --networks=workQuestDevNetwork\"",
+
 
 
     "proposal:start": "nodemon -e ts --exec \"npm run proposal:compile\"",

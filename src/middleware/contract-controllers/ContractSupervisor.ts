@@ -12,16 +12,9 @@ export class ContractSupervisor {
   ) {
   }
 
-  private tm = { i: 0, tm: [] };
-
   private runTaskBlockHeightSync() {
-    console.log(this.tm.i, this.tm.tm);
-
     setTimeout(async () => {
       await this.controller.syncBlocks(() => {
-        this.tm.i++;
-        this.tm.tm.push(Date.now());
-
         this.runTaskBlockHeightSync();
       });
     }, this.options.blockHeightSync.pollPeriod);

@@ -1,14 +1,13 @@
 import Web3 from 'web3';
 import configServices from "./config/config.services";
 import configPensionFund from "./config/config.pension-fund";
-import {SupervisorContractTasks} from "../middleware/middleware.types";
-import {PensionRouterController} from "./src/controllers/PensionFundController";
+import {SupervisorContractTasks} from "../middleware/middleware.types"
+import {PensionFundController} from "./src/controllers/PensionFundController";
 import {BlockchainNetworks, initDatabase} from "@workquest/database-models/lib/models";
 import {
   LoggerFactory,
-  RouterMQClient,
   ContractSupervisor,
-  ContractRouterProvider,
+  ContractRpcProvider,
   NotificationMQSenderClient,
 } from "../middleware";
 import {
@@ -27,25 +26,15 @@ async function init() {
   await initDatabase(configServices.database.postgresLink, false, false);
 
   const Logger = LoggerFactory.createLogger(`PensionFund:${network || ''}`, 'Common');
-  const PensionFundRouterProviderLogger = LoggerFactory.createLogger(`PensionFund:${network || ''}`, 'RouterProvider');
+  const PensionFundRpcProviderLogger = LoggerFactory.createLogger(`PensionFund:${network || ''}`, 'RpcProvider');
   const PensionFundControllerLogger = LoggerFactory.createLogger(`PensionFund:${network || ''}`, 'PensionFundController');
   const PensionFundContractSupervisorLogger = LoggerFactory.createLogger(`PensionFund:${network || ''}`, 'PensionFundSupervisor');
 
   const { linkRpcProvider } = configPensionFund.configForNetwork();
-  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.PensionFund];
-
   const web3 = new Web3(new Web3.providers.HttpProvider(linkRpcProvider));
 
-  const pensionFundRouterClient = await new RouterMQClient(
-    configServices.messageOriented.routerClientMessageBrokerLink,
-    'PensionFund',
-    network,
-  )
-    .on('error', error => {
-      Logger.error(error, 'RouterClient stopped with error.');
-      process.exit(-1);
-    })
-    .init()
+  const contractData = Store[Networks.WorkQuest][WorkQuestNetworkContracts.PensionFund];
+  const contract = new web3.eth.Contract(contractData.getAbi(), contractData.address);
 
   const notificationSenderClient = await new NotificationMQSenderClient(configServices.messageOriented.notificationMessageBrokerLink, 'pension_fund')
     .on('error', error => {
@@ -54,16 +43,16 @@ async function init() {
     })
     .init()
 
-  const pensionFundProvider = new ContractRouterProvider(
+  const pensionFundProvider = new ContractRpcProvider(
     contractData.address,
     contractData.deploymentHeight,
-    contractData.getAbi(),
-    PensionFundRouterProviderLogger,
-    pensionFundRouterClient,
-  )
-    .startListener()
+    web3,
+    contract,
+    PensionFundRpcProviderLogger,
+    { stepsRange: 5000 }
+  );
 
-  const pensionFundController = new PensionRouterController(
+  const pensionFundController = new PensionFundController(
     web3,
     PensionFundControllerLogger,
     network,
@@ -74,7 +63,7 @@ async function init() {
   await new ContractSupervisor(
     PensionFundContractSupervisorLogger,
     pensionFundController,
-    { blockHeightSync: { pollPeriod: 25000 } },
+    { blockHeightSync: { pollPeriod: 4000 } },
     pensionFundProvider,
   )
     .startTasks(SupervisorContractTasks.BlockHeightSync)
@@ -84,4 +73,3 @@ init().catch((error) => {
   console.log(error)
   process.exit(-1);
 });
-
