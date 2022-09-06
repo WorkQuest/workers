@@ -1,3 +1,5 @@
+See flow [workers-flow.html](https://github.com/WorkQuest/workers/blob/master/workers-flow.html)
+
 # Bridge
 
 Env example [env](https://github.com/WorkQuest/workers/blob/master/ci-scripts/roles/backend-update/templates/.env.bridge.j2)
