@@ -48,7 +48,7 @@
   "dependencies": {
     "@sentry/node": "^6.19.2",
     "@workquest/contract-data-pools": "github:WorkQuest/contract-data-pools#mainet",
-    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#c8a9bd4afcf0e141322151a226ddd3b17b916187",
+    "@workquest/database-models": "git+https://github.com/WorkQuest/database-models.git#dfd866a947949e019ed347559dc28ea47be7dd5e",
     "abi-decoder": "^2.4.0",
     "amqplib": "^0.8.0",
     "axios": "^0.25.0",
