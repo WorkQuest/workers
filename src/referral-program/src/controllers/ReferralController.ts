@@ -47,7 +47,7 @@ export class ReferralController implements IController {
   }
 
   public async getLastCollectedBlock(): Promise<number> {
-    const [{ lastParsedBlock }, ] = await ReferralProgramParseBlock.findOrCreate({
+    const [{ lastParsedBlock },] = await ReferralProgramParseBlock.findOrCreate({
       where: { network: this.network },
       defaults: {
         network: this.network,
@@ -83,7 +83,12 @@ export class ReferralController implements IController {
     );
 
     const [, isCreated] = await ReferralProgramEventRegisteredAffiliate.findOrCreate({
-      where: { transactionHash, network: this.network },
+      where: {
+        transactionHash,
+        network: this.network,
+        referral: referralAddress,
+        affiliate: affiliateAddress
+      },
       defaults: {
         timestamp,
         transactionHash,
@@ -103,12 +108,6 @@ export class ReferralController implements IController {
       return;
     }
 
-    await this.clients.notificationsBroker.sendNotification({
-      data: eventsData,
-      action: eventsData.event,
-      recipients: [referralAddress],
-    });
-
     const [referralWallet,] = await Promise.all([
       Wallet.findOne({
         where: { address: referralAddress },
@@ -124,6 +123,12 @@ export class ReferralController implements IController {
 
       return;
     }
+
+    await this.clients.notificationsBroker.sendNotification({
+      data: eventsData,
+      action: eventsData.event,
+      recipients: [referralWallet.userId],
+    });
 
     return ReferralProgramReferral.update(
       { referralStatus: ReferralStatus.Registered },
@@ -144,7 +149,12 @@ export class ReferralController implements IController {
     );
 
     const [_, isCreated] = await ReferralProgramEventPaidReferral.findOrCreate({
-      where: { transactionHash, network: this.network },
+      where: {
+        transactionHash,
+        network: this.network,
+        referral: referralAddress,
+        affiliate: affiliateAddress,
+      },
       defaults: {
         timestamp,
         transactionHash,
@@ -177,15 +187,29 @@ export class ReferralController implements IController {
         model: Media.scope('urlOnly'),
         as: 'avatar',
       }]
-    })
-
-    eventsData['timestamp'] = timestamp
-
-    await this.clients.notificationsBroker.sendNotification({
-      data: { referral: userInfo, event: eventsData },
-      action: eventsData.event,
-      recipients: [affiliateAddress],
     });
+
+    const affiliateInfo = await User.unscoped().findOne({
+      attributes: ['id'],
+      include: [{
+        model: Wallet,
+        where: { address: affiliateAddress },
+        as: 'wallet',
+        required: true,
+        attributes: []
+      }],
+    });
+
+    if (affiliateInfo) {
+      await this.clients.notificationsBroker.sendNotification({
+        action: eventsData.event,
+        recipients: [affiliateInfo.id],
+        data: {
+          referral: userInfo,
+          event: { ...eventsData, timestamp },
+        },
+      });
+    }
 
     const [referralWallet,] = await Promise.all([
       Wallet.findOne({
@@ -221,7 +245,11 @@ export class ReferralController implements IController {
     );
 
     const [_, isCreated] = await ReferralProgramEventRewardClaimed.findOrCreate({
-      where: { transactionHash, network: this.network },
+      where: {
+        network: this.network,
+        affiliate: affiliateAddress,
+        transactionHash,
+      },
       defaults: {
         timestamp,
         transactionHash,
@@ -241,12 +269,6 @@ export class ReferralController implements IController {
       return;
     }
 
-    await this.clients.notificationsBroker.sendNotification({
-      data: eventsData,
-      action: eventsData.event,
-      recipients: [affiliateAddress],
-    });
-
     const [affiliateWallet,] = await Promise.all([
       Wallet.findOne({
         where: { address: affiliateAddress },
@@ -262,6 +284,12 @@ export class ReferralController implements IController {
 
       return;
     }
+
+    await this.clients.notificationsBroker.sendNotification({
+      data: eventsData,
+      action: eventsData.event,
+      recipients: [affiliateWallet.userId],
+    });
 
     await ReferralProgramAffiliate.update(
       { status: RewardStatus.Claimed },
