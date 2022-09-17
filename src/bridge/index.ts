@@ -102,7 +102,7 @@ export async function init() {
     wqBridgeController,
     wqBridgeProvider,
   )
-  .setHeightSyncOptions({ period: 300000 })
+  .setHeightSyncOptions({ period: 15000 })
   .startTasks(SupervisorContractTasks.BlockHeightSync)
 
   await new SupervisorContract(
