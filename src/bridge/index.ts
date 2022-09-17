@@ -54,8 +54,8 @@ export async function init() {
   const bridgeEthContract = new web3Eth.eth.Contract(contractEthData.getAbi(), contractEthData.address);
 
   Logger.debug('WorkQuest network contract address: "%s"', contractWorkNetData.address);
-  Logger.debug('Binance smart chain contract address: "%s"', contractBnbData.contractAddress);
-  Logger.debug('Ethereum network contract address: "%s"', contractEthData.contractAddress);
+  Logger.debug('Binance smart chain contract address: "%s"', contractBnbData.address);
+  Logger.debug('Ethereum network contract address: "%s"', contractEthData.address);
 
   const wqClients: BridgeWorkNetClients = { web3: web3Wq, transactionsBroker, notificationsBroker };
   const bscClients: BridgeEthClients = { web3: web3Bsc, webSocketProvider: bscRpcProvider, notificationsBroker };
