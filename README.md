@@ -1,4 +1,4 @@
-See flow [workers-flow.png](https://github.com/WorkQuest/workers/blob/master/workers-flow.png)
+See flow [workers-flow.png](https://github.com/WorkQuest/workers/blob/master/workers-flow.png) 
 
 # Bridge
 
